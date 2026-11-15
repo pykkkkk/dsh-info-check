@@ -1,0 +1,3 @@
+- insert:
+    - id: dsh-info-check
+      name: '@local/dsh-info-check'

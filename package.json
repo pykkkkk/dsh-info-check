@@ -1,0 +1,64 @@
+{
+  "name": "@local/dsh-info-check",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "DSH confirmation gate: intent check, one plan confirmation, per-milestone acceptance, delivery sign-off, and a workspace ledger.",
+  "license": "MIT",
+  "author": "dsh-info-check contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pykkkkk/dsh-info-check.git"
+  },
+  "homepage": "https://github.com/pykkkkk/dsh-info-check#readme",
+  "bugs": {
+    "url": "https://github.com/pykkkkk/dsh-info-check/issues"
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "plugin",
+    "bundle",
+    "confirmation",
+    "guardrails",
+    "human-in-the-loop"
+  ],
+  "engines": {
+    "node": ">=20",
+    "dsh": ">=0.2.2-rc.3 <0.3.0"
+  },
+  "scripts": {
+    "check": "node --check index.js && node --check client.js && node --check lib/pure.js",
+    "test": "node test/pure.test.mjs && node test/client.smoke.mjs"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "lib",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "docs",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "icon.svg"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  }
+}
