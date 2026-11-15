@@ -31,6 +31,8 @@ Detailed design and flow notes (Chinese): [docs/DETAIL.md](docs/DETAIL.md). UI n
 
 Rendered from the plugin's actual dialog styles against a neutral mock chat background. They are UI previews, not captures of a specific live session. The interface is shown in Chinese; the English strings ship in the same bundle.
 
+**Social preview source:** [docs/social-preview.png](docs/social-preview.png) (1280×640, under 1 MB). GitHub does not accept Social preview via git or its public API; upload it under **Settings → General → Social preview**.
+
 | Intent check — editable brief | Plan confirmation — once |
 |---|---|
 | [![Intent check](docs/screenshots/01-intent-check.png)](docs/screenshots/01-intent-check.png) | [![Plan confirmation](docs/screenshots/02-plan-confirmation.png)](docs/screenshots/02-plan-confirmation.png) |
