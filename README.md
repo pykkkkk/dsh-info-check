@@ -1,5 +1,7 @@
 # dsh-info-check
 
+English | [中文](README.zh.md)
+
 Repository: <https://github.com/pykkkkk/dsh-info-check>
 
 A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) bundle that puts **confirmation gates** around agent work: clarify intent first, confirm the plan once, accept every milestone, and sign off before the final result.
@@ -24,6 +26,18 @@ This is an independent community bundle, not an official DeepSeek package.
 Every confirmation is a centered floating window with a read-only or editable report, a confirm checkbox, a primary action, and — for the three timed gates — a 60-second countdown with a **Stop timer** button. “Needs rework / Needs adjustment” opens a second floating window for the reason; that reason goes back to the model as `feedback`.
 
 Detailed design and flow notes (Chinese): [docs/DETAIL.md](docs/DETAIL.md). UI notes: [docs/UI.md](docs/UI.md).
+
+## Screenshots
+
+Rendered from the plugin's actual dialog styles against a neutral mock chat background. They are UI previews, not captures of a specific live session. The interface is shown in Chinese; the English strings ship in the same bundle.
+
+| Intent check — editable brief | Plan confirmation — once |
+|---|---|
+| [![Intent check](docs/screenshots/01-intent-check.png)](docs/screenshots/01-intent-check.png) | [![Plan confirmation](docs/screenshots/02-plan-confirmation.png)](docs/screenshots/02-plan-confirmation.png) |
+| **Milestone acceptance — read-only report** | **Delivery confirmation — read-only report** |
+| [![Milestone acceptance](docs/screenshots/03-milestone-acceptance.png)](docs/screenshots/03-milestone-acceptance.png) | [![Delivery confirmation](docs/screenshots/04-delivery-confirmation.png)](docs/screenshots/04-delivery-confirmation.png) |
+| **Rework notes — opened by “Needs rework”** | **Adjustment notes — opened by “Needs adjustment”** |
+| [![Rework notes](docs/screenshots/05-rework-notes.png)](docs/screenshots/05-rework-notes.png) | [![Adjustment notes](docs/screenshots/06-adjustment-notes.png)](docs/screenshots/06-adjustment-notes.png) |
 
 ## Flow
 
@@ -146,7 +160,7 @@ client.js             Browser plugin: dialogs, header/hero switch, settings plac
 lib/pure.js           Validation, section rendering, outcomes, ledger entries
 test/                 Node-only tests (no DSH required)
 locale/               Plugin-manager display metadata
-docs/                 Detail page, UI notes, manual test plan
+docs/                 Detail page, UI notes, manual test plan, screenshots
 cordis.patch.yml      Bundle patch row
 icon.svg              Original icon
 ```
