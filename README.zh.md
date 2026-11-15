@@ -1,5 +1,7 @@
 # dsh-info-check
 
+![dsh-info-check — 给 Agent 工作加四道确认闸门](docs/social-preview.png)
+
 [English](README.md) | 中文
 
 仓库：<https://github.com/pykkkkk/dsh-info-check>

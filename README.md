@@ -1,5 +1,7 @@
 # dsh-info-check
 
+![dsh-info-check — confirmation gates for DeepSeek Harness](docs/social-preview.png)
+
 English | [中文](README.zh.md)
 
 Repository: <https://github.com/pykkkkk/dsh-info-check>
