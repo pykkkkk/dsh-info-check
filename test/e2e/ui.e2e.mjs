@@ -242,6 +242,16 @@ try {
   const deliveryAnswer = await latestAnswer()
   assert.equal(deliveryAnswer.answers[0].custom, 'E2E 交付备注')
 
+  // The top-right X submits a skip answer for every panel, not a dismissal.
+  for (const method of ['renderIntent', 'renderMilestone', 'renderAccept', 'renderDelivery']) {
+    await page.evaluate(name => window.__E2E[name](), method)
+    await page.waitForSelector('.ic-card')
+    await page.locator('.ic-icon-btn').click()
+    await page.waitForFunction(() => window.__TEST.answers.length === 1)
+    const skipped = await latestAnswer()
+    assert(skipped.answers[0].selected.includes('__skip__'), `${method} X should submit skip`)
+  }
+
   assert.deepEqual(pageErrors, [], `page errors: ${pageErrors.join(' | ')}`)
   console.log('dsh-info-check browser E2E: ok')
 } finally {

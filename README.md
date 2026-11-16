@@ -31,6 +31,8 @@ Dialogs are **resizable from the right edge**; the maximum width equals the dial
 
 Detail questions support click-again-to-clear selection and a free-form **Other** input. The milestone acceptance card adds **Pause task**, and an optional `files` list whose paths open the file location in Explorer.
 
+Clicking the top-right **X** means **skip**, not cancel: the tool proceeds with the agent's version and continues to the next stage without user input.
+
 Detailed design and flow notes (Chinese): [docs/DETAIL.md](docs/DETAIL.md). UI notes: [docs/UI.md](docs/UI.md).
 
 ## Screenshots

@@ -18,6 +18,7 @@ window.__ModuleLoader__.load({
     const ACCEPT_LABEL = '验收通过'
     const REWORK_LABEL = '需要返工'
     const ACCEPT_PAUSE_LABEL = '暂停任务'
+    const SKIP_LABEL = '__skip__'
     const DELIVER_LABEL = '确认并交付'
     const ADJUST_DELIVERY_LABEL = '需要调整'
 
@@ -225,7 +226,7 @@ window.__ModuleLoader__.load({
       'panel.detailsHint': '以下问题可以只选你关心的；不选表示跳过。',
       'panel.multiHint': '可多选',
       'panel.textPlaceholder': '也可以直接写你的选择',
-      'panel.close': '关闭',
+      'panel.close': '关闭并跳过',
       'panel.countdown': '自动跳过',
       'panel.countdownPaused': '已暂停',
       'panel.continued': '已超时，仍可提交',
@@ -336,7 +337,7 @@ window.__ModuleLoader__.load({
       'panel.detailsHint': 'Answer only what matters; leave a question blank to skip it.',
       'panel.multiHint': 'multi-select',
       'panel.textPlaceholder': 'Or type your answer',
-      'panel.close': 'Close',
+      'panel.close': 'Close and skip',
       'panel.countdown': 'Auto-skip in',
       'panel.countdownPaused': 'Paused',
       'panel.continued': 'Timed out — still answerable',
@@ -850,7 +851,9 @@ window.__ModuleLoader__.load({
         const close = () => {
           if (busy) return
           setBusy(true)
-          pending.dismiss().catch(() => { setBusy(false) })
+          pending.answer({
+            answers: [{ id: BRIEF_ID, selected: [SKIP_LABEL] }],
+          }).catch(() => { setBusy(false) })
         }
 
         const toggleOption = (question, label) => {
@@ -1066,7 +1069,9 @@ window.__ModuleLoader__.load({
         const close = () => {
           if (busy) return
           setBusy(true)
-          pending.dismiss().catch(() => { setBusy(false) })
+          pending.answer({
+            answers: [{ id: MILESTONE_ID, selected: [SKIP_LABEL] }],
+          }).catch(() => { setBusy(false) })
         }
 
         const submit = () => {
@@ -1168,7 +1173,9 @@ window.__ModuleLoader__.load({
         const close = () => {
           if (busy) return
           setBusy(true)
-          pending.dismiss().catch(() => { setBusy(false) })
+          pending.answer({
+            answers: [{ id: config.id, selected: [SKIP_LABEL] }],
+          }).catch(() => { setBusy(false) })
         }
 
         const openReason = () => {

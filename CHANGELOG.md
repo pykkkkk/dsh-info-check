@@ -17,6 +17,8 @@ simple `MAJOR.MINOR.PATCH` version; DSH compatibility is pinned by
   confirmation has a free-form Notes field. Point boxes grow with their content.
 - Detail questions: single-select options toggle off on a second click; every
   option question has a free-form “Other” input.
+- Top-right X means skip: the tool continues with the agent's version instead
+  of cancelling the turn.
 - Milestone acceptance adds a **Pause task** action and an optional `files`
   list whose paths open the file location in Explorer.
 - Settings window: milestone count, expectation level (perfect/good/pass),

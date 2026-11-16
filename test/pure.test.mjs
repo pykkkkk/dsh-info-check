@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import {
-  ACCEPT_LABEL, ADJUST_DELIVERY_LABEL, ADJUST_MILESTONE_LABEL, APPROVE_MILESTONE_LABEL, DELIVER_LABEL, PAUSE_LABEL, REWORK_LABEL,
+  ACCEPT_LABEL, ADJUST_DELIVERY_LABEL, ADJUST_MILESTONE_LABEL, APPROVE_MILESTONE_LABEL, DELIVER_LABEL, PAUSE_LABEL, REWORK_LABEL, SKIP_LABEL,
   acceptanceDetail, acceptanceLedger, acceptanceOutcome,
   briefMarkdown, deliveryDetail, deliveryLedger, deliveryOutcome,
   infoCheckLedger, intentOutcome, milestoneLedger, milestoneOutcome, numberPoints, readFlag,
@@ -112,8 +112,8 @@ const sameLedger = infoCheckLedger(brief, {
 }, '2026-11-16 00:30:00')
 assert.match(sameLedger, /无修改/)
 
-const skipped = infoCheckLedger(brief, { confirmed: false, reason: 'skipped', answers: [] }, '2026-11-16 00:30:00')
-assert.match(skipped, /未确认/)
+const skipped = infoCheckLedger(brief, { confirmed: true, reason: 'skipped', editedBrief: '', answers: [] }, '2026-11-16 00:30:00')
+assert.match(skipped, /关闭，按跳过处理/)
 
 const milestoneEntry = milestoneLedger(milestone, { decision: 'timeout' }, '2026-11-16 00:31:00')
 assert.match(milestoneEntry, /里程碑确认/)
@@ -230,5 +230,19 @@ assert.equal(
   '1. 运行：\n\n```sh\nnpm test\n```\n\n2. 验证',
 )
 assert.equal(numberPoints('# 方案\n- 第一点'), '# 方案\n\n1. 第一点')
+
+const skipIntent = intentOutcome({ answers: [{ id: 'intent-brief', selected: [SKIP_LABEL] }] })
+assert.equal(skipIntent.confirmed, true)
+assert.equal(skipIntent.reason, 'skipped')
+assert.equal(milestoneOutcome({ selected: [SKIP_LABEL] }, 'plan').decision, 'skipped')
+assert.equal(milestoneOutcome({ selected: [SKIP_LABEL] }, 'plan').proceed, true)
+assert.equal(acceptanceOutcome({ selected: [SKIP_LABEL] }).decision, 'skipped')
+assert.equal(acceptanceOutcome({ selected: [SKIP_LABEL] }).proceed, true)
+assert.equal(deliveryOutcome({ selected: [SKIP_LABEL] }).decision, 'skipped')
+assert.equal(deliveryOutcome({ selected: [SKIP_LABEL] }).proceed, true)
+assert.match(
+  infoCheckLedger(brief, { confirmed: true, reason: 'skipped', editedBrief: '', answers: [] }),
+  /关闭，按跳过处理/,
+)
 
 console.log('dsh-info-check pure tests: ok')

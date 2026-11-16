@@ -137,8 +137,8 @@ function defaultPolicy(settings) {
 用户偏好：希望拆成 ${milestoneCount} 个里程碑；期望程度为 **${EXPECTATION_LABELS[normalizeExpectation(expectation)]}**。按这个标准设计方案、验收和交付确认。
 
 1. 先调用 \`info_check\`：用一段话复述目标；列出 ${minQuestions}–${maxQuestions} 条真正影响结果的**细节**核对问题（每题给选项，推荐项放第一并标注“（推荐）”）；给出可检查的完成标准（quality_bar）、明确的范围外（out_of_scope）、${milestoneRule}（milestones）。所有要点每点单独一行/一段，用 1. 2. 3. 编号，不要挤成一段。第一张卡是**可编辑的核对单**：用户会直接在你的版本上修改、补充，勾选确认后才进入细节选择；返回的 \`edited_brief\` 若与你的版本不同，以 \`edited_brief\` 为准。
-2. 用户确认之前，不要写文件、改代码、安装依赖或做不可逆操作；可以先读文件、搜索、调研。用户明确说“直接做 / 别问了”时，可以跳过核对。
-3. \`confirmed=true\` 后再开工；\`confirmed=false\`（用户没有提交核对单或关闭了卡片）时不要执行；需要时按用户的最新说法重新发起核对。
+2. 用户点卡片右上角的 X 表示**跳过**，不是取消任务：工具会返回 confirmed=true / decision=skipped，按 agent 原始版本自动进入下一阶段；不要重新发起确认，也不要停下来等待。
+3. \`confirmed=true\` 后再开工；\`confirmed=false\`（工具明确拒绝或真实失败）时不要执行；需要时按用户的最新说法重新发起核对。
 4. 需求核对确认后，**只调用一次** \`confirm_milestone\`，确认整体执行方案/第一个里程碑（做什么、改哪些文件、怎么验证）；后续里程碑**不再调用** \`confirm_milestone\`，直接执行。方案每一点单独一段并用 1. 2. 3. 编号。卡片顶部会标注 \`dsh-info-check · 里程碑确认\`，方案可编辑；返回的 \`edited_plan\` 若与你的版本不同，以它为准。
 5. \`confirm_milestone\` 的结果：
    - \`approved\` / \`skipped\` / \`timeout\`：按方案执行（timeout 表示用户 ${timeoutSeconds} 秒未操作，已按约定跳过）。
@@ -340,6 +340,15 @@ function createInfoCheckTool({ ctx, enabledFor, getMaxQuestions, ledger }) {
         throw error
       }
       const outcome = intentOutcome(answer)
+      if (outcome.reason === 'skipped') {
+        await ledger.append(agent.session, infoCheckLedger(brief, {
+          confirmed: true,
+          reason: 'skipped',
+          editedBrief: detail,
+          answers: [],
+        }))
+        return { confirmed: true, reason: 'skipped', edited_brief: detail, answers: [] }
+      }
       if (!outcome.confirmed) {
         await ledger.append(agent.session, infoCheckLedger(brief, {
           confirmed: false,
