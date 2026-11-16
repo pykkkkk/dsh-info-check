@@ -124,7 +124,7 @@ It records the agent's report, the user's decision, edited plans, and rework not
 
 ## Configuration
 
-The bundle uses a small **Config schema** (loaded from the DSH-provided schemastery, so the package still has no npm dependencies). All fields are volatile and are normally edited from **Settings** rather than the patch file:
+The bundle uses a small **Config schema** (loaded from the DSH-provided schemastery, so the package still has no runtime npm dependencies). All fields are volatile and are normally edited from **Settings** rather than the patch file:
 
 | Field | Default | Meaning |
 |---|---|---|
@@ -167,7 +167,7 @@ The per-session switch uses a tiny `{ parse }` schema for its `infoCheck` projec
 
 ## Development
 
-No install step is required (there are no dependencies):
+No runtime install step is required (there are no runtime dependencies):
 
 ```sh
 npm run check   # node --check on Host, client and pure helpers
@@ -187,7 +187,7 @@ cordis.patch.yml      Bundle patch row
 icon.svg              Original icon
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/TESTING.md](docs/TESTING.md). Before a release, run the fixed [manual regression checklist](docs/MANUAL-REGRESSION.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/TESTING.md](docs/TESTING.md). Before a release, run the fixed [manual regression checklist](docs/MANUAL-REGRESSION.md). The component browser E2E is documented in [docs/E2E.md](docs/E2E.md).
 
 ## License
 

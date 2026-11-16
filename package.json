@@ -29,7 +29,8 @@
   },
   "scripts": {
     "check": "node --check index.js && node --check client.js && node --check lib/pure.js",
-    "test": "node test/pure.test.mjs && node test/client.smoke.mjs"
+    "test": "node test/pure.test.mjs && node test/client.smoke.mjs",
+    "test:e2e": "powershell -NoProfile -ExecutionPolicy Bypass -File test/e2e/run.ps1"
   },
   "exports": {
     ".": "./index.js",
@@ -61,5 +62,10 @@
         "@deepseek-ai/dsh-client-ui-conversation"
       ]
     }
+  },
+  "devDependencies": {
+    "playwright-core": "1.65.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   }
 }

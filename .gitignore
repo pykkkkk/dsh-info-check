@@ -4,3 +4,7 @@ out-*.txt
 *.log
 .DS_Store
 Thumbs.db
+test/e2e/artifacts/
+test/e2e/.browser-profile/
+test/e2e/.probe-profile/
+test/e2e/.probe-profile-single/

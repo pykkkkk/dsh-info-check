@@ -4,6 +4,8 @@ The fixed release regression pass lives in
 [MANUAL-REGRESSION.md](MANUAL-REGRESSION.md). Use it before tagging a release;
 keep this file for the automated checks and exploratory notes.
 
+Component browser E2E: [E2E.md](E2E.md) (`pnpm test:e2e`).
+
 ## Automated
 
 ```sh

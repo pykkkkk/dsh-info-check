@@ -29,6 +29,8 @@ simple `MAJOR.MINOR.PATCH` version; DSH compatibility is pinned by
 - Open-source packaging: README, CI, contribution and security notes, and a
   manual test plan.
 - Fixed manual regression checklist in `docs/MANUAL-REGRESSION.md`.
+- Component browser E2E with Playwright-core and a local fixture in
+  `test/e2e/` (`pnpm test:e2e`).
 
 ## 0.1.0 — 2026-11-16
 
