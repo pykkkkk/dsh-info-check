@@ -188,5 +188,10 @@ assert.match(deliveryLog, /需要调整/)
 assert.equal(numberPoints('- 第一点\n- 第二点'), '1. 第一点\n\n2. 第二点')
 assert.equal(numberPoints('先做这个\n\n再做那个'), '1. 先做这个\n\n2. 再做那个')
 assert.equal(numberPoints('1. 唯一一点'), '1. 唯一一点')
+assert.equal(
+  numberPoints('1. 运行：\n\n```sh\nnpm test\n```\n\n2. 验证'),
+  '1. 运行：\n\n```sh\nnpm test\n```\n\n2. 验证',
+)
+assert.equal(numberPoints('# 方案\n- 第一点'), '# 方案\n\n1. 第一点')
 
 console.log('dsh-info-check pure tests: ok')
