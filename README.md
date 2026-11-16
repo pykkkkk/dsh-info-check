@@ -25,7 +25,7 @@ This is an independent community bundle, not an official DeepSeek package.
 | Milestone acceptance | `accept_milestone` | After **every** milestone: read-only completion report; accept or request rework with notes |
 | Delivery sign-off | `confirm_delivery` | Before the final result: read-only completion level; confirm or request adjustments |
 
-Every confirmation is a centered floating window with a read-only or editable report, a confirm checkbox, a primary action, and — for the three timed gates — a 60-second countdown with a **Stop timer** button. “Needs rework / Needs adjustment” opens a second floating window for the reason; that reason goes back to the model as `feedback`.
+Every confirmation is a centered floating window with a read-only or editable report, a confirm checkbox, a primary action, and — for the three timed gates — a countdown (60 seconds by default) with a **Stop timer** button. “Needs rework / Needs adjustment” opens a second floating window for the reason; that reason goes back to the model as `feedback`.
 
 Detailed design and flow notes (Chinese): [docs/DETAIL.md](docs/DETAIL.md). UI notes: [docs/UI.md](docs/UI.md).
 
@@ -42,6 +42,10 @@ Rendered from the plugin's actual dialog styles against a neutral mock chat back
 | [![Milestone acceptance](docs/screenshots/03-milestone-acceptance.png)](docs/screenshots/03-milestone-acceptance.png) | [![Delivery confirmation](docs/screenshots/04-delivery-confirmation.png)](docs/screenshots/04-delivery-confirmation.png) |
 | **Rework notes — opened by “Needs rework”** | **Adjustment notes — opened by “Needs adjustment”** |
 | [![Rework notes](docs/screenshots/05-rework-notes.png)](docs/screenshots/05-rework-notes.png) | [![Adjustment notes](docs/screenshots/06-adjustment-notes.png)](docs/screenshots/06-adjustment-notes.png) |
+
+**Settings** — preferences, auto-timer, review/ledger, and the current conversation:
+
+[![Settings](docs/screenshots/07-settings.png)](docs/screenshots/07-settings.png)
 
 ## Flow
 
@@ -69,7 +73,7 @@ Requirements:
 
 - DSH `0.2.x` (tested with `0.2.2-rc.3`).
 - The Host process must provide `tools`, `systemPrompt`, `userQuestions`, `workingDirectory`, `sessionProjections`, and `commands`.
-- The Web client must provide `react-dom`'s `createPortal`; without it the dialogs fall back to in-composer cards.
+- The Web client must provide `react-dom`'s `createPortal` and the `remote.settings` namespace; without the portal the dialogs fall back to in-composer cards.
 
 ## The switch
 
@@ -78,7 +82,7 @@ A small **需求核对** switch sits next to the **创造模式** (agent preset)
 - New-session row: in `conversation.hero.options`, right of the preset control.
 - Inside a session: in `conversation.session.header.actions`, immediately after the preset label.
 
-Clicking the underlined words opens the plugin's settings placeholder. Clicking the switch toggles the gate **for the current conversation only**. State is written as a logged `/dsh-info-check on|off` command and folded by a session projection, so fork/resume keeps the same choice.
+Clicking the underlined words opens the plugin's settings window. Clicking the switch toggles the gate **for the current conversation only**. State is written as a logged `/dsh-info-check on|off` command and folded by a session projection, so fork/resume keeps the same choice.
 
 Useful command:
 
@@ -88,9 +92,20 @@ Useful command:
 /dsh-info-check off
 ```
 
+## Settings
+
+Click the underlined **需求核对** words next to the switch to open the plugin's settings window. It edits the global Config and saves immediately; the current-conversation switch inside the window only changes this session.
+
+- **Preferences** — number of milestones (1–5) and expectation level: 完美 / 较好 / 及格. These feed the policy, acceptance evidence, and delivery sign-off.
+- **Auto-timer** — auto-skip seconds (5–600; presets 30/60/90/120).
+- **Review and ledger** — detail-question count (1–6), new-conversation default, ledger on/off, and ledger path.
+- **This conversation** — turn the gate on or off for the current session without leaving Settings.
+
+The values are volatile Config fields, so a save takes effect without restarting the plugin.
+
 ## Timers and notes
 
-- Timed gates count down 60 seconds (`milestoneTimeoutSeconds`); timeout proceeds (acceptance passes / delivery proceeds).
+- Timed gates count down `timeoutSeconds` (default 60); timeout proceeds (acceptance passes / delivery proceeds).
 - **Stop timer** freezes the countdown and keeps the dialog open.
 - Opening a “rework notes” / “adjustment notes” dialog also stops the timer.
 - The acceptance and delivery reports are **read-only**; the user's input is the reason, not a rewrite of the report.
@@ -107,16 +122,17 @@ It records the agent's report, the user's decision, edited plans, and rework not
 
 ## Configuration
 
-The bundle intentionally declares **no Config schema and no dependencies**, so it stays portable. Values are read from the patch row:
+The bundle uses a small **Config schema** (loaded from the DSH-provided schemastery, so the package still has no npm dependencies). All fields are volatile and are normally edited from **Settings** rather than the patch file:
 
 | Field | Default | Meaning |
 |---|---|---|
-| `enabled` | `true` | Default for sessions with no `/dsh-info-check` command yet |
+| `milestoneCount` | `3` | Preferred number of milestones (1–5) |
+| `expectation` | `good` | `perfect` / `good` / `pass`; feeds the policy and acceptance standard |
+| `timeoutSeconds` | `60` | Countdown for plan/acceptance/delivery gates (5–600) |
 | `maxQuestions` | `3` | Intent-check detail questions (1–6) |
-| `milestoneTimeoutSeconds` | `60` | Countdown for plan/acceptance/delivery gates |
+| `defaultEnabled` | `true` | Default for sessions with no `/dsh-info-check` command yet |
 | `ledgerEnabled` | `true` | Append decisions to the workspace ledger |
 | `ledgerPath` | `.dsh-info-check/ledger.md` | Ledger path, relative to the session directory |
-| `policy` | `""` | Override the built-in policy section text |
 
 ## Privacy
 
@@ -160,7 +176,7 @@ Project layout:
 
 ```text
 index.js              Host plugin: policy, tools, projection, command, ledger
-client.js             Browser plugin: dialogs, header/hero switch, settings placeholder
+client.js             Browser plugin: dialogs, header/hero switch, settings window
 lib/pure.js           Validation, section rendering, outcomes, ledger entries
 test/                 Node-only tests (no DSH required)
 locale/               Plugin-manager display metadata

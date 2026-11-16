@@ -40,6 +40,46 @@ window.__ModuleLoader__.load({
 .ic-icon-btn:hover{background:var(--ic-bg);color:var(--ic-ink)}
 .ic-desc{margin:16px 24px 0;font-size:12.5px;color:var(--ic-text-2);line-height:1.65}
 .ic-hint{font-size:12px;line-height:1.65;color:var(--ic-text-2)}
+.ic-settings{display:flex;flex-direction:column;gap:18px;padding-bottom:2px}
+.ic-set-section{display:flex;flex-direction:column;gap:11px}
+.ic-set-head{font-size:15px;font-weight:700;line-height:1.4;color:#000}
+.ic-set-row{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+.ic-set-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ic-set-label{font-size:12.5px;font-weight:600;color:var(--ic-ink);line-height:1.45}
+.ic-set-hint{font-size:11px;line-height:1.55;color:var(--ic-text-3)}
+.ic-set-control{display:flex;align-items:center;gap:7px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+.ic-seg{display:inline-flex;overflow:hidden;border:1px solid var(--ic-line);border-radius:8px;background:var(--ic-surface)}
+.ic-seg button{min-width:30px;border:none;border-right:1px solid var(--ic-line-soft);background:transparent;padding:6px 8px;font:inherit;font-size:11.5px;font-weight:600;color:var(--ic-text-2);cursor:pointer;transition:background .15s,color .15s}
+.ic-seg button:last-child{border-right:none}
+.ic-seg button:hover{background:var(--ic-bg);color:var(--ic-ink)}
+.ic-seg button.on{background:var(--ic-primary-tint);color:var(--ic-primary-ink);font-weight:700}
+.ic-input-num{width:70px;text-align:center;padding:8px 8px}
+.ic-preset{display:inline-flex;gap:5px;align-items:center}
+.ic-preset button{border:1px solid var(--ic-line);border-radius:6px;background:var(--ic-surface);padding:4px 7px;font:inherit;font-size:10.5px;font-weight:600;color:var(--ic-text-2);cursor:pointer}
+.ic-preset button:hover{border-color:var(--ic-text-3);color:var(--ic-ink)}
+.ic-preset button.on{background:var(--ic-primary-tint);border-color:#C9D3FF;color:var(--ic-primary-ink)}
+.ic-expect{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%}
+.ic-expect button{display:flex;flex-direction:column;gap:4px;text-align:left;border:1px solid var(--ic-line);border-radius:8px;background:var(--ic-surface);padding:9px 10px;font:inherit;cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s}
+.ic-expect button:hover{border-color:var(--ic-text-3)}
+.ic-expect button.on{border-color:var(--ic-primary);background:var(--ic-primary-tint);box-shadow:0 0 0 2px rgba(77,107,254,.08)}
+.ic-expect b{font-size:12px;font-weight:700;color:var(--ic-ink)}
+.ic-expect span{font-size:10.5px;line-height:1.45;color:var(--ic-text-3)}
+.ic-expect button.on b{color:var(--ic-primary-ink)}
+.ic-settings-switch{position:relative;width:30px;height:18px;flex:none;border:none;border-radius:999px;background:var(--ic-border);padding:0;cursor:pointer;transition:background .15s}
+.ic-settings-switch i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(15,23,42,.22);transition:left .15s}
+.ic-settings-switch.on{background:var(--ic-primary)}
+.ic-settings-switch.on i{left:14px}
+.ic-settings-switch:disabled{opacity:.5;cursor:default}
+.ic-set-path{width:210px;max-width:100%}
+.ic-set-current{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--ic-line);border-radius:8px;background:var(--ic-read)}
+.ic-set-current b{font-size:12px;font-weight:700}
+.ic-set-current span{font-size:10.5px;color:var(--ic-text-3)}
+.ic-settings-msg{font-size:11px;line-height:1.55;color:var(--ic-text-3)}
+.ic-settings-error{font-size:11px;line-height:1.55;color:var(--ic-error)}
+.ic-settings-loading{font-size:12px;color:var(--ic-text-3);padding:12px 0}
+.ic-set-control .ic-input-num{width:72px;flex:0 0 72px}
+.ic-set-control .ic-set-path{width:210px;flex:0 0 210px}
+@media (max-width:600px){.ic-expect{grid-template-columns:1fr}.ic-set-row{flex-direction:column;gap:7px}.ic-set-control{justify-content:flex-start}.ic-set-control .ic-set-path{width:100%;flex:1 1 auto}}
 .ic-step{display:flex;flex-direction:column;gap:10px}
 .ic-count-row{display:flex;align-items:center;gap:8px;padding:10px 24px 0;flex:0 0 auto}
 .ic-count{font-size:11px;color:var(--ic-text-3);white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -138,7 +178,6 @@ window.__ModuleLoader__.load({
       'panel.adjustCancel': '返回交付确认',
       'panel.adjustPlaceholder': '例如：完成程度描述不准，还差…',
       'panel.settingsTitle': '设置',
-      'panel.settingsPlaceholder': '设置项稍后添加。当前对话的开关在下方；关闭只影响这个对话。',
       'panel.current': '当前对话',
       'panel.settingsOpen': '打开 dsh-info-check 设置',
       'panel.briefHint': '下面是 agent 的理解与核对单。你可以直接修改、补充；确认后进入细节确认。',
@@ -163,6 +202,51 @@ window.__ModuleLoader__.load({
       'panel.continued': '已超时，仍可提交',
       'panel.stopTimer': '停止计时',
       'panel.countdownStopped': '计时已停止',
+      'settings.title': '设置',
+      'settings.desc': '偏好、计时与台账；保存后立即生效。',
+      'settings.preferences': '偏好',
+      'settings.milestones': '里程碑数量',
+      'settings.milestonesHint': '希望 agent 把任务拆成几个里程碑（1–5）。',
+      'settings.expectation': '期望程度',
+      'settings.expectationHint': '影响方案深度、验收标准和交付确认。',
+      'settings.perfect': '完美',
+      'settings.perfectDesc': '可发布/可开源；边界、回归、文档都要覆盖。',
+      'settings.good': '较好',
+      'settings.goodDesc': '主路径与关键边界通过；允许小的非阻塞问题。',
+      'settings.pass': '及格',
+      'settings.passDesc': '满足最低可用标准；明确列出未做与限制。',
+      'settings.timer': '自动计时',
+      'settings.timeout': '自动跳过时长',
+      'settings.timeoutHint': '计时浮窗在无操作后自动继续的秒数（5–600）。',
+      'settings.seconds': '秒',
+      'settings.presets': '常用',
+      'settings.review': '核对与台账',
+      'settings.maxQuestions': '细节问题数量',
+      'settings.maxQuestionsHint': '需求核对时最多问几个细节问题（1–6）。',
+      'settings.defaultEnabled': '新对话默认开启',
+      'settings.defaultEnabledHint': '新建对话时默认启用；已有对话仍用标题旁开关。',
+      'settings.ledger': '启用工作区台账',
+      'settings.ledgerHint': '把每次确认和决定写入会话目录。',
+      'settings.ledgerPath': '台账路径',
+      'settings.ledgerPathHint': '相对于会话工作目录；越界路径会被跳过。',
+      'settings.current': '当前对话',
+      'settings.currentOn': '已开启',
+      'settings.currentOff': '已关闭',
+      'settings.currentHint': '只影响当前对话；全局设置保存后立即生效。',
+      'settings.currentToggle': '切换当前对话',
+      'settings.save': '保存设置',
+      'settings.saving': '保存中…',
+      'settings.saved': '设置已保存',
+      'settings.cancel': '取消',
+      'settings.reset': '恢复默认',
+      'settings.close': '关闭',
+      'settings.loading': '正在读取设置…',
+      'settings.loadFailed': '读取设置失败',
+      'settings.saveFailed': '保存设置失败',
+      'settings.unavailable': '设置服务或插件 Config 不可用；请确认插件已启用且 DSH 版本匹配。',
+      'settings.noEntry': '没有找到 dsh-info-check 的设置项；请重新加载插件。',
+      'settings.invalid': '请检查数值范围。',
+      'settings.ledgerRequired': '台账路径不能为空。',
     }
     const en = {
       'title': 'Info checker',
@@ -196,7 +280,6 @@ window.__ModuleLoader__.load({
       'panel.adjustPlaceholder': 'For example: the completion summary is inaccurate; still missing…',
       'panel.reasonRequired': 'Please write the notes',
       'panel.settingsTitle': 'Settings',
-      'panel.settingsPlaceholder': 'Settings will be added here. The switch for this conversation is below; turning it off affects only this conversation.',
       'panel.current': 'This conversation',
       'panel.settingsOpen': 'Open dsh-info-check settings',
       'panel.briefHint': 'This is the agent’s understanding and checklist. Edit it in place, then confirm to continue to details.',
@@ -221,6 +304,51 @@ window.__ModuleLoader__.load({
       'panel.continued': 'Timed out — still answerable',
       'panel.stopTimer': 'Stop timer',
       'panel.countdownStopped': 'Timer stopped',
+      'settings.title': 'Settings',
+      'settings.desc': 'Preferences, timing, and ledger. Saved values apply immediately.',
+      'settings.preferences': 'Preferences',
+      'settings.milestones': 'Milestones',
+      'settings.milestonesHint': 'How many milestones the agent should plan (1–5).',
+      'settings.expectation': 'Expectation',
+      'settings.expectationHint': 'Controls plan depth, acceptance, and delivery sign-off.',
+      'settings.perfect': 'Excellent',
+      'settings.perfectDesc': 'Release/open-source ready; boundaries, regression, and docs covered.',
+      'settings.good': 'Good',
+      'settings.goodDesc': 'Main paths and key boundaries pass; small non-blocking issues are allowed.',
+      'settings.pass': 'Pass',
+      'settings.passDesc': 'Minimum usable standard; list every missing item and limitation.',
+      'settings.timer': 'Auto-timer',
+      'settings.timeout': 'Auto-skip after',
+      'settings.timeoutHint': 'Seconds before a timed dialog proceeds when idle (5–600).',
+      'settings.seconds': 'sec',
+      'settings.presets': 'Presets',
+      'settings.review': 'Review and ledger',
+      'settings.maxQuestions': 'Detail questions',
+      'settings.maxQuestionsHint': 'How many detail questions the intent check may ask (1–6).',
+      'settings.defaultEnabled': 'On by default for new conversations',
+      'settings.defaultEnabledHint': 'New conversations start enabled; existing ones use the header switch.',
+      'settings.ledger': 'Enable workspace ledger',
+      'settings.ledgerHint': 'Write every confirmation and decision into the session directory.',
+      'settings.ledgerPath': 'Ledger path',
+      'settings.ledgerPathHint': 'Relative to the session directory; escaping paths are skipped.',
+      'settings.current': 'This conversation',
+      'settings.currentOn': 'On',
+      'settings.currentOff': 'Off',
+      'settings.currentHint': 'Only this conversation; global settings apply after saving.',
+      'settings.currentToggle': 'Toggle this conversation',
+      'settings.save': 'Save settings',
+      'settings.saving': 'Saving…',
+      'settings.saved': 'Settings saved',
+      'settings.cancel': 'Cancel',
+      'settings.reset': 'Restore defaults',
+      'settings.close': 'Close',
+      'settings.loading': 'Reading settings…',
+      'settings.loadFailed': 'Could not read settings',
+      'settings.saveFailed': 'Could not save settings',
+      'settings.unavailable': 'Settings or the plugin Config is unavailable; check that the plugin is enabled and the DSH version matches.',
+      'settings.noEntry': 'No dsh-info-check settings namespace was found; reload the plugin.',
+      'settings.invalid': 'Check the value ranges.',
+      'settings.ledgerRequired': 'The ledger path cannot be empty.',
     }
 
     function useSnapshot(store) {
@@ -889,7 +1017,383 @@ window.__ModuleLoader__.load({
       }
     }
 
+    function normalizeSettings(value) {
+      const source = value ?? {}
+      const clamp = (input, min, max, fallback) => {
+        const number = Number(input)
+        if (!Number.isFinite(number)) return fallback
+        return Math.min(max, Math.max(min, Math.trunc(number)))
+      }
+      const expectation = source.expectation === 'perfect' || source.expectation === 'pass'
+        ? source.expectation
+        : 'good'
+      return {
+        milestoneCount: clamp(source.milestoneCount, 1, 5, 3),
+        expectation,
+        timeoutSeconds: clamp(source.timeoutSeconds, 5, 600, 60),
+        maxQuestions: clamp(source.maxQuestions, 1, 6, 3),
+        defaultEnabled: source.defaultEnabled !== false,
+        ledgerEnabled: source.ledgerEnabled !== false,
+        ledgerPath: typeof source.ledgerPath === 'string' && source.ledgerPath.trim() !== ''
+          ? source.ledgerPath.trim()
+          : '.dsh-info-check/ledger.md',
+      }
+    }
+
+    const SettingsComponent = React.Component
+    class SettingsBoundary extends (SettingsComponent ?? class {}) {
+      constructor(props) {
+        super(props)
+        this.state = { failed: false }
+      }
+
+      static getDerivedStateFromError() {
+        return { failed: true }
+      }
+
+      componentDidCatch(error) {
+        console.warn('[dsh-info-check] settings panel failed', error)
+      }
+
+      render() {
+        if (!this.state.failed) return this.props.children
+        const t = this.props.t
+        return React.createElement(ModalShell, { onBackdrop: this.props.onClose }, PanelShell({
+          t,
+          title: t('settings.title'),
+          compact: true,
+          description: t('settings.unavailable'),
+          onClose: this.props.onClose,
+          children: React.createElement('div', { className: 'ic-settings-error' }, t('settings.loadFailed')),
+          footer: [
+            React.createElement('span', { key: 'spacer', className: 'ic-spacer' }),
+            React.createElement(RippleButton, {
+              key: 'close',
+              className: 'ic-btn ic-btn-primary',
+              onClick: this.props.onClose,
+            }, t('settings.close')),
+          ],
+        }))
+      }
+    }
+
+    function createSettingsPanel(ctx) {
+      return function SettingsPanel({ onClose, enabled, busy, sessionId, onToggle }) {
+        const t = ctx.locale.bind(NS)
+        let remote
+        try {
+          remote = ctx.remote?.settings
+        } catch {
+          remote = undefined
+        }
+        const [values, setValues] = React.useState({
+          milestoneCount: 3,
+          expectation: 'good',
+          timeoutSeconds: 60,
+          maxQuestions: 3,
+          defaultEnabled: true,
+          ledgerEnabled: true,
+          ledgerPath: '.dsh-info-check/ledger.md',
+        })
+        const [loading, setLoading] = React.useState(true)
+        const [saving, setSaving] = React.useState(false)
+        const [error, setError] = React.useState('')
+        const [saved, setSaved] = React.useState(false)
+        const [ns, setNs] = React.useState('')
+        const [revision, setRevision] = React.useState(undefined)
+
+        React.useEffect(() => {
+          let alive = true
+          if (remote === undefined || typeof remote.describe !== 'function') {
+            setError(t('settings.unavailable'))
+            setLoading(false)
+            return () => { alive = false }
+          }
+          let request
+          try {
+            request = remote.describe()
+          } catch {
+            setError(t('settings.loadFailed'))
+            setLoading(false)
+            return () => { alive = false }
+          }
+          Promise.resolve(request).then((response) => {
+            if (!alive) return
+            if (response !== null && typeof response === 'object' && response.ok === false) {
+              setError(response.error?.message ?? t('settings.loadFailed'))
+              setLoading(false)
+              return
+            }
+            const result = response !== null && typeof response === 'object' && response.ok === true
+              ? response.value
+              : response
+            const namespaces = Array.isArray(result)
+              ? result
+              : result?.namespaces ?? result?.sections ?? []
+            const entry = namespaces.find((item) => {
+              const name = String(item?.ns ?? '')
+              if (name.includes('dsh-info-check') || name.includes('info-check')) return true
+              return item?.value !== undefined && ('milestoneCount' in item.value || 'timeoutSeconds' in item.value)
+            })
+            if (entry === undefined) {
+              setError(t('settings.noEntry'))
+              setLoading(false)
+              return
+            }
+            const value = entry.value ?? entry.user ?? {}
+            setNs(entry.ns)
+            setRevision(entry.revision)
+            setValues(normalizeSettings(value))
+            setLoading(false)
+          }).catch(() => {
+            if (!alive) return
+            setError(t('settings.loadFailed'))
+            setLoading(false)
+          })
+          return () => { alive = false }
+        }, [])
+
+        const update = (key, value) => {
+          setSaved(false)
+          setValues(previous => ({ ...previous, [key]: value }))
+        }
+
+        const reset = () => {
+          setSaved(false)
+          setError('')
+          setValues(normalizeSettings({}))
+        }
+
+        const save = () => {
+          if (saving || ns === '') return
+          const next = normalizeSettings(values)
+          if (next.ledgerPath === '') {
+            setError(t('settings.ledgerRequired'))
+            return
+          }
+          setSaving(true)
+          setError('')
+          setSaved(false)
+          if (remote === undefined || typeof remote.update !== 'function') {
+            setSaving(false)
+            setError(t('settings.unavailable'))
+            return
+          }
+          let request
+          try {
+            request = remote.update(ns, next, revision)
+          } catch {
+            setSaving(false)
+            setError(t('settings.saveFailed'))
+            return
+          }
+          Promise.resolve(request).then((response) => {
+            if (response !== null && typeof response === 'object' && response.ok === false) {
+              setSaving(false)
+              setError(response.error?.message ?? t('settings.saveFailed'))
+              return
+            }
+            const result = response !== null && typeof response === 'object' && response.ok === true
+              ? response.value
+              : response
+            if (result !== undefined && result !== null && typeof result.revision === 'number') {
+              setRevision(result.revision)
+            }
+            setSaving(false)
+            setSaved(true)
+          }).catch(() => {
+            setSaving(false)
+            setError(t('settings.saveFailed'))
+          })
+        }
+
+        const close = () => {
+          if (saving) return
+          onClose()
+        }
+
+        const current = enabled ? t('settings.currentOn') : t('settings.currentOff')
+        const body = loading
+          ? React.createElement('div', { className: 'ic-settings-loading' }, t('settings.loading'))
+          : ns === ''
+            ? React.createElement('div', { className: 'ic-settings-error' }, error)
+            : React.createElement('div', { className: 'ic-settings' },
+              React.createElement('div', { className: 'ic-set-section' },
+                React.createElement('div', { className: 'ic-set-current' },
+                  React.createElement('div', { className: 'ic-set-copy' },
+                    React.createElement('b', null, t('settings.current')),
+                    React.createElement('span', null, t('settings.currentHint'))),
+                  React.createElement('div', { className: 'ic-set-control' },
+                    React.createElement('span', { className: 'ic-settings-msg' }, current),
+                    React.createElement('button', {
+                      type: 'button',
+                      role: 'switch',
+                      'aria-checked': enabled,
+                      'aria-label': t('settings.currentToggle'),
+                      className: `ic-settings-switch${enabled ? ' on' : ''}`,
+                      disabled: busy === true || sessionId === undefined || onToggle === undefined,
+                      onClick: onToggle,
+                    }, React.createElement('i'))))),
+              React.createElement('div', { className: 'ic-set-section' },
+                React.createElement('div', { className: 'ic-set-head' }, t('settings.preferences')),
+                React.createElement('div', { className: 'ic-set-row' },
+                  React.createElement('div', { className: 'ic-set-copy' },
+                    React.createElement('span', { className: 'ic-set-label' }, t('settings.milestones')),
+                    React.createElement('span', { className: 'ic-set-hint' }, t('settings.milestonesHint'))),
+                  React.createElement('div', { className: 'ic-set-control' },
+                    React.createElement('div', { className: 'ic-seg' },
+                      [1, 2, 3, 4, 5].map(number => React.createElement('button', {
+                        key: number,
+                        type: 'button',
+                        className: number === values.milestoneCount ? 'on' : '',
+                        disabled: saving,
+                        onClick: () => update('milestoneCount', number),
+                      }, String(number)))))),
+                React.createElement('div', { className: 'ic-set-row' },
+                  React.createElement('div', { className: 'ic-set-copy' },
+                    React.createElement('span', { className: 'ic-set-label' }, t('settings.expectation')),
+                    React.createElement('span', { className: 'ic-set-hint' }, t('settings.expectationHint'))),
+                  null),
+                React.createElement('div', { className: 'ic-expect' },
+                  [
+                    ['perfect', t('settings.perfect'), t('settings.perfectDesc')],
+                    ['good', t('settings.good'), t('settings.goodDesc')],
+                    ['pass', t('settings.pass'), t('settings.passDesc')],
+                  ].map(([id, label, description]) => React.createElement('button', {
+                    key: id,
+                    type: 'button',
+                    className: values.expectation === id ? 'on' : '',
+                    disabled: saving,
+                    onClick: () => update('expectation', id),
+                  },
+                  React.createElement('b', null, label),
+                  React.createElement('span', null, description))))),
+              React.createElement('div', { className: 'ic-set-section' },
+                React.createElement('div', { className: 'ic-set-head' }, t('settings.timer')),
+                React.createElement('div', { className: 'ic-set-row' },
+                  React.createElement('div', { className: 'ic-set-copy' },
+                    React.createElement('span', { className: 'ic-set-label' }, t('settings.timeout')),
+                    React.createElement('span', { className: 'ic-set-hint' }, t('settings.timeoutHint'))),
+                  React.createElement('div', { className: 'ic-set-control' },
+                    React.createElement('input', {
+                      className: 'ic-input ic-input-num',
+                      type: 'number',
+                      min: 5,
+                      max: 600,
+                      value: values.timeoutSeconds,
+                      disabled: saving,
+                      onChange: (event) => update('timeoutSeconds', event.target.value === '' ? 0 : Number(event.target.value)),
+                    }),
+                    React.createElement('span', { className: 'ic-set-hint' }, t('settings.seconds')),
+                    React.createElement('div', { className: 'ic-preset' },
+                      [30, 60, 90, 120].map(number => React.createElement('button', {
+                        key: number,
+                        type: 'button',
+                        className: values.timeoutSeconds === number ? 'on' : '',
+                        disabled: saving,
+                        onClick: () => update('timeoutSeconds', number),
+                      }, String(number))))))),
+              React.createElement('div', { className: 'ic-set-section' },
+                React.createElement('div', { className: 'ic-set-head' }, t('settings.review')),
+                React.createElement('div', { className: 'ic-set-row' },
+                  React.createElement('div', { className: 'ic-set-copy' },
+                    React.createElement('span', { className: 'ic-set-label' }, t('settings.maxQuestions')),
+                    React.createElement('span', { className: 'ic-set-hint' }, t('settings.maxQuestionsHint'))),
+                  React.createElement('div', { className: 'ic-set-control' },
+                    React.createElement('input', {
+                      className: 'ic-input ic-input-num',
+                      type: 'number',
+                      min: 1,
+                      max: 6,
+                      value: values.maxQuestions,
+                      disabled: saving,
+                      onChange: (event) => update('maxQuestions', event.target.value === '' ? 0 : Number(event.target.value)),
+                    }))),
+                React.createElement('div', { className: 'ic-set-row' },
+                  React.createElement('div', { className: 'ic-set-copy' },
+                    React.createElement('span', { className: 'ic-set-label' }, t('settings.defaultEnabled')),
+                    React.createElement('span', { className: 'ic-set-hint' }, t('settings.defaultEnabledHint'))),
+                  React.createElement('button', {
+                    type: 'button',
+                    role: 'switch',
+                    'aria-checked': values.defaultEnabled,
+                    'aria-label': t('settings.defaultEnabled'),
+                    className: `ic-settings-switch${values.defaultEnabled ? ' on' : ''}`,
+                    disabled: saving,
+                    onClick: () => update('defaultEnabled', !values.defaultEnabled),
+                  }, React.createElement('i'))),
+                React.createElement('div', { className: 'ic-set-row' },
+                  React.createElement('div', { className: 'ic-set-copy' },
+                    React.createElement('span', { className: 'ic-set-label' }, t('settings.ledger')),
+                    React.createElement('span', { className: 'ic-set-hint' }, t('settings.ledgerHint'))),
+                  React.createElement('button', {
+                    type: 'button',
+                    role: 'switch',
+                    'aria-checked': values.ledgerEnabled,
+                    'aria-label': t('settings.ledger'),
+                    className: `ic-settings-switch${values.ledgerEnabled ? ' on' : ''}`,
+                    disabled: saving,
+                    onClick: () => update('ledgerEnabled', !values.ledgerEnabled),
+                  }, React.createElement('i'))),
+                React.createElement('div', { className: 'ic-set-row' },
+                  React.createElement('div', { className: 'ic-set-copy' },
+                    React.createElement('span', { className: 'ic-set-label' }, t('settings.ledgerPath')),
+                    React.createElement('span', { className: 'ic-set-hint' }, t('settings.ledgerPathHint'))),
+                  React.createElement('div', { className: 'ic-set-control' },
+                    React.createElement('input', {
+                      className: 'ic-input ic-set-path',
+                      type: 'text',
+                      value: values.ledgerPath,
+                      disabled: saving || !values.ledgerEnabled,
+                      onChange: (event) => update('ledgerPath', event.target.value),
+                    })))))
+
+        const footer = ns === ''
+          ? [
+              React.createElement('span', { key: 'spacer', className: 'ic-spacer' }),
+              React.createElement(RippleButton, {
+                key: 'close',
+                className: 'ic-btn ic-btn-primary',
+                onClick: close,
+              }, t('settings.close')),
+            ]
+          : [
+              React.createElement(RippleButton, {
+                key: 'reset',
+                className: 'ic-btn ic-btn-ghost',
+                disabled: saving,
+                onClick: reset,
+              }, t('settings.reset')),
+              React.createElement('span', { key: 'spacer', className: 'ic-spacer' }),
+              React.createElement(RippleButton, {
+                key: 'cancel',
+                className: 'ic-btn ic-btn-ghost',
+                disabled: saving,
+                onClick: close,
+              }, t('settings.cancel')),
+              React.createElement(RippleButton, {
+                key: 'save',
+                className: 'ic-btn ic-btn-primary',
+                disabled: saving || loading,
+                onClick: save,
+              }, saving ? t('settings.saving') : saved ? t('settings.saved') : t('settings.save')),
+            ]
+
+        return React.createElement(ModalShell, { onBackdrop: close }, PanelShell({
+          t,
+          title: t('settings.title'),
+          compact: true,
+          description: t('settings.desc'),
+          onClose: close,
+          error: ns === '' ? '' : error,
+          children: body,
+          footer,
+        }))
+      }
+    }
+
     function createToggle(ctx) {
+      const SettingsPanel = createSettingsPanel(ctx)
       return function Toggle(props) {
         useSnapshot(ctx.locale)
         const t = ctx.locale.bind(NS)
@@ -961,24 +1465,15 @@ window.__ModuleLoader__.load({
           style: { color: 'var(--ic-error)' },
         }, error))
 
-        const settings = settingsOpen ? React.createElement(ModalShell, {
-          onBackdrop: () => { setSettingsOpen(false) },
-        }, PanelShell({
+        const settings = settingsOpen ? React.createElement(SettingsBoundary, {
           t,
-          title: t('panel.settingsTitle'),
-          compact: true,
-          description: t('panel.settingsPlaceholder'),
           onClose: () => { setSettingsOpen(false) },
-          children: React.createElement('div', { className: 'ic-hint' },
-            `${t('panel.current')}：${enabled ? t('state.on') : t('state.off')}`),
-          footer: [
-            React.createElement('span', { key: 'spacer', className: 'ic-spacer' }),
-            React.createElement(RippleButton, {
-              key: 'close',
-              className: 'ic-btn ic-btn-primary',
-              onClick: () => { setSettingsOpen(false) },
-            }, t('panel.close')),
-          ],
+        }, React.createElement(SettingsPanel, {
+          onClose: () => { setSettingsOpen(false) },
+          enabled,
+          busy,
+          sessionId: props.sessionId,
+          onToggle: run,
         })) : null
 
         return React.createElement(React.Fragment, null,
@@ -989,7 +1484,7 @@ window.__ModuleLoader__.load({
     }
 
     return {
-      inject: ['slots', 'locale', 'remote', 'remote.commands'],
+      inject: ['slots', 'locale', 'remote', 'remote.commands', 'remote.settings'],
       apply(ctx) {
         ctx.effect(() => ctx.locale.register(NS, 'zh', zh), 'dsh-info-check: zh dictionary')
         ctx.effect(() => ctx.locale.register(NS, 'en', en), 'dsh-info-check: en dictionary')

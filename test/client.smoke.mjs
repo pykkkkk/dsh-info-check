@@ -22,7 +22,7 @@ const ReactStub = {
 }
 
 const plugin = loaded.factory(() => ReactStub)
-assert.deepEqual(plugin.inject, ['slots', 'locale', 'remote', 'remote.commands'])
+assert.deepEqual(plugin.inject, ['slots', 'locale', 'remote', 'remote.commands', 'remote.settings'])
 
 const calls = []
 let composerSelect

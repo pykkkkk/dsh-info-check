@@ -11,7 +11,9 @@
  * bundle can be installed into any compatible DSH profile without package
  * dependencies.
  */
-import { dirname, isAbsolute, resolve, sep } from 'node:path'
+import { createRequire } from 'node:module'
+import { existsSync } from 'node:fs'
+import { dirname, isAbsolute, join, resolve, sep } from 'node:path'
 import { appendFile, mkdir, readFile } from 'node:fs/promises'
 import {
   ACCEPT_LABEL, ACCEPT_MILESTONE_ID, ADJUST_DELIVERY_LABEL, APPROVE_MILESTONE_LABEL, DELIVER_LABEL,
@@ -27,23 +29,112 @@ export const inject = ['tools', 'systemPrompt', 'userQuestions', 'workingDirecto
 const ledgerDirs = new Set()
 
 /* ------------------------------------------------------------------ */
-/* Config defaults                                                     */
+/* Config                                                              */
 /* ------------------------------------------------------------------ */
 
-// No Config schema and no imports from the DSH installation: the plugin reads
-// plain values from the patch row and clamps them in apply(). This keeps the
-// bundle portable across DSH releases and lets the profile own the values.
+/**
+ * Load the schemastery that ships with the running DSH installation. The
+ * plugin has no npm dependencies of its own; this is the one optional
+ * DSH-provided library used for its Config schema and the Settings form.
+ */
+function findSchemastery() {
+  const candidates = []
+  const install = process.env.DSH_INSTALL_DIR
+  if (install !== undefined && install !== '') {
+    candidates.push(join(install, 'node_modules', '@deepseek-ai', 'schemastery', 'lib', 'index.cjs'))
+    candidates.push(join(install, '..', 'schemastery', 'lib', 'index.cjs'))
+  }
+  if (process.execPath !== undefined) {
+    const resources = join(dirname(process.execPath), 'resources')
+    candidates.push(join(resources, 'app.asar', 'dsh', 'node_modules', '@deepseek-ai', 'schemastery', 'lib', 'index.cjs'))
+    candidates.push(join(resources, 'app.asar.unpacked', 'dsh', 'node_modules', '@deepseek-ai', 'schemastery', 'lib', 'index.cjs'))
+  }
+  const profile = process.env.DSH_PROFILE_DIR
+  if (profile !== undefined && profile !== '') {
+    candidates.push(join(profile, 'node_modules', '@deepseek-ai', 'schemastery', 'lib', 'index.cjs'))
+  }
+  for (const candidate of candidates) {
+    try {
+      if (existsSync(candidate)) return candidate
+    } catch {
+      // Try the next layout.
+    }
+  }
+  return undefined
+}
+
+let z
+try {
+  const schemaPath = findSchemastery()
+  if (schemaPath !== undefined) z = createRequire(import.meta.url)(schemaPath)
+} catch (error) {
+  console.warn('[dsh-info-check] DSH schemastery is unavailable; Settings will be read-only.', error)
+}
+
+/** Plugin configuration. All fields are volatile so Settings applies without a restart. */
+export const Config = z === undefined
+  ? undefined
+  : z.object({
+      milestoneCount: z.natural().min(1).max(5).default(3).volatile(),
+      expectation: z.string().default('good').volatile(),
+      timeoutSeconds: z.natural().min(5).max(600).default(60).volatile(),
+      maxQuestions: z.natural().min(1).max(6).default(3).volatile(),
+      defaultEnabled: z.boolean().default(true).volatile(),
+      ledgerEnabled: z.boolean().default(true).volatile(),
+      ledgerPath: z.string().default('.dsh-info-check/ledger.md').volatile(),
+    })
+
+const EXPECTATION_LABELS = {
+  perfect: '完美',
+  good: '较好',
+  pass: '及格',
+}
+
+function normalizeExpectation(value) {
+  return value === 'perfect' || value === 'pass' ? value : 'good'
+}
+
+function expectationRule(value) {
+  switch (normalizeExpectation(value)) {
+    case 'perfect':
+      return '完美：按可发布/可开源标准执行；覆盖边界、回归和文档；不接受已知缺陷，验收证据要能复核。'
+    case 'pass':
+      return '及格：满足最低可用标准即可；明确列出未做项和限制，不要为了完整而扩大范围。'
+    default:
+      return '较好：主路径与关键边界通过；允许小的非阻塞问题，但必须在验收和交付确认里列出来。'
+  }
+}
+
+function clampInt(value, min, max, fallback) {
+  const number = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(number)) return fallback
+  return Math.min(max, Math.max(min, Math.trunc(number)))
+}
+
+function readConfig(value, fallback) {
+  if (value !== null && typeof value === 'object' && typeof value.get === 'function') {
+    const current = value.get()
+    return current === undefined ? fallback : current
+  }
+  return value === undefined ? fallback : value
+}
 
 /* ------------------------------------------------------------------ */
 /* Policy                                                              */
 /* ------------------------------------------------------------------ */
 
-function defaultPolicy(maxQuestions, timeoutSeconds) {
+function defaultPolicy(settings) {
+  const { maxQuestions, timeoutSeconds, milestoneCount, expectation } = settings
+  const milestoneRule = milestoneCount === 1
+    ? '1 个里程碑'
+    : `1–${milestoneCount} 个里程碑（用户偏好 ${milestoneCount} 个）`
   return `## 需求核对与里程碑确认（dsh-info-check）
 
 本会话启用了 dsh-info-check。对非平凡任务（会改文件、改 UI、多步骤、需求有歧义，或用户用了“好看 / 优化 / 差不多 / 全部 / 顺便”这类没有验收标准的词），必须遵守以下流程：
 
-1. 先调用 \`info_check\`：用一段话复述目标；列出 2–${maxQuestions} 条真正影响结果的**细节**核对问题（每题给选项，推荐项放第一并标注“（推荐）”）；给出可检查的完成标准（quality_bar）、明确的范围外（out_of_scope）、1–3 个里程碑（milestones）。第一张卡是**可编辑的核对单**：用户会直接在你的版本上修改、补充，勾选确认后才进入细节选择；返回的 \`edited_brief\` 若与你的版本不同，以 \`edited_brief\` 为准。
+用户偏好：希望拆成 ${milestoneCount} 个里程碑；期望程度为 **${EXPECTATION_LABELS[normalizeExpectation(expectation)]}**。按这个标准设计方案、验收和交付确认。
+
+1. 先调用 \`info_check\`：用一段话复述目标；列出 2–${maxQuestions} 条真正影响结果的**细节**核对问题（每题给选项，推荐项放第一并标注“（推荐）”）；给出可检查的完成标准（quality_bar）、明确的范围外（out_of_scope）、${milestoneRule}（milestones）。第一张卡是**可编辑的核对单**：用户会直接在你的版本上修改、补充，勾选确认后才进入细节选择；返回的 \`edited_brief\` 若与你的版本不同，以 \`edited_brief\` 为准。
 2. 用户确认之前，不要写文件、改代码、安装依赖或做不可逆操作；可以先读文件、搜索、调研。用户明确说“直接做 / 别问了”时，可以跳过核对。
 3. \`confirmed=true\` 后再开工；\`confirmed=false\`（用户没有提交核对单或关闭了卡片）时不要执行；需要时按用户的最新说法重新发起核对。
 4. 需求核对确认后，**只调用一次** \`confirm_milestone\`，确认整体执行方案/第一个里程碑（做什么、改哪些文件、怎么验证）；后续里程碑**不再调用** \`confirm_milestone\`，直接执行。卡片顶部会标注 \`dsh-info-check · 里程碑确认\`，方案可编辑；返回的 \`edited_plan\` 若与你的版本不同，以它为准。
@@ -66,20 +157,20 @@ function defaultPolicy(maxQuestions, timeoutSeconds) {
 /* ------------------------------------------------------------------ */
 
 class Ledger {
-  constructor(ctx, options) {
+  constructor(ctx, getOptions) {
     this.ctx = ctx
-    this.enabled = options.enabled
-    this.path = options.path
+    this.getOptions = getOptions
     this.tail = Promise.resolve()
     this.started = new Set()
   }
 
   append(session, body) {
-    if (!this.enabled || session === undefined) return Promise.resolve()
+    const options = this.getOptions()
+    if (!options.enabled || session === undefined) return Promise.resolve()
     try {
       const cwd = this.ctx.workingDirectory.get(session)
       const root = resolve(cwd)
-      const full = isAbsolute(this.path) ? resolve(this.path) : resolve(root, this.path)
+      const full = isAbsolute(options.path) ? resolve(options.path) : resolve(root, options.path)
       if (full !== root && !full.startsWith(root + sep)) {
         this.ctx.logger?.warn?.('[dsh-info-check] ledger path escapes the session workspace; skip %s', full)
         return Promise.resolve()
@@ -132,7 +223,7 @@ function infoCheckQuestion(detail) {
   }
 }
 
-function createInfoCheckTool({ ctx, enabledFor, maxQuestions, ledger }) {
+function createInfoCheckTool({ ctx, enabledFor, getMaxQuestions, ledger }) {
   return {
     name: 'info_check',
     description: '在开始实质性执行前，向用户确认意图。提交目标理解、细节核对问题、可检查的完成标准、范围外和里程碑。'
@@ -227,7 +318,7 @@ function createInfoCheckTool({ ctx, enabledFor, maxQuestions, ledger }) {
       const agent = exec.agent
       if (agent === undefined) throw new Error('info_check requires a live agent')
       if (!enabledFor(agent.session)) throw new Error('dsh-info-check is disabled for this conversation')
-      const brief = validateInfoCheck(args, maxQuestions)
+      const brief = validateInfoCheck(args, getMaxQuestions())
       const detail = briefMarkdown(brief)
       let answer
       try {
@@ -267,7 +358,7 @@ function createInfoCheckTool({ ctx, enabledFor, maxQuestions, ledger }) {
     },
     presentCall(args) {
       try {
-        const brief = validateInfoCheck(args, maxQuestions)
+        const brief = validateInfoCheck(args, getMaxQuestions())
         return {
           card: 'generic',
           title: 'dsh-info-check · 需求核对单',
@@ -284,7 +375,7 @@ function createInfoCheckTool({ ctx, enabledFor, maxQuestions, ledger }) {
   }
 }
 
-function createMilestoneTool({ ctx, enabledFor, timeoutSeconds, ledger }) {
+function createMilestoneTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
   return {
     name: 'confirm_milestone',
     description: '在需求核对之后，向用户确认整体执行方案（以第一个里程碑为主体）。每个任务只调用一次；后续里程碑不再调用 confirm_milestone，完成后改用 accept_milestone 验收。'
@@ -338,7 +429,7 @@ function createMilestoneTool({ ctx, enabledFor, timeoutSeconds, ledger }) {
         result = await ctx.userQuestions.askTimed(
           { questions: [question], agent, signal: exec.signal },
           exec.callId,
-          timeoutSeconds * 1000,
+          getTimeoutSeconds() * 1000,
         )
       } catch (error) {
         if (isCancelled(error)) {
@@ -387,10 +478,10 @@ function createMilestoneTool({ ctx, enabledFor, timeoutSeconds, ledger }) {
   }
 }
 
-function createAcceptTool({ ctx, enabledFor, timeoutSeconds, ledger }) {
+function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
   return {
     name: 'accept_milestone',
-    description: '在一个里程碑完成后，向用户验收：提交完成内容、验证证据、未完成或风险；用户验收通过（或 60 秒无操作）后再进入下一个里程碑。'
+    description: '在一个里程碑完成后，向用户验收：提交完成内容、验证证据、未完成或风险；用户验收通过（或倒计时结束）后再进入下一个里程碑。'
       + '用户可以在倒计时处停止计时；验收报告是只读的，用户点“需要返工”时会在“返修说明”浮窗里填写理由，reason 通过 feedback 返回，按它修改后再次验收。',
     parameters: {
       type: 'object',
@@ -436,7 +527,7 @@ function createAcceptTool({ ctx, enabledFor, timeoutSeconds, ledger }) {
         result = await ctx.userQuestions.askTimed(
           { questions: [question], agent, signal: exec.signal },
           exec.callId,
-          timeoutSeconds * 1000,
+          getTimeoutSeconds() * 1000,
         )
       } catch (error) {
         if (isCancelled(error)) {
@@ -480,10 +571,10 @@ function createAcceptTool({ ctx, enabledFor, timeoutSeconds, ledger }) {
   }
 }
 
-function createDeliveryTool({ ctx, enabledFor, timeoutSeconds, ledger }) {
+function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
   return {
     name: 'confirm_delivery',
-    description: '在呈现最终结果前，向用户确认完成程度：提交完成程度、交付内容、未完成或限制、验证；用户确认（或 60 秒无操作）后才交付最终结果。'
+    description: '在呈现最终结果前，向用户确认完成程度：提交完成程度、交付内容、未完成或限制、验证；用户确认（或倒计时结束）后才交付最终结果。'
       + '用户可以在倒计时处停止计时；确认报告是只读的，用户点“需要调整”时会在“调整说明”浮窗里填写理由，reason 通过 feedback 返回，按它修改后再确认交付。',
     parameters: {
       type: 'object',
@@ -529,7 +620,7 @@ function createDeliveryTool({ ctx, enabledFor, timeoutSeconds, ledger }) {
         result = await ctx.userQuestions.askTimed(
           { questions: [question], agent, signal: exec.signal },
           exec.callId,
-          timeoutSeconds * 1000,
+          getTimeoutSeconds() * 1000,
         )
       } catch (error) {
         if (isCancelled(error)) {
@@ -577,28 +668,29 @@ function createDeliveryTool({ ctx, enabledFor, timeoutSeconds, ledger }) {
 /* Plugin                                                              */
 /* ------------------------------------------------------------------ */
 
-function clampInt(value, min, max, fallback) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback
-  return Math.min(max, Math.max(min, Math.round(value)))
-}
-
 /**
  * Register the policy, tools, projection, command, and ledger.
  * @param ctx - Host plugin context.
  * @param config - Resolved plugin configuration.
  */
 export function apply(ctx, config = {}) {
-  const defaultEnabled = config.enabled !== false
-  const maxQuestions = clampInt(config.maxQuestions, 1, 6, 3)
-  const timeoutSeconds = clampInt(config.milestoneTimeoutSeconds, 5, 3600, 60)
-  const policy = typeof config.policy === 'string' && config.policy.trim() !== ''
-    ? config.policy
-    : defaultPolicy(maxQuestions, timeoutSeconds)
-  const ledger = new Ledger(ctx, {
-    enabled: config.ledgerEnabled !== false,
-    path: typeof config.ledgerPath === 'string' && config.ledgerPath.trim() !== ''
-      ? config.ledgerPath.trim()
-      : '.dsh-info-check/ledger.md',
+  const currentSettings = () => {
+    const milestoneCount = clampInt(readConfig(config.milestoneCount, 3), 1, 5, 3)
+    const expectation = normalizeExpectation(readConfig(config.expectation, 'good'))
+    const timeoutSeconds = clampInt(readConfig(config.timeoutSeconds, 60), 5, 600, 60)
+    const maxQuestions = clampInt(readConfig(config.maxQuestions, 3), 1, 6, 3)
+    const defaultEnabled = readConfig(config.defaultEnabled, true) !== false
+    const ledgerEnabled = readConfig(config.ledgerEnabled, true) !== false
+    const rawLedgerPath = readConfig(config.ledgerPath, '.dsh-info-check/ledger.md')
+    const ledgerPath = typeof rawLedgerPath === 'string' && rawLedgerPath.trim() !== ''
+      ? rawLedgerPath.trim()
+      : '.dsh-info-check/ledger.md'
+    return { milestoneCount, expectation, timeoutSeconds, maxQuestions, defaultEnabled, ledgerEnabled, ledgerPath }
+  }
+
+  const ledger = new Ledger(ctx, () => {
+    const settings = currentSettings()
+    return { enabled: settings.ledgerEnabled, path: settings.ledgerPath }
   })
 
   // Per-Session switch. A third-party plugin cannot append a custom Session
@@ -617,7 +709,7 @@ export function apply(ctx, config = {}) {
     key: 'infoCheck',
     stateVersion: 1,
     stateSchema: enabledSchema,
-    init: () => ({ enabled: defaultEnabled }),
+    init: () => ({ enabled: currentSettings().defaultEnabled }),
     apply: (state, event) => {
       if (event.type === 'command/run' && event.data.name === 'dsh-info-check') {
         const value = typeof event.data.args === 'string' ? event.data.args.trim().toLowerCase() : ''
@@ -637,11 +729,12 @@ export function apply(ctx, config = {}) {
   })
 
   const enabledFor = (session) => {
-    if (session === undefined || projection === undefined) return defaultEnabled
+    const fallback = currentSettings().defaultEnabled
+    if (session === undefined || projection === undefined) return fallback
     try {
       return projection.stateOf(session).enabled
     } catch {
-      return defaultEnabled
+      return fallback
     }
   }
 
@@ -677,16 +770,16 @@ export function apply(ctx, config = {}) {
     order: ctx.systemPrompt.getSectionOrder('PLAN_POLICY'),
     text: (context) => {
       const agent = context.agent
-      if (agent === undefined) return policy
-      return enabledFor(agent.session) ? policy : ''
+      if (agent === undefined) return defaultPolicy(currentSettings())
+      return enabledFor(agent.session) ? defaultPolicy(currentSettings()) : ''
     },
   }), 'dsh-info-check: policy')
 
   const definitions = [
-    createInfoCheckTool({ ctx, enabledFor, maxQuestions, ledger }),
-    createMilestoneTool({ ctx, enabledFor, timeoutSeconds, ledger }),
-    createAcceptTool({ ctx, enabledFor, timeoutSeconds, ledger }),
-    createDeliveryTool({ ctx, enabledFor, timeoutSeconds, ledger }),
+    createInfoCheckTool({ ctx, enabledFor, getMaxQuestions: () => currentSettings().maxQuestions, ledger }),
+    createMilestoneTool({ ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger }),
+    createAcceptTool({ ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger }),
+    createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger }),
   ]
   for (const definition of definitions) {
     ctx.effect(

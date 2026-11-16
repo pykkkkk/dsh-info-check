@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "dsh-info-check",
-    "description": "Adds four confirmation dialogs around substantive work: intent, one plan, per-milestone acceptance, and delivery. Use the Info checker switch next to the agent preset; decisions go to .dsh-info-check/ledger.md. No network. When off, the conversation gets no dialogs and no policy section."
+    "description": "Adds four confirmation dialogs around substantive work: intent, one plan, per-milestone acceptance, and delivery. Settings control milestones, expectation, timer, and ledger. Use the Info checker switch next to the agent preset; decisions go to .dsh-info-check/ledger.md. No network. When off, the conversation gets no dialogs and no policy section."
   }
 }

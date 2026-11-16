@@ -25,7 +25,7 @@
 | 里程碑验收 | `accept_milestone` | **每个**里程碑完成后：只读完成报告；验收通过，或填写返修说明 |
 | 交付确认 | `confirm_delivery` | 最终结果呈现前：只读完成程度；确认交付，或填写调整说明 |
 
-每次确认都是一个居中的浮窗：可编辑或只读的分段报告、确认复选框、主操作；三张计时浮窗还带 **60 秒倒计时**和 **“停止计时”**。点“需要返工 / 需要调整”会再打开一个 **“返修说明 / 调整说明”** 浮窗，理由作为 `feedback` 返回给模型。
+每次确认都是一个居中的浮窗：可编辑或只读的分段报告、确认复选框、主操作；三张计时浮窗还带倒计时（默认 60 秒）和 **“停止计时”**。点“需要返工 / 需要调整”会再打开一个 **“返修说明 / 调整说明”** 浮窗，理由作为 `feedback` 返回给模型。
 
 详细设计与流程（中文）：[docs/DETAIL.md](docs/DETAIL.md)。界面说明：[docs/UI.md](docs/UI.md)。
 
@@ -42,6 +42,10 @@
 | [![里程碑验收](docs/screenshots/03-milestone-acceptance.png)](docs/screenshots/03-milestone-acceptance.png) | [![交付确认](docs/screenshots/04-delivery-confirmation.png)](docs/screenshots/04-delivery-confirmation.png) |
 | **返修说明——由“需要返工”打开** | **调整说明——由“需要调整”打开** |
 | [![返修说明](docs/screenshots/05-rework-notes.png)](docs/screenshots/05-rework-notes.png) | [![调整说明](docs/screenshots/06-adjustment-notes.png)](docs/screenshots/06-adjustment-notes.png) |
+
+**设置页**——偏好、自动计时、核对与台账、当前对话：
+
+[![设置页](docs/screenshots/07-settings.png)](docs/screenshots/07-settings.png)
 
 ## 流程
 
@@ -69,7 +73,7 @@
 
 - DSH `0.2.x`（以 `0.2.2-rc.3` 测试）。
 - Host 需要提供 `tools`、`systemPrompt`、`userQuestions`、`workingDirectory`、`sessionProjections`、`commands`。
-- Web 客户端需要 `react-dom` 的 `createPortal`；没有时会退化为输入框内的卡片。
+- Web 客户端需要 `react-dom` 的 `createPortal` 和 `remote.settings` 命名空间；没有 portal 时会退化为输入框内的卡片。
 
 ## 开关
 
@@ -78,7 +82,7 @@
 - 新会话行：`conversation.hero.options`，在 preset 控件右侧。
 - 会话内：`conversation.session.header.actions`，紧跟 preset 标签。
 
-点下划线文字会打开设置占位浮窗；点开关只切换**当前对话**。切换会写成一条 `/dsh-info-check on|off` 命令，由 session projection 折叠，因此 fork/resume 会保留同一选择。
+点下划线文字会打开插件设置浮窗；点开关只切换**当前对话**。切换会写成一条 `/dsh-info-check on|off` 命令，由 session projection 折叠，因此 fork/resume 会保留同一选择。
 
 常用命令：
 
@@ -88,9 +92,20 @@
 /dsh-info-check off
 ```
 
+## 设置
+
+点击开关旁带下划线的 **需求核对** 文字，打开插件设置浮窗。它编辑全局 Config 并立即保存；窗口里的“当前对话”开关只影响本次会话。
+
+- **偏好**：里程碑数量（1–5）、期望程度（完美 / 较好 / 及格）。这些值会进入策略、验收证据和交付确认。
+- **自动计时**：自动跳过秒数（5–600；预设 30/60/90/120）。
+- **核对与台账**：细节问题数量（1–6）、新对话默认开启、台账开关和路径。
+- **当前对话**：不离开设置页即可切换本次会话的闸门。
+
+这些字段都是 volatile Config，保存后无需重启插件即可生效。
+
 ## 计时与理由
 
-- 计时闸门倒计时 60 秒（`milestoneTimeoutSeconds`）；超时继续（验收通过 / 交付继续）。
+- 计时闸门倒计时 `timeoutSeconds`（默认 60 秒）；超时继续（验收通过 / 交付继续）。
 - **停止计时**会冻结倒计时并保留浮窗。
 - 打开“返修说明 / 调整说明”也会停止计时。
 - 验收与交付报告是**只读**的；用户输入的是理由，不是改报告。
@@ -107,16 +122,17 @@
 
 ## 配置
 
-本 bundle 有意不声明 **Config schema**、也没有依赖，以保持可迁移性。值从 patch 行读取：
+本 bundle 使用一个小型 **Config schema**（从 DSH 自带的 schemastery 加载，因此包本身仍没有 npm 依赖）。所有字段都是 volatile，通常直接在 **设置** 里改，而不是手改 patch：
 
 | 字段 | 默认值 | 含义 |
 |---|---|---|
-| `enabled` | `true` | 尚无 `/dsh-info-check` 命令的对话的默认值 |
+| `milestoneCount` | `3` | 希望的里程碑数量（1–5） |
+| `expectation` | `good` | `perfect` / `good` / `pass`；影响策略和验收标准 |
+| `timeoutSeconds` | `60` | 方案/验收/交付三张计时卡的倒计时（5–600） |
 | `maxQuestions` | `3` | 需求核对的细节问题数（1–6） |
-| `milestoneTimeoutSeconds` | `60` | 方案/验收/交付三张计时卡的倒计时 |
+| `defaultEnabled` | `true` | 尚无 `/dsh-info-check` 命令的对话的默认值 |
 | `ledgerEnabled` | `true` | 是否追加工作区台账 |
 | `ledgerPath` | `.dsh-info-check/ledger.md` | 台账路径，相对于会话目录 |
-| `policy` | `""` | 覆盖内置策略段文字 |
 
 ## 隐私
 
@@ -160,7 +176,7 @@ npm test        # 纯逻辑 + 客户端 smoke 测试
 
 ```text
 index.js              Host 插件：策略、工具、projection、命令、台账
-client.js             浏览器插件：浮窗、标题旁开关、设置占位
+client.js             浏览器插件：浮窗、标题旁开关、设置页
 lib/pure.js           校验、分段渲染、outcome、台账条目
 test/                 只依赖 Node 的测试（不需要 DSH）
 locale/               插件管理器展示元数据
