@@ -187,7 +187,7 @@ cordis.patch.yml      Bundle patch row
 icon.svg              Original icon
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/TESTING.md](docs/TESTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/TESTING.md](docs/TESTING.md). Before a release, run the fixed [manual regression checklist](docs/MANUAL-REGRESSION.md).
 
 ## License
 

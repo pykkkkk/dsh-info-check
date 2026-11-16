@@ -1,5 +1,9 @@
 # Testing
 
+The fixed release regression pass lives in
+[MANUAL-REGRESSION.md](MANUAL-REGRESSION.md). Use it before tagging a release;
+keep this file for the automated checks and exploratory notes.
+
 ## Automated
 
 ```sh

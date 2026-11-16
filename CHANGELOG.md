@@ -28,6 +28,7 @@ simple `MAJOR.MINOR.PATCH` version; DSH compatibility is pinned by
   schemastery bundled with the running DSH installation when Config is needed.
 - Open-source packaging: README, CI, contribution and security notes, and a
   manual test plan.
+- Fixed manual regression checklist in `docs/MANUAL-REGRESSION.md`.
 
 ## 0.1.0 — 2026-11-16
 

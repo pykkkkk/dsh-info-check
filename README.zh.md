@@ -187,7 +187,7 @@ cordis.patch.yml      bundle patch 行
 icon.svg              原始图标
 ```
 
-参见 [CONTRIBUTING.md](CONTRIBUTING.md) 和 [docs/TESTING.md](docs/TESTING.md)。
+参见 [CONTRIBUTING.md](CONTRIBUTING.md) 和 [docs/TESTING.md](docs/TESTING.md)。发布前运行固定的[手动回归清单](docs/MANUAL-REGRESSION.md)。
 
 ## 许可证
 
