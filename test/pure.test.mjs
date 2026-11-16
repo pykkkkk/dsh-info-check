@@ -3,7 +3,7 @@ import {
   ACCEPT_LABEL, ADJUST_DELIVERY_LABEL, ADJUST_MILESTONE_LABEL, APPROVE_MILESTONE_LABEL, DELIVER_LABEL, REWORK_LABEL,
   acceptanceDetail, acceptanceLedger, acceptanceOutcome,
   briefMarkdown, deliveryDetail, deliveryLedger, deliveryOutcome,
-  infoCheckLedger, intentOutcome, milestoneLedger, milestoneOutcome, readFlag,
+  infoCheckLedger, intentOutcome, milestoneLedger, milestoneOutcome, numberPoints, readFlag,
   stripRecommended, validateAcceptance, validateDelivery, validateInfoCheck, validateMilestone,
 } from '../lib/pure.js'
 
@@ -184,5 +184,9 @@ assert.equal(adjustDelivery.feedback, '再补 loading')
 const deliveryLog = deliveryLedger(delivery, adjustDelivery, '2026-11-16 02:11:00')
 assert.match(deliveryLog, /交付确认/)
 assert.match(deliveryLog, /需要调整/)
+
+assert.equal(numberPoints('- 第一点\n- 第二点'), '1. 第一点\n\n2. 第二点')
+assert.equal(numberPoints('先做这个\n\n再做那个'), '1. 先做这个\n\n2. 再做那个')
+assert.equal(numberPoints('1. 唯一一点'), '1. 唯一一点')
 
 console.log('dsh-info-check pure tests: ok')

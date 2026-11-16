@@ -56,6 +56,9 @@ Prerequisites:
 - A centered `dsh-info-check` dialog appears.
 - The report is split into `我的理解 / 完成标准 / 范围外 / 里程碑`, each with its
   own editable text box; headings are larger and pure black.
+- Every point is a separate paragraph with `1.` `2.` `3.` numbering.
+- Drag the right edge: width changes; it cannot exceed the dialog height;
+  double-click the edge restores the default width.
 - Edit a section, check “我已确认以上理解”, continue.
 - Answer the detail choices; the agent starts only after submission.
 - The ledger receives an intent-check entry, including the edited brief.

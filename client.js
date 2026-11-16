@@ -23,8 +23,12 @@ window.__ModuleLoader__.load({
     const PANEL_CSS = `
 .ic-backdrop{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:24px;background:rgba(15,23,42,.30);animation:ic-fade .16s ease-out}
 .ic-backdrop-top{z-index:2147483100}
-.ic-modal{width:min(560px,75vw);max-width:75vw;max-height:75vh;display:flex;flex-direction:column}
+.ic-modal{position:relative;width:min(560px,75vw);max-width:min(75vw,75vh);max-height:75vh;display:flex;flex-direction:column}
 .ic-modal .ic-card{max-height:75vh}
+.ic-resize{position:absolute;top:0;right:-6px;z-index:3;width:12px;height:100%;display:flex;align-items:center;justify-content:center;cursor:ew-resize;touch-action:none}
+.ic-resize::after{content:'';width:3px;height:42px;border-radius:99px;background:var(--ic-border);opacity:.35;transition:opacity .15s,background .15s}
+.ic-resize:hover::after,.ic-resize:focus-visible::after{opacity:1;background:var(--ic-primary)}
+.ic-resize:focus-visible{outline:2px solid var(--ic-primary);outline-offset:2px}
 .ic-card,.ic-toggle{--ic-primary:#4D6BFE;--ic-primary-ink:#3B55D4;--ic-primary-tint:#EEF1FF;--ic-ink:#1F1F1F;--ic-text-2:#64748B;--ic-text-3:#94A3B8;--ic-bg:#F5F6F8;--ic-surface:#FFFFFF;--ic-read:#FAFBFC;--ic-line:#E5E7EB;--ic-line-soft:#EFF1F4;--ic-border:#D7DCE3;--ic-warn:#B45309;--ic-error:#DC2626;--ic-spring:cubic-bezier(.34,1.56,.64,1);--ic-sh:0 18px 44px rgba(15,23,42,.10),0 3px 10px rgba(15,23,42,.05);font-family:"Urbanist","Segoe UI",system-ui,"PingFang SC","Microsoft YaHei",sans-serif}
 .ic-card{position:relative;display:flex;flex-direction:column;box-sizing:border-box;width:100%;border:1px solid var(--ic-line);border-radius:14px;background:var(--ic-surface);color:var(--ic-ink);box-shadow:var(--ic-sh);overflow:hidden;animation:ic-in .18s cubic-bezier(.2,.8,.2,1)}
 .ic-card-compact{min-height:0}
@@ -524,12 +528,74 @@ window.__ModuleLoader__.load({
     }
 
     function ModalShell({ children, onBackdrop, top }) {
+      const [width, setWidth] = React.useState(undefined)
+      const modalRef = React.useRef(null)
+      const dragRef = React.useRef(null)
+
+      React.useEffect(() => () => {
+        const drag = dragRef.current
+        if (drag !== null && typeof drag.cleanup === 'function') drag.cleanup()
+      }, [])
+
+      React.useEffect(() => {
+        if (width === undefined) return
+        const modal = modalRef.current
+        if (modal === null) return
+        const height = modal.getBoundingClientRect().height
+        if (height > 0 && width > height + 1) {
+          setWidth(Math.max(320, Math.min(width, height)))
+        }
+      }, [width])
+
+      const startResize = (event) => {
+        if (event.button !== undefined && event.button !== 0) return
+        const modal = modalRef.current
+        if (modal === null) return
+        event.preventDefault()
+        event.stopPropagation()
+        const rect = modal.getBoundingClientRect()
+        const max = Math.min(window.innerWidth * 0.75, window.innerHeight * 0.75, rect.height || window.innerHeight * 0.75)
+        const move = (moveEvent) => {
+          const drag = dragRef.current
+          if (drag === null) return
+          const next = Math.max(320, Math.min(drag.max, drag.startWidth + moveEvent.clientX - drag.startX))
+          setWidth(next)
+        }
+        const cleanup = () => {
+          window.removeEventListener('pointermove', move)
+          window.removeEventListener('pointerup', up)
+          window.removeEventListener('pointercancel', up)
+        }
+        const up = () => {
+          cleanup()
+          dragRef.current = null
+        }
+        dragRef.current = { startX: event.clientX, startWidth: rect.width, max, cleanup }
+        window.addEventListener('pointermove', move)
+        window.addEventListener('pointerup', up)
+        window.addEventListener('pointercancel', up)
+      }
+
       const node = React.createElement('div', {
         className: `ic-backdrop${top === true ? ' ic-backdrop-top' : ''}`,
         onMouseDown: (event) => {
           if (onBackdrop !== undefined && event.target === event.currentTarget) onBackdrop()
         },
-      }, React.createElement('div', { className: 'ic-modal' }, children))
+      }, React.createElement('div', {
+        className: 'ic-modal',
+        ref: modalRef,
+        style: width === undefined ? undefined : { width: `${width}px` },
+      },
+      children,
+      React.createElement('div', {
+        className: 'ic-resize',
+        role: 'separator',
+        'aria-orientation': 'vertical',
+        'aria-label': '拖动调整宽度 / Drag to resize',
+        tabIndex: 0,
+        onPointerDown: startResize,
+        onDoubleClick: () => { setWidth(undefined) },
+      })))
       return createPortal === undefined ? node : createPortal(node, document.body)
     }
 

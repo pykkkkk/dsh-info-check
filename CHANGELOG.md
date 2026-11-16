@@ -12,6 +12,8 @@ simple `MAJOR.MINOR.PATCH` version; DSH compatibility is pinned by
   (max 75% of the viewport on each axis), editable plan sections, and read-only
   acceptance/delivery reports.
 - Configurable countdown (default 60 seconds) with a **Stop timer** action.
+- Dialogs are resizable from the right edge (maximum width equals the dialog
+  height); every point is rendered as its own numbered paragraph.
 - Settings window: milestone count, expectation level (perfect/good/pass),
   auto-skip timeout, detail-question count, new-conversation default, ledger
   switch/path, and a current-conversation switch. Saved through DSH's

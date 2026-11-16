@@ -20,7 +20,7 @@ import {
   DELIVERY_CONFIRM_ID, INTENT_BRIEF_ID, MILESTONE_CONFIRM_ID, REWORK_LABEL,
   acceptanceDetail, acceptanceLedger, acceptanceOutcome,
   briefMarkdown, deliveryDetail, deliveryLedger, deliveryOutcome,
-  infoCheckLedger, intentOutcome, milestoneLedger, milestoneOutcome,
+  infoCheckLedger, intentOutcome, milestoneLedger, milestoneOutcome, numberPoints,
   validateAcceptance, validateDelivery, validateInfoCheck, validateMilestone,
 } from './lib/pure.js'
 
@@ -134,19 +134,19 @@ function defaultPolicy(settings) {
 
 用户偏好：希望拆成 ${milestoneCount} 个里程碑；期望程度为 **${EXPECTATION_LABELS[normalizeExpectation(expectation)]}**。按这个标准设计方案、验收和交付确认。
 
-1. 先调用 \`info_check\`：用一段话复述目标；列出 2–${maxQuestions} 条真正影响结果的**细节**核对问题（每题给选项，推荐项放第一并标注“（推荐）”）；给出可检查的完成标准（quality_bar）、明确的范围外（out_of_scope）、${milestoneRule}（milestones）。第一张卡是**可编辑的核对单**：用户会直接在你的版本上修改、补充，勾选确认后才进入细节选择；返回的 \`edited_brief\` 若与你的版本不同，以 \`edited_brief\` 为准。
+1. 先调用 \`info_check\`：用一段话复述目标；列出 2–${maxQuestions} 条真正影响结果的**细节**核对问题（每题给选项，推荐项放第一并标注“（推荐）”）；给出可检查的完成标准（quality_bar）、明确的范围外（out_of_scope）、${milestoneRule}（milestones）。所有要点每点单独一行/一段，用 1. 2. 3. 编号，不要挤成一段。第一张卡是**可编辑的核对单**：用户会直接在你的版本上修改、补充，勾选确认后才进入细节选择；返回的 \`edited_brief\` 若与你的版本不同，以 \`edited_brief\` 为准。
 2. 用户确认之前，不要写文件、改代码、安装依赖或做不可逆操作；可以先读文件、搜索、调研。用户明确说“直接做 / 别问了”时，可以跳过核对。
 3. \`confirmed=true\` 后再开工；\`confirmed=false\`（用户没有提交核对单或关闭了卡片）时不要执行；需要时按用户的最新说法重新发起核对。
-4. 需求核对确认后，**只调用一次** \`confirm_milestone\`，确认整体执行方案/第一个里程碑（做什么、改哪些文件、怎么验证）；后续里程碑**不再调用** \`confirm_milestone\`，直接执行。卡片顶部会标注 \`dsh-info-check · 里程碑确认\`，方案可编辑；返回的 \`edited_plan\` 若与你的版本不同，以它为准。
+4. 需求核对确认后，**只调用一次** \`confirm_milestone\`，确认整体执行方案/第一个里程碑（做什么、改哪些文件、怎么验证）；后续里程碑**不再调用** \`confirm_milestone\`，直接执行。方案每一点单独一段并用 1. 2. 3. 编号。卡片顶部会标注 \`dsh-info-check · 里程碑确认\`，方案可编辑；返回的 \`edited_plan\` 若与你的版本不同，以它为准。
 5. \`confirm_milestone\` 的结果：
    - \`approved\` / \`skipped\` / \`timeout\`：按方案执行（timeout 表示用户 ${timeoutSeconds} 秒未操作，已按约定跳过）。
    - 用户可以在倒计时处点“停止计时”，倒计时停止、浮窗不关闭；等用户修改完再按“按此方案执行”。不要在没有用户确认时继续。
-6. 每个里程碑完成后，调用 \`accept_milestone\`，提交完成内容、验证证据和未完成/风险；用户验收通过或超时后再进入下一个里程碑。不要合并里程碑，不要擅自扩大范围。
+6. 每个里程碑完成后，调用 \`accept_milestone\`，提交完成内容、验证证据和未完成/风险（每点单独一行，界面会按 1. 2. 3. 编号显示）；用户验收通过或超时后再进入下一个里程碑。不要合并里程碑，不要擅自扩大范围。
 7. 任务明显简单且无歧义（单文件小改、用户已给出完整规格）时，说明假设后直接做，不必走流程。
 8. 不要手动修改 \`.dsh-info-check/ledger.md\`；插件会自动记录每次选择。需要补充执行说明时，写在最终答复里。
 9. 子代理不要调用 \`info_check\` / \`confirm_milestone\` / \`accept_milestone\` / \`confirm_delivery\`；把需要用户决定的问题写进最终结果。
 10. 验收返回 \`rework\` 时，按 feedback（用户在“返修说明”浮窗里填写的理由）修改，然后再次调用 \`accept_milestone\`；不要忽略理由，也不要直接进入下一个里程碑。
-11. 准备交付最终结果前，调用 \`confirm_delivery\`，写明完成程度、交付内容、未完成/限制和验证；用户确认或超时后再交付。返回 \`adjust\` 时，按 feedback（用户在“调整说明”浮窗里填写的理由）修改后再确认交付。
+11. 准备交付最终结果前，调用 \`confirm_delivery\`，写明完成程度、交付内容、未完成/限制和验证（每点单独一行，界面会编号）；用户确认或超时后再交付。返回 \`adjust\` 时，按 feedback（用户在“调整说明”浮窗里填写的理由）修改后再确认交付。
 
 完成标准示例：不要写“好看”，要写“与现有按钮使用同一套间距与颜色 token；hover / disabled / loading 三态可辨；暗色模式不破版”。
 `
@@ -227,13 +227,14 @@ function createInfoCheckTool({ ctx, enabledFor, getMaxQuestions, ledger }) {
   return {
     name: 'info_check',
     description: '在开始实质性执行前，向用户确认意图。提交目标理解、细节核对问题、可检查的完成标准、范围外和里程碑。'
+      + '所有要点每点单独一行/一段，并用 1. 2. 3. 编号；不要挤成一段。'
       + '第一张卡是可编辑的核对单：用户会直接在你的版本上修改、补充，勾选后才进入细节选择。'
       + '返回 confirmed=true 时，若 edited_brief 与你的版本不同，以 edited_brief 为准；confirmed=false 时不要直接执行。',
     parameters: {
       type: 'object',
       additionalProperties: false,
       properties: {
-        understanding: { type: 'string', description: '用一段话复述你理解的目标。' },
+        understanding: { type: 'string', description: '用 1. 2. 3. 分点复述你理解的目标；每点单独一行。' },
         questions: {
           type: 'array',
           description: '2–3 条真正影响结果的核对问题；每题给选项，推荐项放第一并标注“（推荐）”。',
@@ -263,12 +264,12 @@ function createInfoCheckTool({ ctx, enabledFor, getMaxQuestions, ledger }) {
         },
         quality_bar: {
           type: 'array',
-          description: '可检查的完成标准，至少 1 条。不要写“好看”这类无法验收的词。',
+          description: '可检查的完成标准，至少 1 条；每点一条，界面会按 1. 2. 3. 编号显示。不要写“好看”这类无法验收的词。',
           items: { type: 'string' },
         },
         out_of_scope: {
           type: 'array',
-          description: '这次明确不做的事，避免执行中擅自加码。',
+          description: '这次明确不做的事，避免执行中擅自加码；每点一条，界面会按 1. 2. 3. 编号显示。',
           items: { type: 'string' },
         },
         milestones: {
@@ -387,7 +388,7 @@ function createMilestoneTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
         milestone: { type: 'string', description: '里程碑 id 或标题，对应 info_check 里声明的 milestones。' },
         plan: {
           type: 'string',
-          description: '这个里程碑的具体方案（Markdown）：做什么、改哪些文件、怎么验证。',
+          description: '这个里程碑的具体方案：每一点单独一段，用 1. 2. 3. 编号（做什么、改哪些文件、怎么验证）。',
         },
         impact: { type: 'string', description: '可选的影响范围，例如受影响的页面、依赖或风险。' },
       },
@@ -413,8 +414,8 @@ function createMilestoneTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
       if (!enabledFor(agent.session)) throw new Error('dsh-info-check is disabled for this conversation')
       const milestone = validateMilestone(args)
       const detail = milestone.impact === undefined
-        ? `【方案】\n\n${milestone.plan}`
-        : `【方案】\n\n${milestone.plan}\n\n【影响范围】\n\n${milestone.impact}`
+        ? `【方案】\n\n${numberPoints(milestone.plan)}`
+        : `【方案】\n\n${numberPoints(milestone.plan)}\n\n【影响范围】\n\n${numberPoints(milestone.impact)}`
       const question = {
         id: MILESTONE_CONFIRM_ID,
         header: 'dsh-info-check · 里程碑确认',
@@ -488,9 +489,9 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
       additionalProperties: false,
       properties: {
         milestone: { type: 'string', description: '里程碑 id 或标题。' },
-        summary: { type: 'string', description: '这个里程碑完成了什么。' },
-        evidence: { type: 'string', description: '验证证据：测试、命令、文件或截图。' },
-        gaps: { type: 'string', description: '可选的未完成项或风险。' },
+        summary: { type: 'string', description: '这个里程碑完成了什么；每点单独一行，界面会按 1. 2. 3. 编号显示。' },
+        evidence: { type: 'string', description: '验证证据：测试、命令、文件或截图；每点单独一行，界面会编号。' },
+        gaps: { type: 'string', description: '可选的未完成项或风险；每点单独一行，界面会编号。' },
       },
       required: ['milestone', 'summary', 'evidence'],
     },
@@ -580,10 +581,10 @@ function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
       type: 'object',
       additionalProperties: false,
       properties: {
-        completion: { type: 'string', description: '结果完成程度：哪些做完、哪些没做。' },
-        delivered: { type: 'string', description: '最终交付内容：文件、页面、命令或说明。' },
-        gaps: { type: 'string', description: '可选的未完成项或限制。' },
-        evidence: { type: 'string', description: '可选的验证证据。' },
+        completion: { type: 'string', description: '结果完成程度：哪些做完、哪些没做；每点单独一行，界面会按 1. 2. 3. 编号显示。' },
+        delivered: { type: 'string', description: '最终交付内容：文件、页面、命令或说明；每点单独一行，界面会编号。' },
+        gaps: { type: 'string', description: '可选的未完成项或限制；每点单独一行，界面会编号。' },
+        evidence: { type: 'string', description: '可选的验证证据；每点单独一行，界面会编号。' },
       },
       required: ['completion', 'delivered'],
     },

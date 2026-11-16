@@ -27,6 +27,8 @@ This is an independent community bundle, not an official DeepSeek package.
 
 Every confirmation is a centered floating window with a read-only or editable report, a confirm checkbox, a primary action, and — for the three timed gates — a countdown (60 seconds by default) with a **Stop timer** button. “Needs rework / Needs adjustment” opens a second floating window for the reason; that reason goes back to the model as `feedback`.
 
+Dialogs are **resizable from the right edge**; the maximum width equals the dialog height (and stays within 75% of the viewport). Every point in the editable and read-only sections is laid out as its own numbered paragraph (1., 2., 3. …).
+
 Detailed design and flow notes (Chinese): [docs/DETAIL.md](docs/DETAIL.md). UI notes: [docs/UI.md](docs/UI.md).
 
 ## Screenshots
