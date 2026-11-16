@@ -35,7 +35,7 @@
 
 以下图片按插件**真实的浮窗 CSS** 在模拟对话背景上渲染，属于界面预览，不是某一次实时会话的截图。界面展示为中文；bundle 同时内置英文文案。
 
-**社交预览图源文件：** [docs/social-preview.png](docs/social-preview.png)（1280×640，小于 1 MB）。GitHub 不支持通过 git 或公开 API 设置 Social preview；请在仓库 **Settings → General → Social preview** 手动上传。
+**社交预览图源文件：** [docs/social-preview.png](docs/social-preview.png)（1280×640，小于 1 MB）。
 
 | 需求核对——可编辑核对单 | 里程碑确认——整个任务只一次 |
 |---|---|
