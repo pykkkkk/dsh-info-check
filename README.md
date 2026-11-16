@@ -191,6 +191,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/TESTING.md](docs/TESTING.md).
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. Copyright (c) 2026 pykkkkk (Wenhao Liu). See [LICENSE](LICENSE).
 
 Design baseline: DeepSeek Blue single-accent palette, restrained 8px radii, and read-first layouts. No third-party code or artwork is bundled; the icon is original.

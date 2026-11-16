@@ -25,8 +25,8 @@ simple `MAJOR.MINOR.PATCH` version; DSH compatibility is pinned by
 - Workspace ledger under `.dsh-info-check/ledger.md`.
 - No npm dependencies: the Host half imports only Node built-ins and loads the
   schemastery bundled with the running DSH installation when Config is needed.
-- Open-source packaging: MIT license, README, CI, contribution and security
-  notes, and a manual test plan.
+- Open-source packaging: README, CI, contribution and security notes, and a
+  manual test plan.
 
 ## 0.1.0 — 2026-11-16
 

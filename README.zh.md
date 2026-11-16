@@ -191,6 +191,6 @@ icon.svg              原始图标
 
 ## 许可证
 
-MIT。见 [LICENSE](LICENSE)。
+MIT。Copyright (c) 2026 pykkkkk (Wenhao Liu)。见 [LICENSE](LICENSE)。
 
 设计基线：DeepSeek Blue 单一强调色、克制的 8px 圆角、阅读优先布局。没有打包第三方代码或美术资源；图标为原创。

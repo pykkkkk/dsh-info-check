@@ -5,7 +5,7 @@
   "type": "module",
   "description": "DSH confirmation gate: intent check, one plan confirmation, per-milestone acceptance, delivery sign-off, and a workspace ledger.",
   "license": "MIT",
-  "author": "dsh-info-check contributors",
+  "author": "pykkkkk (Wenhao Liu)",
   "repository": {
     "type": "git",
     "url": "https://github.com/pykkkkk/dsh-info-check.git"
