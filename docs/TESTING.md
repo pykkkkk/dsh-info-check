@@ -56,7 +56,8 @@ Prerequisites:
 - A centered `dsh-info-check` dialog appears.
 - The report is split into `我的理解 / 完成标准 / 范围外 / 里程碑`, each with its
   own editable text box; headings are larger and pure black.
-- Every point is a separate paragraph with `1.` `2.` `3.` numbering.
+- Every point is a separate box with its own number badge; each confirmation
+  ends with a Notes field.
 - Drag the right edge: width changes; it cannot exceed the dialog height;
   double-click the edge restores the default width.
 - Edit a section, check “我已确认以上理解”, continue.

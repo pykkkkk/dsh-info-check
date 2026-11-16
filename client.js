@@ -106,6 +106,20 @@ window.__ModuleLoader__.load({
 .ic-sec-box:hover{border-color:var(--ic-line)}
 .ic-sec-box:focus{border-color:var(--ic-primary);box-shadow:0 0 0 3px rgba(77,107,254,.12)}
 .ic-sec-read{white-space:pre-wrap;padding:12px 14px;border:1px solid var(--ic-line-soft);border-radius:8px;background:var(--ic-read);color:var(--ic-ink);font-size:13px;line-height:1.75;overflow-wrap:anywhere}
+.ic-points{display:flex;flex-direction:column;gap:8px}
+.ic-point{display:flex;align-items:flex-start;gap:8px}
+.ic-point-no{flex:none;display:flex;align-items:center;justify-content:center;width:24px;height:24px;margin-top:9px;border:1px solid var(--ic-line);border-radius:6px;background:var(--ic-bg);color:var(--ic-text-2);font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
+.ic-point-box{box-sizing:border-box;flex:1;width:100%;min-height:64px;max-height:160px;resize:vertical;padding:10px 12px;border:1px solid var(--ic-line-soft);border-radius:8px;background:var(--ic-read);color:var(--ic-ink);font-family:inherit;font-size:13px;line-height:1.7;outline:none;overflow:auto;transition:border-color .15s,box-shadow .15s}
+.ic-point-box:hover{border-color:var(--ic-line)}
+.ic-point-box:focus{border-color:var(--ic-primary);box-shadow:0 0 0 3px rgba(77,107,254,.12)}
+.ic-point-text{flex:1;white-space:pre-wrap;padding:10px 12px;border:1px solid var(--ic-line-soft);border-radius:8px;background:var(--ic-read);color:var(--ic-ink);font-size:13px;line-height:1.7;overflow-wrap:anywhere}
+.ic-point-remove{flex:none;width:20px;height:20px;margin-top:9px;border:none;border-radius:5px;background:transparent;color:var(--ic-text-3);font-size:15px;line-height:1;cursor:pointer}
+.ic-point-remove:hover{background:var(--ic-bg);color:var(--ic-error)}
+.ic-point-add{align-self:flex-start;border:1px dashed var(--ic-line);border-radius:6px;background:transparent;padding:4px 8px;font:inherit;font-size:10.5px;font-weight:600;color:var(--ic-text-3);cursor:pointer}
+.ic-point-add:hover{border-color:var(--ic-text-3);color:var(--ic-ink)}
+.ic-notes{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.ic-notes .ic-readbox{height:80px;min-height:80px}
+.ic-notes-hint{font-size:11px;line-height:1.5;color:var(--ic-text-3)}
 .ic-qgroup{margin-bottom:22px}
 .ic-qgroup:last-child{margin-bottom:0}
 .ic-q-title{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:12.5px;font-weight:700;margin-bottom:10px;line-height:1.5}
@@ -206,6 +220,11 @@ window.__ModuleLoader__.load({
       'panel.continued': '已超时，仍可提交',
       'panel.stopTimer': '停止计时',
       'panel.countdownStopped': '计时已停止',
+      'panel.addPoint': '+ 添加一点',
+      'panel.removePoint': '删除这一点',
+      'panel.notes': '备注',
+      'panel.notesHint': '其他要求或补充说明（可选）。',
+      'panel.notesPlaceholder': '例如：验收时请额外检查…',
       'settings.title': '设置',
       'settings.desc': '偏好、计时与台账；保存后立即生效。',
       'settings.preferences': '偏好',
@@ -308,6 +327,11 @@ window.__ModuleLoader__.load({
       'panel.continued': 'Timed out — still answerable',
       'panel.stopTimer': 'Stop timer',
       'panel.countdownStopped': 'Timer stopped',
+      'panel.addPoint': '+ Add point',
+      'panel.removePoint': 'Remove point',
+      'panel.notes': 'Notes',
+      'panel.notesHint': 'Other requirements or extra notes (optional).',
+      'panel.notesPlaceholder': 'For example: also check …',
       'settings.title': 'Settings',
       'settings.desc': 'Preferences, timing, and ledger. Saved values apply immediately.',
       'settings.preferences': 'Preferences',
@@ -456,46 +480,158 @@ window.__ModuleLoader__.load({
         .trim()
     }
 
-    function SectionsEditor({ detail, onChange, disabled, onFocus, onBlur, onEdit }) {
-      const [sections, setSections] = React.useState(() => parseSections(detail))
+    function parsePoints(body) {
+      const points = []
+      let current = null
+      let inFence = false
+      for (const raw of String(body ?? '').split(/\r?\n/)) {
+        const line = raw.trim()
+        if (/^(```|~~~)/.test(line)) {
+          inFence = !inFence
+          if (current === null) current = { text: raw }
+          else current.text += `${current.text === '' ? '' : '\n'}${raw}`
+          continue
+        }
+        if (!inFence) {
+          const match = /^(\d+)[.)]\s+(.*)$/.exec(line)
+          if (match) {
+            if (current !== null) points.push(current)
+            current = { text: match[2] }
+            continue
+          }
+        }
+        if (current === null) {
+          if (line !== '') current = { text: raw }
+        } else {
+          current.text += `\n${raw}`
+        }
+      }
+      if (current !== null) points.push(current)
+      return points
+        .map(point => ({ text: point.text.replace(/^\n+|\n+$/g, '') }))
+        .filter(point => point.text !== '')
+    }
+
+    function joinPoints(points) {
+      return points
+        .filter(point => point.text.trim() !== '')
+        .map((point, index) => `${index + 1}. ${point.text}`)
+        .join('\n\n')
+    }
+
+    function sectionsWithPoints(detail) {
+      return parseSections(detail).map(section => {
+        const points = parsePoints(section.body)
+        return { ...section, points: points.length === 0 ? [{ text: '' }] : points }
+      })
+    }
+
+    function NotesField({ t, value, onChange, disabled }) {
+      return React.createElement('div', { className: 'ic-notes' },
+        React.createElement('div', { className: 'ic-sec-label' }, t('panel.notes')),
+        React.createElement('div', { className: 'ic-notes-hint' }, t('panel.notesHint')),
+        React.createElement('textarea', {
+          className: 'ic-readbox',
+          value,
+          disabled,
+          spellCheck: false,
+          placeholder: t('panel.notesPlaceholder'),
+          'aria-label': t('panel.notes'),
+          onChange: event => { onChange(event.target.value) },
+        }))
+    }
+
+    function SectionsEditor({ t, detail, onChange, disabled, onFocus, onBlur, onEdit }) {
+      const [sections, setSections] = React.useState(() => sectionsWithPoints(detail))
       React.useEffect(() => {
-        setSections(parseSections(detail))
+        setSections(sectionsWithPoints(detail))
       }, [detail])
 
-      const update = (index, body) => {
-        const next = sections.map((section, i) => (i === index ? { ...section, body } : section))
+      const publish = (next) => {
         setSections(next)
         if (typeof onEdit === 'function') onEdit()
-        onChange(joinSections(next))
+        onChange(joinSections(next.map(section => ({
+          marker: section.marker,
+          title: section.title,
+          body: joinPoints(section.points),
+        }))))
+      }
+
+      const updatePoint = (sectionIndex, pointIndex, text) => {
+        publish(sections.map((section, index) => index === sectionIndex
+          ? { ...section, points: section.points.map((point, pointIndex_) => pointIndex_ === pointIndex ? { text } : point) }
+          : section))
+      }
+
+      const addPoint = (sectionIndex) => {
+        publish(sections.map((section, index) => index === sectionIndex
+          ? { ...section, points: [...section.points, { text: '' }] }
+          : section))
+      }
+
+      const removePoint = (sectionIndex, pointIndex) => {
+        const section = sections[sectionIndex]
+        if (section === undefined || section.points.length <= 1) return
+        publish(sections.map((item, index) => index === sectionIndex
+          ? { ...item, points: item.points.filter((_, pointIndex_) => pointIndex_ !== pointIndex) }
+          : item))
       }
 
       return React.createElement('div', { className: 'ic-sections' },
-        ...sections.map((section, index) => React.createElement('div', {
-          key: `${section.marker}:${index}`,
+        ...sections.map((section, sectionIndex) => React.createElement('div', {
+          key: `${section.marker}:${sectionIndex}`,
           className: 'ic-sec',
         },
         section.title === '' ? null : React.createElement('div', { className: 'ic-sec-label' }, section.title),
-        React.createElement('textarea', {
-          className: 'ic-sec-box',
-          value: section.body,
-          disabled,
-          spellCheck: false,
-          'aria-label': section.title === '' ? 'content' : section.title,
-          onFocus: typeof onFocus === 'function' ? onFocus : undefined,
-          onBlur: typeof onBlur === 'function' ? onBlur : undefined,
-          onChange: event => { update(index, event.target.value) },
-        }))))
+        React.createElement('div', { className: 'ic-points' },
+          ...section.points.map((point, pointIndex) => React.createElement('div', {
+            key: pointIndex,
+            className: 'ic-point',
+          },
+          React.createElement('div', { className: 'ic-point-no' }, String(pointIndex + 1)),
+          React.createElement('textarea', {
+            className: 'ic-point-box',
+            value: point.text,
+            disabled,
+            spellCheck: false,
+            'aria-label': `${section.title === '' ? 'content' : section.title} ${pointIndex + 1}`,
+            onFocus: typeof onFocus === 'function' ? onFocus : undefined,
+            onBlur: typeof onBlur === 'function' ? onBlur : undefined,
+            onChange: event => { updatePoint(sectionIndex, pointIndex, event.target.value) },
+          }),
+          section.points.length <= 1 ? null : React.createElement('button', {
+            type: 'button',
+            className: 'ic-point-remove',
+            'aria-label': t('panel.removePoint'),
+            disabled,
+            onClick: () => { removePoint(sectionIndex, pointIndex) },
+          }, '×'))),
+          React.createElement('button', {
+            type: 'button',
+            className: 'ic-point-add',
+            disabled,
+            onClick: () => { addPoint(sectionIndex) },
+          }, t('panel.addPoint'))))))
     }
 
     function SectionsView({ detail }) {
-      const sections = parseSections(detail)
+      const sections = parseSections(detail).map(section => ({
+        ...section,
+        points: parsePoints(section.body),
+      }))
       return React.createElement('div', { className: 'ic-sections' },
-        ...sections.map((section, index) => React.createElement('div', {
-          key: `${section.marker}:${index}`,
+        ...sections.map((section, sectionIndex) => React.createElement('div', {
+          key: `${section.marker}:${sectionIndex}`,
           className: 'ic-sec',
         },
         section.title === '' ? null : React.createElement('div', { className: 'ic-sec-label' }, section.title),
-        React.createElement('div', { className: 'ic-sec-read' }, section.body))))
+        React.createElement('div', { className: 'ic-points' },
+          ...section.points.map((point, pointIndex) => React.createElement('div', {
+            key: pointIndex,
+            className: 'ic-point',
+          },
+          React.createElement('div', { className: 'ic-point-no' }, String(pointIndex + 1)),
+          React.createElement('div', { className: 'ic-point-text' }, point.text)))))))
     }
 
     function countdownNode(t, snapshot, base, onStop) {
@@ -639,6 +775,7 @@ window.__ModuleLoader__.load({
         const [step, setStep] = React.useState(0)
         const [selections, setSelections] = React.useState({})
         const [customs, setCustoms] = React.useState({})
+        const [notes, setNotes] = React.useState('')
         const [busy, setBusy] = React.useState(false)
         const [error, setError] = React.useState('')
 
@@ -648,6 +785,7 @@ window.__ModuleLoader__.load({
           setStep(0)
           setSelections({})
           setCustoms({})
+          setNotes('')
           setBusy(false)
           setError('')
         }, [pending.key])
@@ -677,8 +815,9 @@ window.__ModuleLoader__.load({
           if (!checked) { setError(t('panel.checkRequired')); return }
           setBusy(true)
           setError('')
+          const composed = notes.trim() === '' ? text.trim() : `${text.trim()}\n\n【补充备注】\n\n${notes.trim()}`
           const answers = [
-            { id: BRIEF_ID, selected: [], custom: text.trim() },
+            { id: BRIEF_ID, selected: [], custom: composed },
             ...details.map((question) => {
               const custom = typeof customs[question.id] === 'string' ? customs[question.id].trim() : ''
               return {
@@ -751,11 +890,19 @@ window.__ModuleLoader__.load({
             countdown: countdownNode(t, snapshot, base),
             onClose: close,
             error,
-            children: React.createElement(SectionsEditor, {
-              detail: original,
-              onChange: setText,
-              disabled: busy,
-            }),
+            children: React.createElement(React.Fragment, null,
+              React.createElement(SectionsEditor, {
+                t,
+                detail: original,
+                onChange: setText,
+                disabled: busy,
+              }),
+              details.length === 0 ? React.createElement(NotesField, {
+                t,
+                value: notes,
+                onChange: setNotes,
+                disabled: busy,
+              }) : null),
             footer: [
               React.createElement(CheckBox, {
                 key: 'confirm',
@@ -790,7 +937,14 @@ window.__ModuleLoader__.load({
           countdown: countdownNode(t, snapshot, base),
           onClose: close,
           error,
-          children: React.createElement('div', { className: 'ic-step' }, ...detailBlocks),
+          children: React.createElement('div', { className: 'ic-step' },
+            ...detailBlocks,
+            React.createElement(NotesField, {
+              t,
+              value: notes,
+              onChange: setNotes,
+              disabled: busy,
+            })),
           footer: [
             React.createElement('span', { key: 'spacer', className: 'ic-spacer' }),
             React.createElement(RippleButton, {
@@ -819,12 +973,14 @@ window.__ModuleLoader__.load({
         const original = typeof question?.detail === 'string' ? question.detail : ''
 
         const [text, setText] = React.useState(original)
+        const [notes, setNotes] = React.useState('')
         const [checked, setChecked] = React.useState(false)
         const [busy, setBusy] = React.useState(false)
         const [error, setError] = React.useState('')
 
         React.useEffect(() => {
           setText(original)
+          setNotes('')
           setChecked(false)
           setBusy(false)
           setError('')
@@ -844,7 +1000,9 @@ window.__ModuleLoader__.load({
           if (!checked) { setError(t('panel.checkRequired')); return }
           setBusy(true)
           setError('')
-          const edited = text.trim() === original.trim() ? '' : text.trim()
+          const base = text.trim()
+          const composed = notes.trim() === '' ? base : `${base}\n\n【补充备注】\n\n${notes.trim()}`
+          const edited = notes.trim() === '' && base === original.trim() ? '' : composed
           pending.answer({
             answers: [{
               id: MILESTONE_ID,
@@ -868,14 +1026,22 @@ window.__ModuleLoader__.load({
           }),
           onClose: close,
           error,
-          children: React.createElement(SectionsEditor, {
-            detail: original,
-            onChange: setText,
-            disabled: busy,
-            onFocus: () => { if (typeof pending.holdFocus === 'function') pending.holdFocus() },
-            onBlur: () => { if (typeof pending.releaseFocus === 'function') pending.releaseFocus() },
-            onEdit: () => { if (typeof pending.engage === 'function') pending.engage() },
-          }),
+          children: React.createElement(React.Fragment, null,
+            React.createElement(SectionsEditor, {
+              t,
+              detail: original,
+              onChange: setText,
+              disabled: busy,
+              onFocus: () => { if (typeof pending.holdFocus === 'function') pending.holdFocus() },
+              onBlur: () => { if (typeof pending.releaseFocus === 'function') pending.releaseFocus() },
+              onEdit: () => { if (typeof pending.engage === 'function') pending.engage() },
+            }),
+            React.createElement(NotesField, {
+              t,
+              value: notes,
+              onChange: setNotes,
+              disabled: busy,
+            })),
           footer: [
             React.createElement(CheckBox, {
               key: 'confirm',
@@ -905,6 +1071,7 @@ window.__ModuleLoader__.load({
         const original = typeof question?.detail === 'string' ? question.detail : ''
 
         const [checked, setChecked] = React.useState(false)
+        const [notes, setNotes] = React.useState('')
         const [busy, setBusy] = React.useState(false)
         const [error, setError] = React.useState('')
         const [reasonOpen, setReasonOpen] = React.useState(false)
@@ -913,6 +1080,7 @@ window.__ModuleLoader__.load({
 
         React.useEffect(() => {
           setChecked(false)
+          setNotes('')
           setBusy(false)
           setError('')
           setReasonOpen(false)
@@ -943,7 +1111,11 @@ window.__ModuleLoader__.load({
           setBusy(true)
           setError('')
           pending.answer({
-            answers: [{ id: config.id, selected: [config.approveLabel] }],
+            answers: [{
+              id: config.id,
+              selected: [config.approveLabel],
+              ...notes.trim() === '' ? {} : { custom: notes.trim() },
+            }],
           }).catch(() => {
             setError(t('panel.failed'))
             setBusy(false)
@@ -975,7 +1147,14 @@ window.__ModuleLoader__.load({
           }),
           onClose: close,
           error,
-          children: React.createElement(SectionsView, { detail: original }),
+          children: React.createElement(React.Fragment, null,
+            React.createElement(SectionsView, { detail: original }),
+            React.createElement(NotesField, {
+              t,
+              value: notes,
+              onChange: setNotes,
+              disabled: busy,
+            })),
           footer: [
             React.createElement(CheckBox, {
               key: 'confirm',

@@ -28,6 +28,16 @@ const brief = validateInfoCheck({
         { label: '只做功能' },
       ],
     },
+    {
+      id: 'states',
+      header: '状态',
+      question: '需要覆盖哪些按钮状态？',
+      options: [
+        { label: 'hover / disabled / loading（推荐）' },
+        { label: '只做默认态' },
+      ],
+      multi_select: true,
+    },
   ],
   quality_bar: ['与现有按钮使用同一套 token', 'hover / disabled / loading 三态可辨'],
   out_of_scope: ['不改导航结构'],
@@ -66,6 +76,20 @@ assert.throws(() => validateInfoCheck({
   quality_bar: ['x'],
   milestones: [{ id: 'm1', title: 'x' }],
 }, 0), /at most/)
+
+assert.throws(() => validateInfoCheck({
+  understanding: 'x',
+  questions: [{ id: 'a', question: 'q1' }],
+  quality_bar: ['x'],
+  milestones: [{ id: 'm1', title: 'x' }],
+}, 3), /at least 2/)
+
+assert.equal(validateInfoCheck({
+  understanding: 'x',
+  questions: [{ id: 'a', question: 'q1' }],
+  quality_bar: ['x'],
+  milestones: [{ id: 'm1', title: 'x' }],
+}, 1).questions.length, 1)
 
 const milestone = validateMilestone({ milestone: 'm1', plan: '改按钮组件，补三态样式', impact: '登录页' })
 assert.equal(milestone.milestone, 'm1')
@@ -151,9 +175,10 @@ assert.equal(acceptance.milestone, 'm1')
 assert.match(acceptanceDetail(acceptance), /【里程碑】/)
 assert.match(acceptanceDetail(acceptance), /【验证证据】/)
 
-const accepted = acceptanceOutcome({ selected: [ACCEPT_LABEL], custom: '忽略的用户文本' })
+const accepted = acceptanceOutcome({ selected: [ACCEPT_LABEL], custom: '请顺手补上暗色模式' })
 assert.equal(accepted.decision, 'accepted')
 assert.equal(accepted.proceed, true)
+assert.equal(accepted.notes, '请顺手补上暗色模式')
 
 const rework = acceptanceOutcome({ selected: [REWORK_LABEL] })
 assert.equal(rework.decision, 'rework')
@@ -162,6 +187,7 @@ assert.equal(rework.proceed, false)
 const acceptLedger = acceptanceLedger(acceptance, accepted, '2026-11-16 02:10:00')
 assert.match(acceptLedger, /里程碑验收/)
 assert.match(acceptLedger, /验收通过/)
+assert.match(acceptLedger, /用户备注/)
 
 const delivery = validateDelivery({
   completion: '90%：功能和样式完成，loading 文案未定',
@@ -172,9 +198,10 @@ const delivery = validateDelivery({
 assert.match(deliveryDetail(delivery), /【完成程度】/)
 assert.match(deliveryDetail(delivery), /【交付内容】/)
 
-const confirmed = deliveryOutcome({ selected: [DELIVER_LABEL] })
+const confirmed = deliveryOutcome({ selected: [DELIVER_LABEL], custom: '交付前再跑一次 smoke' })
 assert.equal(confirmed.decision, 'confirmed')
 assert.equal(confirmed.proceed, true)
+assert.equal(confirmed.notes, '交付前再跑一次 smoke')
 
 const adjustDelivery = deliveryOutcome({ selected: [ADJUST_DELIVERY_LABEL], custom: '再补 loading' })
 assert.equal(adjustDelivery.decision, 'adjust')

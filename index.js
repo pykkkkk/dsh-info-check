@@ -125,6 +125,7 @@ function readConfig(value, fallback) {
 
 function defaultPolicy(settings) {
   const { maxQuestions, timeoutSeconds, milestoneCount, expectation } = settings
+  const minQuestions = Math.min(2, maxQuestions)
   const milestoneRule = milestoneCount === 1
     ? '1 个里程碑'
     : `1–${milestoneCount} 个里程碑（用户偏好 ${milestoneCount} 个）`
@@ -134,7 +135,7 @@ function defaultPolicy(settings) {
 
 用户偏好：希望拆成 ${milestoneCount} 个里程碑；期望程度为 **${EXPECTATION_LABELS[normalizeExpectation(expectation)]}**。按这个标准设计方案、验收和交付确认。
 
-1. 先调用 \`info_check\`：用一段话复述目标；列出 1–${maxQuestions} 条真正影响结果的**细节**核对问题（每题给选项，推荐项放第一并标注“（推荐）”）；给出可检查的完成标准（quality_bar）、明确的范围外（out_of_scope）、${milestoneRule}（milestones）。所有要点每点单独一行/一段，用 1. 2. 3. 编号，不要挤成一段。第一张卡是**可编辑的核对单**：用户会直接在你的版本上修改、补充，勾选确认后才进入细节选择；返回的 \`edited_brief\` 若与你的版本不同，以 \`edited_brief\` 为准。
+1. 先调用 \`info_check\`：用一段话复述目标；列出 ${minQuestions}–${maxQuestions} 条真正影响结果的**细节**核对问题（每题给选项，推荐项放第一并标注“（推荐）”）；给出可检查的完成标准（quality_bar）、明确的范围外（out_of_scope）、${milestoneRule}（milestones）。所有要点每点单独一行/一段，用 1. 2. 3. 编号，不要挤成一段。第一张卡是**可编辑的核对单**：用户会直接在你的版本上修改、补充，勾选确认后才进入细节选择；返回的 \`edited_brief\` 若与你的版本不同，以 \`edited_brief\` 为准。
 2. 用户确认之前，不要写文件、改代码、安装依赖或做不可逆操作；可以先读文件、搜索、调研。用户明确说“直接做 / 别问了”时，可以跳过核对。
 3. \`confirmed=true\` 后再开工；\`confirmed=false\`（用户没有提交核对单或关闭了卡片）时不要执行；需要时按用户的最新说法重新发起核对。
 4. 需求核对确认后，**只调用一次** \`confirm_milestone\`，确认整体执行方案/第一个里程碑（做什么、改哪些文件、怎么验证）；后续里程碑**不再调用** \`confirm_milestone\`，直接执行。方案每一点单独一段并用 1. 2. 3. 编号。卡片顶部会标注 \`dsh-info-check · 里程碑确认\`，方案可编辑；返回的 \`edited_plan\` 若与你的版本不同，以它为准。
@@ -237,7 +238,7 @@ function createInfoCheckTool({ ctx, enabledFor, getMaxQuestions, ledger }) {
         understanding: { type: 'string', description: '用 1. 2. 3. 分点复述你理解的目标；每点单独一行。' },
         questions: {
           type: 'array',
-          description: '按设置的数量（1–6）列出真正影响结果的核对问题；每题给选项，推荐项放第一并标注“（推荐）”。',
+          description: '按设置的数量列出真正影响结果的核对问题（上限大于 1 时至少 2 条）；每题给选项，推荐项放第一并标注“（推荐）”。',
           items: {
             type: 'object',
             additionalProperties: false,
@@ -483,7 +484,8 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
   return {
     name: 'accept_milestone',
     description: '在一个里程碑完成后，向用户验收：提交完成内容、验证证据、未完成或风险；用户验收通过（或倒计时结束）后再进入下一个里程碑。'
-      + '用户可以在倒计时处停止计时；验收报告是只读的，用户点“需要返工”时会在“返修说明”浮窗里填写理由，reason 通过 feedback 返回，按它修改后再次验收。',
+      + '用户可以在倒计时处停止计时；验收报告是只读的，用户点“需要返工”时会在“返修说明”浮窗里填写理由，reason 通过 feedback 返回，按它修改后再次验收。'
+      + '用户在备注里写的额外要求通过 notes 返回。',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -503,6 +505,7 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
           decision: { type: 'string' },
           proceed: { type: 'boolean' },
           feedback: { type: 'string' },
+          notes: { type: 'string' },
         },
         required: ['decision', 'proceed'],
       },
@@ -546,11 +549,13 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
       await ledger.append(agent.session, acceptanceLedger(acceptance, {
         decision: outcome.decision,
         ...(outcome.feedback === undefined ? {} : { feedback: outcome.feedback }),
+        ...(outcome.notes === undefined ? {} : { notes: outcome.notes }),
       }))
       return {
         decision: outcome.decision,
         proceed: outcome.proceed,
         ...(outcome.feedback === undefined ? {} : { feedback: outcome.feedback }),
+        ...(outcome.notes === undefined ? {} : { notes: outcome.notes }),
       }
     },
     presentCall(args) {
@@ -576,7 +581,8 @@ function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
   return {
     name: 'confirm_delivery',
     description: '在呈现最终结果前，向用户确认完成程度：提交完成程度、交付内容、未完成或限制、验证；用户确认（或倒计时结束）后才交付最终结果。'
-      + '用户可以在倒计时处停止计时；确认报告是只读的，用户点“需要调整”时会在“调整说明”浮窗里填写理由，reason 通过 feedback 返回，按它修改后再确认交付。',
+      + '用户可以在倒计时处停止计时；确认报告是只读的，用户点“需要调整”时会在“调整说明”浮窗里填写理由，reason 通过 feedback 返回，按它修改后再确认交付。'
+      + '用户在备注里写的额外要求通过 notes 返回。',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -596,6 +602,7 @@ function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
           decision: { type: 'string' },
           proceed: { type: 'boolean' },
           feedback: { type: 'string' },
+          notes: { type: 'string' },
         },
         required: ['decision', 'proceed'],
       },
@@ -639,11 +646,13 @@ function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
       await ledger.append(agent.session, deliveryLedger(delivery, {
         decision: outcome.decision,
         ...(outcome.feedback === undefined ? {} : { feedback: outcome.feedback }),
+        ...(outcome.notes === undefined ? {} : { notes: outcome.notes }),
       }))
       return {
         decision: outcome.decision,
         proceed: outcome.proceed,
         ...(outcome.feedback === undefined ? {} : { feedback: outcome.feedback }),
+        ...(outcome.notes === undefined ? {} : { notes: outcome.notes }),
       }
     },
     presentCall(args) {
