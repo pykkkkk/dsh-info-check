@@ -417,8 +417,8 @@ function createMilestoneTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
       if (!enabledFor(agent.session)) throw new Error('dsh-info-check is disabled for this conversation')
       const milestone = validateMilestone(args)
       const detail = milestone.impact === undefined
-        ? `【方案】\n\n${numberPoints(milestone.plan)}`
-        : `【方案】\n\n${numberPoints(milestone.plan)}\n\n【影响范围】\n\n${numberPoints(milestone.impact)}`
+        ? `【里程碑】\n\n${milestone.milestone}\n\n【方案】\n\n${numberPoints(milestone.plan)}`
+        : `【里程碑】\n\n${milestone.milestone}\n\n【方案】\n\n${numberPoints(milestone.plan)}\n\n【影响范围】\n\n${numberPoints(milestone.impact)}`
       const question = {
         id: MILESTONE_CONFIRM_ID,
         header: 'dsh-info-check · 里程碑确认',
