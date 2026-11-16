@@ -4,6 +4,18 @@ All notable changes to this bundle are documented here. The project uses a
 simple `MAJOR.MINOR.PATCH` version; DSH compatibility is pinned by
 `engines.dsh`.
 
+## 0.2.1 — 2026-11-16
+
+- Detail questions: single-select options toggle off on a second click; every
+  option question has a free-form “Other” input.
+- Point boxes grow with their content instead of using fixed-height scrollers.
+- Milestone acceptance adds a **Pause task** action and an optional `files`
+  list whose paths open the file location in Explorer.
+- The milestone confirmation detail starts with a `里程碑` section showing the
+  milestone id and title.
+- Top-right X means skip: the tool continues with the agent's version instead
+  of cancelling the turn.
+
 ## 0.2.0 — 2026-11-16
 
 - Four confirmation gates: intent check, one plan confirmation, per-milestone
@@ -14,13 +26,7 @@ simple `MAJOR.MINOR.PATCH` version; DSH compatibility is pinned by
 - Configurable countdown (default 60 seconds) with a **Stop timer** action.
 - Dialogs are resizable from the right edge (maximum width equals the dialog
   height); every point has its own box with a separate number badge, and every
-  confirmation has a free-form Notes field. Point boxes grow with their content.
-- Detail questions: single-select options toggle off on a second click; every
-  option question has a free-form “Other” input.
-- Top-right X means skip: the tool continues with the agent's version instead
-  of cancelling the turn.
-- Milestone acceptance adds a **Pause task** action and an optional `files`
-  list whose paths open the file location in Explorer.
+  confirmation has a free-form Notes field.
 - Settings window: milestone count, expectation level (perfect/good/pass),
   auto-skip timeout, detail-question count, new-conversation default, ledger
   switch/path, and a current-conversation switch. Saved through DSH's

@@ -1,6 +1,6 @@
 # 手动回归清单
 
-**适用版本：** dsh-info-check 0.2.0  
+**适用版本：** dsh-info-check 0.2.1  
 **验证环境：** DSH 0.2.2-rc.3 Desktop（Web GUI）  
 **目标：** 在不依赖浏览器自动化的情况下，用固定步骤覆盖用户可见的关键路径。  
 **原则：** 每项都记录 **Pass / Fail / Blocked**，并附证据（截图、Console、台账行号）。

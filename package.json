@@ -1,6 +1,6 @@
 {
   "name": "@local/dsh-info-check",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "description": "DSH confirmation gate: intent check, one plan confirmation, per-milestone acceptance, delivery sign-off, and a workspace ledger.",
