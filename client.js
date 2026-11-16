@@ -17,6 +17,7 @@ window.__ModuleLoader__.load({
     const APPROVE_MILESTONE = '按此方案执行（推荐）'
     const ACCEPT_LABEL = '验收通过'
     const REWORK_LABEL = '需要返工'
+    const ACCEPT_PAUSE_LABEL = '暂停任务'
     const DELIVER_LABEL = '确认并交付'
     const ADJUST_DELIVERY_LABEL = '需要调整'
 
@@ -109,17 +110,26 @@ window.__ModuleLoader__.load({
 .ic-points{display:flex;flex-direction:column;gap:8px}
 .ic-point{display:flex;align-items:flex-start;gap:8px}
 .ic-point-no{flex:none;display:flex;align-items:center;justify-content:center;width:24px;height:24px;margin-top:9px;border:1px solid var(--ic-line);border-radius:6px;background:var(--ic-bg);color:var(--ic-text-2);font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
-.ic-point-box{box-sizing:border-box;flex:1;width:100%;min-height:64px;max-height:160px;resize:vertical;padding:10px 12px;border:1px solid var(--ic-line-soft);border-radius:8px;background:var(--ic-read);color:var(--ic-ink);font-family:inherit;font-size:13px;line-height:1.7;outline:none;overflow:auto;transition:border-color .15s,box-shadow .15s}
+.ic-point-box{box-sizing:border-box;flex:1;width:100%;min-height:64px;resize:none;padding:10px 12px;border:1px solid var(--ic-line-soft);border-radius:8px;background:var(--ic-read);color:var(--ic-ink);font-family:inherit;font-size:13px;line-height:1.7;outline:none;overflow:hidden;transition:border-color .15s,box-shadow .15s}
 .ic-point-box:hover{border-color:var(--ic-line)}
 .ic-point-box:focus{border-color:var(--ic-primary);box-shadow:0 0 0 3px rgba(77,107,254,.12)}
 .ic-point-text{flex:1;white-space:pre-wrap;padding:10px 12px;border:1px solid var(--ic-line-soft);border-radius:8px;background:var(--ic-read);color:var(--ic-ink);font-size:13px;line-height:1.7;overflow-wrap:anywhere}
+.ic-file-list{display:flex;flex-direction:column;gap:8px}
+.ic-file-link{flex:1;display:flex;align-items:center;gap:8px;min-width:0;padding:9px 12px;border:1px solid var(--ic-line-soft);border-radius:8px;background:var(--ic-read);color:var(--ic-ink);font:inherit;font-size:12.5px;line-height:1.5;text-align:left;cursor:pointer;transition:border-color .15s,background .15s}
+.ic-file-link:hover{border-color:var(--ic-primary);background:var(--ic-primary-tint)}
+.ic-file-link:disabled{cursor:default;opacity:.55}
+.ic-file-icon{flex:none;font-size:14px;line-height:1}
+.ic-file-path{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:"Cascadia Code","Consolas",monospace;font-size:11.5px;color:var(--ic-text-2)}
 .ic-point-remove{flex:none;width:20px;height:20px;margin-top:9px;border:none;border-radius:5px;background:transparent;color:var(--ic-text-3);font-size:15px;line-height:1;cursor:pointer}
 .ic-point-remove:hover{background:var(--ic-bg);color:var(--ic-error)}
 .ic-point-add{align-self:flex-start;border:1px dashed var(--ic-line);border-radius:6px;background:transparent;padding:4px 8px;font:inherit;font-size:10.5px;font-weight:600;color:var(--ic-text-3);cursor:pointer}
 .ic-point-add:hover{border-color:var(--ic-text-3);color:var(--ic-ink)}
 .ic-notes{display:flex;flex-direction:column;gap:6px;margin-top:10px}
-.ic-notes .ic-readbox{height:80px;min-height:80px}
+.ic-notes .ic-readbox{min-height:80px;height:auto}
 .ic-notes-hint{font-size:11px;line-height:1.5;color:var(--ic-text-3)}
+.ic-other{display:flex;align-items:center;gap:8px;margin-top:8px}
+.ic-other-label{flex:none;font-size:11px;font-weight:600;color:var(--ic-text-3);white-space:nowrap}
+.ic-other-input{flex:1;min-width:0}
 .ic-qgroup{margin-bottom:22px}
 .ic-qgroup:last-child{margin-bottom:0}
 .ic-q-title{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:12.5px;font-weight:700;margin-bottom:10px;line-height:1.5}
@@ -182,6 +192,7 @@ window.__ModuleLoader__.load({
       'panel.deliveryCheck': '我已确认以上完成程度',
       'panel.acceptPrimary': '验收通过',
       'panel.acceptSecondary': '需要返工',
+      'panel.acceptPause': '暂停任务',
       'panel.deliveryPrimary': '确认并交付',
       'panel.deliverySecondary': '需要调整',
       'panel.reworkTitle': '返修说明',
@@ -225,6 +236,9 @@ window.__ModuleLoader__.load({
       'panel.notes': '备注',
       'panel.notesHint': '其他要求或补充说明（可选）。',
       'panel.notesPlaceholder': '例如：验收时请额外检查…',
+      'panel.other': '其他',
+      'panel.otherPlaceholder': '自己输入…',
+      'panel.openFile': '打开文件所在位置',
       'settings.title': '设置',
       'settings.desc': '偏好、计时与台账；保存后立即生效。',
       'settings.preferences': '偏好',
@@ -289,6 +303,7 @@ window.__ModuleLoader__.load({
       'panel.deliveryCheck': 'I confirm this completion level',
       'panel.acceptPrimary': 'Accept',
       'panel.acceptSecondary': 'Needs rework',
+      'panel.acceptPause': 'Pause task',
       'panel.deliveryPrimary': 'Confirm and deliver',
       'panel.deliverySecondary': 'Needs adjustment',
       'panel.reworkTitle': 'Rework notes',
@@ -332,6 +347,9 @@ window.__ModuleLoader__.load({
       'panel.notes': 'Notes',
       'panel.notesHint': 'Other requirements or extra notes (optional).',
       'panel.notesPlaceholder': 'For example: also check …',
+      'panel.other': 'Other',
+      'panel.otherPlaceholder': 'Type your own…',
+      'panel.openFile': 'Open file location',
       'settings.title': 'Settings',
       'settings.desc': 'Preferences, timing, and ledger. Saved values apply immediately.',
       'settings.preferences': 'Preferences',
@@ -526,11 +544,32 @@ window.__ModuleLoader__.load({
       })
     }
 
+    function AutoTextarea({ className, value, ...props }) {
+      const ref = React.useRef(null)
+      const fit = React.useCallback(() => {
+        const node = ref.current
+        if (node === null) return
+        node.style.height = 'auto'
+        node.style.height = `${Math.max(64, node.scrollHeight + 2)}px`
+      }, [])
+      React.useLayoutEffect(() => { fit() }, [value, fit])
+      return React.createElement('textarea', {
+        ...props,
+        ref,
+        value,
+        className,
+        onInput: event => {
+          if (typeof props.onInput === 'function') props.onInput(event)
+          fit()
+        },
+      })
+    }
+
     function NotesField({ t, value, onChange, disabled }) {
       return React.createElement('div', { className: 'ic-notes' },
         React.createElement('div', { className: 'ic-sec-label' }, t('panel.notes')),
         React.createElement('div', { className: 'ic-notes-hint' }, t('panel.notesHint')),
-        React.createElement('textarea', {
+        React.createElement(AutoTextarea, {
           className: 'ic-readbox',
           value,
           disabled,
@@ -589,7 +628,7 @@ window.__ModuleLoader__.load({
             className: 'ic-point',
           },
           React.createElement('div', { className: 'ic-point-no' }, String(pointIndex + 1)),
-          React.createElement('textarea', {
+          React.createElement(AutoTextarea, {
             className: 'ic-point-box',
             value: point.text,
             disabled,
@@ -614,7 +653,7 @@ window.__ModuleLoader__.load({
           }, t('panel.addPoint'))))))
     }
 
-    function SectionsView({ detail }) {
+    function SectionsView({ detail, onOpenFile, t }) {
       const sections = parseSections(detail).map(section => ({
         ...section,
         points: parsePoints(section.body),
@@ -625,13 +664,29 @@ window.__ModuleLoader__.load({
           className: 'ic-sec',
         },
         section.title === '' ? null : React.createElement('div', { className: 'ic-sec-label' }, section.title),
-        React.createElement('div', { className: 'ic-points' },
-          ...section.points.map((point, pointIndex) => React.createElement('div', {
-            key: pointIndex,
-            className: 'ic-point',
-          },
-          React.createElement('div', { className: 'ic-point-no' }, String(pointIndex + 1)),
-          React.createElement('div', { className: 'ic-point-text' }, point.text)))))))
+        section.title === '结果文件'
+          ? React.createElement('div', { className: 'ic-file-list' },
+              ...section.points.map((point, pointIndex) => React.createElement('div', {
+                key: pointIndex,
+                className: 'ic-point',
+              },
+              React.createElement('div', { className: 'ic-point-no' }, String(pointIndex + 1)),
+              React.createElement('button', {
+                type: 'button',
+                className: 'ic-file-link',
+                title: t('panel.openFile'),
+                disabled: typeof onOpenFile !== 'function',
+                onClick: () => { if (typeof onOpenFile === 'function') onOpenFile(point.text) },
+              },
+              React.createElement('span', { className: 'ic-file-icon' }, '📂'),
+              React.createElement('span', { className: 'ic-file-path' }, point.text)))))
+          : React.createElement('div', { className: 'ic-points' },
+              ...section.points.map((point, pointIndex) => React.createElement('div', {
+                key: pointIndex,
+                className: 'ic-point',
+              },
+              React.createElement('div', { className: 'ic-point-no' }, String(pointIndex + 1)),
+              React.createElement('div', { className: 'ic-point-text' }, point.text)))))))
     }
 
     function countdownNode(t, snapshot, base, onStop) {
@@ -805,8 +860,11 @@ window.__ModuleLoader__.load({
               const next = current.includes(label) ? current.filter(item => item !== label) : [...current, label]
               return { ...previous, [question.id]: next }
             }
-            return { ...previous, [question.id]: [label] }
+            return { ...previous, [question.id]: current.includes(label) ? [] : [label] }
           })
+          if (question.multiSelect !== true) {
+            setCustoms(previous => ({ ...previous, [question.id]: '' }))
+          }
         }
 
         const submit = () => {
@@ -852,21 +910,38 @@ window.__ModuleLoader__.load({
                 ? React.createElement('span', { className: 'ic-q-hint' }, t('panel.multiHint'))
                 : null),
             hasOptions
-              ? React.createElement('div', { className: 'ic-opts' },
-                  question.options.map((option) => {
-                    const isSelected = selected.includes(option.label)
-                    const recommended = /(\s*（推荐）|\s*\(Recommended\))$/i.exec(option.label)
-                    const baseLabel = recommended === null ? option.label : option.label.slice(0, recommended.index)
-                    return React.createElement(RippleButton, {
-                      key: option.label,
-                      className: `ic-opt${isSelected ? ' ic-opt-sel' : ''}`,
-                      'aria-pressed': isSelected,
+              ? React.createElement(React.Fragment, null,
+                  React.createElement('div', { className: 'ic-opts' },
+                    question.options.map((option) => {
+                      const isSelected = selected.includes(option.label)
+                      const recommended = /(\s*（推荐）|\s*\(Recommended\))$/i.exec(option.label)
+                      const baseLabel = recommended === null ? option.label : option.label.slice(0, recommended.index)
+                      return React.createElement(RippleButton, {
+                        key: option.label,
+                        className: `ic-opt${isSelected ? ' ic-opt-sel' : ''}`,
+                        'aria-pressed': isSelected,
+                        disabled: busy,
+                        onClick: () => { toggleOption(question, option.label) },
+                      },
+                      baseLabel,
+                      recommended === null ? null : React.createElement('span', { className: 'ic-rec' }, '（推荐）'))
+                    })),
+                  React.createElement('div', { className: 'ic-other' },
+                    React.createElement('span', { className: 'ic-other-label' }, t('panel.other')),
+                    React.createElement('input', {
+                      type: 'text',
+                      className: 'ic-input ic-other-input',
+                      placeholder: t('panel.otherPlaceholder'),
+                      value: typeof customs[question.id] === 'string' ? customs[question.id] : '',
                       disabled: busy,
-                      onClick: () => { toggleOption(question, option.label) },
-                    },
-                    baseLabel,
-                    recommended === null ? null : React.createElement('span', { className: 'ic-rec' }, '（推荐）'))
-                  }))
+                      onChange: (event) => {
+                        const value = event.target.value
+                        setCustoms(previous => ({ ...previous, [question.id]: value }))
+                        if (question.multiSelect !== true && value.trim() !== '') {
+                          setSelections(previous => ({ ...previous, [question.id]: [] }))
+                        }
+                      },
+                    })))
               : React.createElement('input', {
                   type: 'text',
                   className: 'ic-input',
@@ -1063,7 +1138,7 @@ window.__ModuleLoader__.load({
     }
 
     function createReportPanel(ctx, config) {
-      return function ReportPanel({ pending }) {
+      return function ReportPanel({ pending, sessionId }) {
         const snapshot = usePending(pending)
         const base = useCountdownBase(snapshot)
         const t = ctx.locale.bind(NS)
@@ -1105,6 +1180,12 @@ window.__ModuleLoader__.load({
           setReasonOpen(true)
         }
 
+        const openFile = (file) => {
+          const sid = sessionId ?? pending.sessionId
+          if (sid === undefined || typeof ctx.remote.commands?.execute !== 'function') return
+          ctx.remote.commands.execute(sid, `/dsh-info-check open ${file}`, []).catch(() => {})
+        }
+
         const submitApprove = () => {
           if (busy) return
           if (!checked) { setError(t('panel.checkRequired')); return }
@@ -1136,6 +1217,23 @@ window.__ModuleLoader__.load({
           })
         }
 
+        const submitPause = () => {
+          if (busy) return
+          if (typeof pending.takeTime === 'function') pending.takeTime()
+          setBusy(true)
+          setError('')
+          pending.answer({
+            answers: [{
+              id: config.id,
+              selected: [config.pauseLabel],
+              ...notes.trim() === '' ? {} : { custom: notes.trim() },
+            }],
+          }).catch(() => {
+            setError(t('panel.failed'))
+            setBusy(false)
+          })
+        }
+
         const report = React.createElement(ModalShell, null, PanelShell({
           t,
           title: t(config.titleKey),
@@ -1148,7 +1246,7 @@ window.__ModuleLoader__.load({
           onClose: close,
           error,
           children: React.createElement(React.Fragment, null,
-            React.createElement(SectionsView, { detail: original }),
+            React.createElement(SectionsView, { detail: original, onOpenFile: openFile, t }),
             React.createElement(NotesField, {
               t,
               value: notes,
@@ -1170,6 +1268,12 @@ window.__ModuleLoader__.load({
               disabled: busy,
               onClick: openReason,
             }, t(config.secondaryKey)),
+            config.pauseLabel === undefined ? null : React.createElement(RippleButton, {
+              key: 'pause',
+              className: 'ic-btn ic-btn-ghost',
+              disabled: busy,
+              onClick: submitPause,
+            }, t(config.pauseKey)),
             React.createElement(RippleButton, {
               key: 'primary',
               className: 'ic-btn ic-btn-primary',
@@ -1232,6 +1336,8 @@ window.__ModuleLoader__.load({
         secondaryKey: 'panel.acceptSecondary',
         approveLabel: ACCEPT_LABEL,
         secondaryLabel: REWORK_LABEL,
+        pauseLabel: ACCEPT_PAUSE_LABEL,
+        pauseKey: 'panel.acceptPause',
         reasonTitleKey: 'panel.reworkTitle',
         reasonHintKey: 'panel.reworkHint',
         reasonSubmitKey: 'panel.reworkSubmit',
@@ -1257,8 +1363,8 @@ window.__ModuleLoader__.load({
         const matched = props.matched
         if (matched.kind === 'intent') return React.createElement(IntentPanel, { pending: matched.pending })
         if (matched.kind === 'milestone') return React.createElement(MilestonePanel, { pending: matched.pending })
-        if (matched.kind === 'accept') return React.createElement(AcceptPanel, { pending: matched.pending })
-        return React.createElement(DeliveryPanel, { pending: matched.pending })
+        if (matched.kind === 'accept') return React.createElement(AcceptPanel, { pending: matched.pending, sessionId: props.sessionId })
+        return React.createElement(DeliveryPanel, { pending: matched.pending, sessionId: props.sessionId })
       }
     }
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import {
-  ACCEPT_LABEL, ADJUST_DELIVERY_LABEL, ADJUST_MILESTONE_LABEL, APPROVE_MILESTONE_LABEL, DELIVER_LABEL, REWORK_LABEL,
+  ACCEPT_LABEL, ADJUST_DELIVERY_LABEL, ADJUST_MILESTONE_LABEL, APPROVE_MILESTONE_LABEL, DELIVER_LABEL, PAUSE_LABEL, REWORK_LABEL,
   acceptanceDetail, acceptanceLedger, acceptanceOutcome,
   briefMarkdown, deliveryDetail, deliveryLedger, deliveryOutcome,
   infoCheckLedger, intentOutcome, milestoneLedger, milestoneOutcome, numberPoints, readFlag,
@@ -170,10 +170,13 @@ const acceptance = validateAcceptance({
   summary: '按钮三态完成',
   evidence: 'npm test 通过',
   gaps: 'loading 文案待定',
+  files: ['D:\\work\\index.js', 'D:\\work\\client.js'],
 })
 assert.equal(acceptance.milestone, 'm1')
 assert.match(acceptanceDetail(acceptance), /【里程碑】/)
 assert.match(acceptanceDetail(acceptance), /【验证证据】/)
+assert.match(acceptanceDetail(acceptance), /【结果文件】/)
+assert.match(acceptanceDetail(acceptance), /index\.js/)
 
 const accepted = acceptanceOutcome({ selected: [ACCEPT_LABEL], custom: '请顺手补上暗色模式' })
 assert.equal(accepted.decision, 'accepted')
@@ -184,10 +187,17 @@ const rework = acceptanceOutcome({ selected: [REWORK_LABEL] })
 assert.equal(rework.decision, 'rework')
 assert.equal(rework.proceed, false)
 
+const paused = acceptanceOutcome({ selected: [PAUSE_LABEL], custom: '先整理进度' })
+assert.equal(paused.decision, 'paused')
+assert.equal(paused.proceed, false)
+assert.equal(paused.notes, '先整理进度')
+
 const acceptLedger = acceptanceLedger(acceptance, accepted, '2026-11-16 02:10:00')
 assert.match(acceptLedger, /里程碑验收/)
 assert.match(acceptLedger, /验收通过/)
 assert.match(acceptLedger, /用户备注/)
+assert.match(acceptLedger, /结果文件/)
+assert.match(acceptLedger, /index\.js/)
 
 const delivery = validateDelivery({
   completion: '90%：功能和样式完成，loading 文案未定',

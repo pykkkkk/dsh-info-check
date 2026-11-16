@@ -9,8 +9,11 @@ confirmation panels.
 
 - Requirement card: one text box per point, separate number badge, add/remove,
   three detail questions, notes, answer payload.
+- Detail interactions: single-select click-again-to-clear, custom “Other” input.
+- Auto-growing point boxes: tall enough for content, no internal scroll.
 - Plan card: point boxes, notes, approval payload.
-- Acceptance card: read-only point rows, notes, timer stop, approval payload.
+- Acceptance card: read-only point rows, notes, timer stop, pause task,
+  clickable result-file paths, approval payload.
 - Rework branch: reason dialog and `需要返工` payload.
 - Delivery card: read-only rows, notes, confirmation payload.
 - Dialog resize: right-edge drag cannot exceed the current dialog height;

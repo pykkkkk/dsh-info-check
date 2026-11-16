@@ -113,6 +113,18 @@ try {
   const firstValue = await page.locator('.ic-point-box').first().inputValue()
   assert(!/^\d+[.)]\s/.test(firstValue), 'point text must not include a numeric prefix')
 
+  // Auto-growing point box: content height, not a fixed short box.
+  const firstBox = page.locator('.ic-point-box').first()
+  await firstBox.fill('自动高度测试 '.repeat(12))
+  await page.waitForTimeout(100)
+  const boxMetrics = await firstBox.evaluate(node => ({
+    height: node.getBoundingClientRect().height,
+    scrollHeight: node.scrollHeight,
+    clientHeight: node.clientHeight,
+  }))
+  assert(boxMetrics.height > 80, 'long text should make the point box taller')
+  assert(boxMetrics.scrollHeight <= boxMetrics.clientHeight + 2, 'point box should not scroll internally')
+
   // Add/remove a point; numbering is owned by the number badges.
   const beforeAdd = await page.locator('.ic-point-box').count()
   await page.locator('.ic-point-add').first().click()
@@ -143,12 +155,24 @@ try {
   await page.getByRole('button', { name: '下一步' }).click()
   await page.waitForFunction(() => document.querySelectorAll('.ic-qgroup').length === 3)
   assert.equal(await page.locator('.ic-qgroup').count(), 3)
+
+  // Single-select toggles off on the second click; a custom "other" answer is sent.
+  const firstOption = page.locator('.ic-qgroup').first().locator('.ic-opt').first()
+  await firstOption.click()
+  assert.equal(await firstOption.getAttribute('aria-pressed'), 'true')
+  await firstOption.click()
+  assert.equal(await firstOption.getAttribute('aria-pressed'), 'false')
+  await firstOption.click()
+  await page.locator('.ic-other-input').nth(1).fill('E2E 自定义答案')
+
   await page.locator('.ic-notes textarea').fill('E2E 需求备注')
   await page.getByRole('button', { name: '提交确认' }).click()
   await page.waitForFunction(() => window.__TEST.answers.length === 1)
   const intentAnswer = await latestAnswer()
   assert.equal(intentAnswer.answers.length, 4)
   assert.match(intentAnswer.answers[0].custom, /E2E 需求备注/)
+  assert(intentAnswer.answers[1].selected.includes('四道闸门（推荐）'))
+  assert.equal(intentAnswer.answers[2].custom, 'E2E 自定义答案')
   await page.screenshot({ path: path.join(artifactDir, 'intent.png'), fullPage: false })
 
   // Plan card: notes + point boxes.
@@ -167,6 +191,12 @@ try {
   await page.waitForSelector('.ic-card')
   assert.equal(await page.locator('.ic-point-box').count(), 0)
   assert((await page.locator('.ic-point-text').count()) >= 4)
+  assert.equal(await page.locator('.ic-file-link').count(), 2)
+  await page.locator('.ic-file-link').first().click()
+  await page.waitForFunction(() => window.__TEST.commands.length === 1)
+  const fileCommand = await page.evaluate(() => window.__TEST.commands[0])
+  assert.equal(fileCommand.sessionId, 'e2e-session')
+  assert.match(fileCommand.command, /^\/dsh-info-check open D:\\work\\index\.js$/)
   await page.locator('.ic-timer-stop').click()
   await page.waitForFunction(() => window.__TEST.takeTime >= 1)
   await page.locator('.ic-notes textarea').fill('E2E 验收备注')
@@ -189,6 +219,16 @@ try {
   const reworkAnswer = await latestAnswer()
   assert(reworkAnswer.answers[0].selected.includes('需要返工'))
   assert.equal(reworkAnswer.answers[0].custom, 'E2E 返工理由')
+
+  // Pause task: no checkbox required; notes travel with the paused decision.
+  await page.evaluate(() => window.__E2E.renderAccept())
+  await page.waitForSelector('.ic-card')
+  await page.locator('.ic-notes textarea').fill('E2E 暂停备注')
+  await page.getByRole('button', { name: '暂停任务' }).click()
+  await page.waitForFunction(() => window.__TEST.answers.length === 1)
+  const pauseAnswer = await latestAnswer()
+  assert(pauseAnswer.answers[0].selected.includes('暂停任务'))
+  assert.equal(pauseAnswer.answers[0].custom, 'E2E 暂停备注')
 
   // Delivery report: read-only + notes.
   await page.evaluate(() => window.__E2E.renderDelivery())

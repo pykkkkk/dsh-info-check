@@ -2,6 +2,7 @@
  * the confirmation panels. No network, no DSH login, no agent/model involved. */
 (() => {
   const test = window.__TEST
+  test.commands = []
   const spec = test.spec
   if (spec === undefined) throw new Error('client.js did not call __ModuleLoader__.load')
 
@@ -32,7 +33,12 @@
       },
     },
     remote: {
-      commands: { execute: async () => ({ ok: true }) },
+      commands: {
+        execute: async (sessionId, command, args) => {
+          test.commands.push({ sessionId, command, args })
+          return { ok: true }
+        },
+      },
       settings: {
         describe: async () => ({ ok: true, value: {} }),
         update: async () => ({ ok: true, value: {} }),
@@ -84,6 +90,10 @@
     '',
     '【未完成或风险】',
     '1. 无。',
+    '',
+    '【结果文件】',
+    '1. D:\\work\\index.js',
+    '2. D:\\work\\client.js',
   ].join('\n')
 
   const deliveryDetail = [
@@ -168,13 +178,17 @@
     mount.innerHTML = ''
     test.answers = []
     test.dismissed = false
+    test.commands = []
     test.takeTime = 0
     test.holds = 0
     test.releases = 0
     test.engages = 0
     root = window.ReactDOM.createRoot(mount)
     const current = makePending(questions)
-    root.render(window.React.createElement(test.Panel, { matched: { kind, pending: current } }))
+    root.render(window.React.createElement(test.Panel, {
+      matched: { kind, pending: current },
+      sessionId: 'e2e-session',
+    }))
     return true
   }
 

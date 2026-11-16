@@ -22,12 +22,14 @@ This is an independent community bundle, not an official DeepSeek package.
 |---|---|---|
 | Intent check | `info_check` | Before substantive work: restate the goal, ask 2–3 detail questions, agree on quality bar / out of scope / milestones |
 | Plan confirmation | `confirm_milestone` | **Once** after the intent check: confirm the execution plan (first milestone) |
-| Milestone acceptance | `accept_milestone` | After **every** milestone: read-only completion report; accept or request rework with notes |
+| Milestone acceptance | `accept_milestone` | After **every** milestone: read-only completion report; accept, request rework, or pause the task; optional result files open in Explorer |
 | Delivery sign-off | `confirm_delivery` | Before the final result: read-only completion level; confirm or request adjustments |
 
 Every confirmation is a centered floating window with a read-only or editable report, a confirm checkbox, a primary action, and — for the three timed gates — a countdown (60 seconds by default) with a **Stop timer** button. “Needs rework / Needs adjustment” opens a second floating window for the reason; that reason goes back to the model as `feedback`.
 
-Dialogs are **resizable from the right edge**; the maximum width equals the dialog height (and stays within 75% of the viewport). Every point has its own box with a separate number badge (`1`, `2`, `3` …), and every confirmation ends with a free-form **Notes** field.
+Dialogs are **resizable from the right edge**; the maximum width equals the dialog height (and stays within 75% of the viewport). Every point has its own box with a separate number badge (`1`, `2`, `3` …), and every confirmation ends with a free-form **Notes** field. Point boxes grow with their content.
+
+Detail questions support click-again-to-clear selection and a free-form **Other** input. The milestone acceptance card adds **Pause task**, and an optional `files` list whose paths open the file location in Explorer.
 
 Detailed design and flow notes (Chinese): [docs/DETAIL.md](docs/DETAIL.md). UI notes: [docs/UI.md](docs/UI.md).
 

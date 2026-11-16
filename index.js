@@ -12,12 +12,13 @@
  * dependencies.
  */
 import { createRequire } from 'node:module'
+import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { dirname, isAbsolute, join, resolve, sep } from 'node:path'
 import { appendFile, mkdir, readFile } from 'node:fs/promises'
 import {
   ACCEPT_LABEL, ACCEPT_MILESTONE_ID, ADJUST_DELIVERY_LABEL, APPROVE_MILESTONE_LABEL, DELIVER_LABEL,
-  DELIVERY_CONFIRM_ID, INTENT_BRIEF_ID, MILESTONE_CONFIRM_ID, REWORK_LABEL,
+  DELIVERY_CONFIRM_ID, INTENT_BRIEF_ID, MILESTONE_CONFIRM_ID, PAUSE_LABEL, REWORK_LABEL,
   acceptanceDetail, acceptanceLedger, acceptanceOutcome,
   briefMarkdown, deliveryDetail, deliveryLedger, deliveryOutcome,
   infoCheckLedger, intentOutcome, milestoneLedger, milestoneOutcome, numberPoints,
@@ -143,6 +144,7 @@ function defaultPolicy(settings) {
    - \`approved\` / \`skipped\` / \`timeout\`：按方案执行（timeout 表示用户 ${timeoutSeconds} 秒未操作，已按约定跳过）。
    - 用户可以在倒计时处点“停止计时”，倒计时停止、浮窗不关闭；等用户修改完再按“按此方案执行”。不要在没有用户确认时继续。
 6. 每个里程碑完成后，调用 \`accept_milestone\`，提交完成内容、验证证据和未完成/风险（每点单独一行，界面会按 1. 2. 3. 编号显示）；用户验收通过或超时后再进入下一个里程碑。不要合并里程碑，不要擅自扩大范围。
+6a. 如果 \`accept_milestone\` 返回 \`decision=paused\`，立即停止当前任务：整理已完成内容、当前进度、未完成/风险和相关文件路径，然后结束当前任务（不再等待继续）；不要进入下一里程碑，也不要调用 \`confirm_delivery\`。
 7. 任务明显简单且无歧义（单文件小改、用户已给出完整规格）时，说明假设后直接做，不必走流程。
 8. 不要手动修改 \`.dsh-info-check/ledger.md\`；插件会自动记录每次选择。需要补充执行说明时，写在最终答复里。
 9. 子代理不要调用 \`info_check\` / \`confirm_milestone\` / \`accept_milestone\` / \`confirm_delivery\`；把需要用户决定的问题写进最终结果。
@@ -485,6 +487,8 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
     name: 'accept_milestone',
     description: '在一个里程碑完成后，向用户验收：提交完成内容、验证证据、未完成或风险；用户验收通过（或倒计时结束）后再进入下一个里程碑。'
       + '用户可以在倒计时处停止计时；验收报告是只读的，用户点“需要返工”时会在“返修说明”浮窗里填写理由，reason 通过 feedback 返回，按它修改后再次验收。'
+      + '用户点“暂停任务”时返回 decision=paused；此时整理进度并结束当前任务，不进入下一里程碑。'
+      + '可选 files 传结果文件绝对路径，验收卡会显示为“打开所在位置”链接。'
       + '用户在备注里写的额外要求通过 notes 返回。',
     parameters: {
       type: 'object',
@@ -494,6 +498,11 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
         summary: { type: 'string', description: '这个里程碑完成了什么；每点单独一行，界面会按 1. 2. 3. 编号显示。' },
         evidence: { type: 'string', description: '验证证据：测试、命令、文件或截图；每点单独一行，界面会编号。' },
         gaps: { type: 'string', description: '可选的未完成项或风险；每点单独一行，界面会编号。' },
+        files: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '可选的结果文件绝对路径；验收卡会显示为可点击的“打开所在位置”链接。',
+        },
       },
       required: ['milestone', 'summary', 'evidence'],
     },
@@ -524,6 +533,7 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
         options: [
           { label: ACCEPT_LABEL, description: '验收通过，进入下一个里程碑' },
           { label: REWORK_LABEL, description: '不通过，需要返工' },
+          { label: PAUSE_LABEL, description: '暂停任务，整理现有进度后结束当前任务' },
         ],
       }
       let result
@@ -752,10 +762,26 @@ export function apply(ctx, config = {}) {
     commandCtx.commands.register({
       definitionId: 'dsh-info-check',
       name: 'dsh-info-check',
-      description: 'Turn dsh-info-check on or off for this conversation',
-      input: { hint: '[on|off|status]' },
+      description: 'Turn dsh-info-check on or off, report status, or open a result file location',
+      input: { hint: '[on|off|status|open <absolute path>]' },
       handler: ({ agent, rawInput }) => {
-        const value = rawInput.trim().toLowerCase()
+        const raw = rawInput.trim()
+        const value = raw.toLowerCase()
+        if (value.startsWith('open ')) {
+          const requested = raw.slice(5).trim().replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1')
+          if (!isAbsolute(requested)) {
+            return { kind: 'error', text: 'Use an absolute file path with /dsh-info-check open.' }
+          }
+          if (!existsSync(requested)) {
+            return { kind: 'error', text: `File not found: ${requested}` }
+          }
+          try {
+            spawn('explorer.exe', ['/select,', requested], { detached: true, stdio: 'ignore' }).unref()
+            return { kind: 'success', text: `Opened the file location: ${requested}` }
+          } catch (error) {
+            return { kind: 'error', text: `Could not open the file location: ${error.message}` }
+          }
+        }
         if (value === 'on' || value === 'off') {
           return {
             kind: 'success',
