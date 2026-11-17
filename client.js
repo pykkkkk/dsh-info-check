@@ -171,7 +171,7 @@ window.__ModuleLoader__.load({
 @keyframes ic-fade{from{opacity:0}to{opacity:1}}
 @keyframes ic-cb{0%{transform:scale(.8)}60%{transform:scale(1.16)}100%{transform:scale(1.12)}}
 @keyframes ic-rip{to{transform:translate(-50%,-50%) scale(1);opacity:0}}
-.ic-progress{--ic-primary:#4D6BFE;--ic-primary-ink:#3B55D4;--ic-ink:#1F1F1F;--ic-text-3:#94A3B8;--ic-line:#E5E7EB;--ic-surface:#FFFFFF;position:fixed;left:50%;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:10px;width:min(640px,calc(100vw - 24px));box-sizing:border-box;padding:5px 12px 6px;border:1px solid rgba(215,220,227,.9);border-radius:999px;background:rgba(255,255,255,.88);box-shadow:0 4px 16px rgba(15,23,42,.07);backdrop-filter:blur(10px);color:var(--ic-text-3);font-family:"Urbanist","Segoe UI",system-ui,"PingFang SC","Microsoft YaHei",sans-serif;pointer-events:none;user-select:none}
+.ic-progress{--ic-primary:#4D6BFE;--ic-primary-ink:#3B55D4;--ic-ink:#1F1F1F;--ic-text-3:#94A3B8;--ic-line:#E5E7EB;--ic-surface:#FFFFFF;position:fixed;z-index:60;display:flex;align-items:center;gap:10px;box-sizing:border-box;padding:5px 12px 6px;border:1px solid rgba(215,220,227,.9);border-radius:999px;background:rgba(255,255,255,.88);box-shadow:0 4px 16px rgba(15,23,42,.07);backdrop-filter:blur(10px);color:var(--ic-text-3);font-family:"Urbanist","Segoe UI",system-ui,"PingFang SC","Microsoft YaHei",sans-serif;pointer-events:none;user-select:none}
 .ic-progress-label{flex:none;font-size:10.5px;font-weight:700;letter-spacing:.01em;color:var(--ic-text-3);white-space:nowrap}
 .ic-progress-count{flex:none;min-width:24px;text-align:right;font-size:10px;font-weight:700;color:var(--ic-text-3);font-variant-numeric:tabular-nums}
 .ic-progress-track{position:relative;flex:1;height:3px;border-radius:999px;background:var(--ic-line);margin:0 4px}
@@ -1891,23 +1891,41 @@ window.__ModuleLoader__.load({
         const show = enabled && milestones.length > 0
           && ['working', 'accepting', 'paused', 'delivering', 'delivered'].includes(phase)
         const [visual, setVisual] = React.useState(0)
-        const [bottom, setBottom] = React.useState(96)
+        const [placement, setPlacement] = React.useState({
+          left: 16,
+          width: 640,
+          bottom: 96,
+        })
 
         React.useEffect(() => {
           if (!show) return undefined
           let timer
           const measure = () => {
             try {
-              const areas = Array.from(document.querySelectorAll('textarea'))
+              const selector = 'textarea, [contenteditable="true"], [role="textbox"]'
+              const areas = Array.from(document.querySelectorAll(selector))
                 .map(node => ({ node, rect: node.getBoundingClientRect() }))
-                .filter(item => item.rect.width > 80 && item.rect.height > 10)
+                .filter(item => item.rect.width > 160 && item.rect.height > 10 && item.rect.top > 0)
+                .filter(item => item.rect.bottom > window.innerHeight * 0.55)
               areas.sort((a, b) => b.rect.bottom - a.rect.bottom)
               const rect = areas[0]?.rect
-              if (rect !== undefined && rect.top > 0 && rect.top < window.innerHeight) {
-                setBottom(Math.max(10, Math.round(window.innerHeight - rect.top + 6)))
+              if (rect !== undefined && rect.top < window.innerHeight) {
+                const left = Math.max(8, Math.round(rect.left))
+                const width = Math.max(160, Math.min(Math.round(rect.width), window.innerWidth - left - 8))
+                setPlacement({
+                  left,
+                  width,
+                  bottom: Math.max(10, Math.round(window.innerHeight - rect.top + 6)),
+                })
+                return
               }
+              setPlacement({
+                left: Math.max(8, Math.round((window.innerWidth - Math.min(640, window.innerWidth - 16)) / 2)),
+                width: Math.min(640, window.innerWidth - 16),
+                bottom: 96,
+              })
             } catch {
-              // Keep the fallback offset.
+              // Keep the fallback placement.
             }
           }
           measure()
@@ -1971,7 +1989,11 @@ window.__ModuleLoader__.load({
 
         const bar = React.createElement('div', {
           className: `ic-progress${fast ? ' ic-progress-fast' : ''}`,
-          style: { bottom: `${bottom}px` },
+          style: {
+            left: `${placement.left}px`,
+            width: `${placement.width}px`,
+            bottom: `${placement.bottom}px`,
+          },
           role: 'status',
           'aria-label': `${t('progress.label')} ${done}/${total}`,
         },
