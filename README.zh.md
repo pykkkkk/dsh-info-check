@@ -153,12 +153,21 @@
 
 ## 迁移与改名
 
-当前本地包名是 `@local/dsh-info-check`（`private: true`）。如果要发布到自己的 scope/包名，需要同步修改：
+包名已准备为不带 scope 的 `dsh-info-check`；只有执行 `npm publish` 后才会创建 registry 条目。包名、客户端 loader id 和 bundle 行名称必须保持一致：
 
-1. `package.json` 的 `name`；
-2. `client.js` 里 `__ModuleLoader__.load({ id: ... })`；
-3. `cordis.patch.yml` 行的 `name`；
-4. profile 里的 package/bundle 引用，然后重新安装。
+1. `package.json` 的 `name` — 已是 `dsh-info-check`；
+2. `client.js` 里 `__ModuleLoader__.load({ id: ... })` — 已是 `dsh-info-check`；
+3. `cordis.patch.yml` 行的 `name` — 已是 `dsh-info-check`；
+4. profile 里的 package/bundle 引用 — 从 `@local/dsh-info-check` 改为 `dsh-info-check`，然后重新安装。
+
+在普通命令行发布：
+
+```sh
+npm login
+npm whoami
+npm pack --dry-run
+npm publish --access public
+```
 
 客户端还依赖 DSH 特有的 slot 名（`conversation.composer`、`conversation.hero.options`、`conversation.session.header.actions`）和 `useProjection` / `remote.commands`。用 `engines.dsh` 固定测试过的 DSH 版本。
 

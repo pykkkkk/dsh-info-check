@@ -153,12 +153,21 @@ The bundle uses a small **Config schema** (loaded from the DSH-provided schemast
 
 ## Portability and renaming
 
-The working copy uses the local package name `@local/dsh-info-check` (`private: true`). To publish under your own scope/name, change these together:
+The package is prepared as the unscoped npm name `dsh-info-check`; the public registry entry is not created until `npm publish` is run. The package name, client loader id, and bundle row name must stay identical:
 
-1. `package.json` `name`.
-2. `client.js` `__ModuleLoader__.load({ id: ... })`.
-3. `cordis.patch.yml` row `name`.
-4. Any profile package/bundle references, then reinstall.
+1. `package.json` `name` — already `dsh-info-check`.
+2. `client.js` `__ModuleLoader__.load({ id: ... })` — already `dsh-info-check`.
+3. `cordis.patch.yml` row `name` — already `dsh-info-check`.
+4. Profile package/bundle references — update from `@local/dsh-info-check` to `dsh-info-check`, then reinstall.
+
+Publishing from a normal shell:
+
+```sh
+npm login
+npm whoami
+npm pack --dry-run
+npm publish --access public
+```
 
 The client also relies on DSH-specific slot names (`conversation.composer`, `conversation.hero.options`, `conversation.session.header.actions`) and the `useProjection` / `remote.commands` client services. Keep the tested DSH version pinned by `engines.dsh`.
 

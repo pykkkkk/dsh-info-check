@@ -10,7 +10,7 @@ globalThis.window = {
 }
 
 await import('../client.js')
-assert.equal(loaded.id, '@local/dsh-info-check')
+assert.equal(loaded.id, 'dsh-info-check')
 
 const ReactStub = {
   createElement() { return null },

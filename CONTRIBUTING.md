@@ -50,12 +50,14 @@ smoke test stubs the module loader and React.
 
 ## Renaming or publishing
 
-The working copy is `@local/dsh-info-check` (`private: true`). To publish:
+The package is prepared as the unscoped npm name `dsh-info-check` and is no
+longer private. To publish:
 
-1. Change `package.json` `name` and remove `private` if publishing to npm.
-2. Change `client.js` `__ModuleLoader__.load({ id: ... })` to the same name.
-3. Change the `name` in `cordis.patch.yml`.
-4. Update any profile references and reinstall.
+1. Keep `package.json` `name`, `client.js` loader id, and `cordis.patch.yml`
+   row name identical (`dsh-info-check`).
+2. Update profile references from `@local/dsh-info-check` to `dsh-info-check`.
+3. Run `npm pack --dry-run`, then `npm publish --access public` from a normal
+   shell after `npm login`.
 
 ## Pull requests
 

@@ -1,5 +1,5 @@
 window.__ModuleLoader__.load({
-  id: '@local/dsh-info-check',
+  id: 'dsh-info-check',
   factory(require) {
     const React = require('react')
     let createPortal
