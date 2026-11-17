@@ -1,241 +1,110 @@
 # dsh-info-check
 
-[![Version](https://img.shields.io/badge/version-0.2.2-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/pykkkkk/dsh-info-check/releases)
+[![Version](https://img.shields.io/badge/version-0.2.1-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/pykkkkk/dsh-info-check/releases)
 [![DSH](https://img.shields.io/badge/DSH-0.2.2--rc.3-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/deepseek-ai/deepseek-harness)
 [![License](https://img.shields.io/badge/license-MIT-4D6BFE?style=flat-square&labelColor=1F1F1F)](LICENSE)
 
-![dsh-info-check — confirmation gates for DeepSeek Harness](docs/social-preview.png)
+![dsh-info-check](docs/social-preview.png)
 
 English | [中文](README.zh.md)
 
-Repository: <https://github.com/pykkkkk/dsh-info-check>
+`dsh-info-check` 是给 DeepSeek Harness 使用的确认插件。它让 agent 在开始做事、完成方案、到达里程碑和准备交付时停下来，先让你看清楚，再继续。
 
-A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) bundle that puts **confirmation gates** around agent work: clarify intent first, confirm the plan once, accept every milestone, and sign off before the final result.
+如果你希望 agent 少一点“直接冲到底”，多一点可检查的过程，这个插件就是为此准备的。
 
-> 中文简介：给 DSH 加一道“需求核对 → 方案确认 → 里程碑验收 → 交付确认”的闸门；每个对话独立开关，确认过程和选择会写入工作区台账。
+## 安装
 
-## Status
-
-Tested against **DSH `0.2.2-rc.3`** (Desktop profile, Windows). DSH plugin slots and services are still evolving; the bundle targets the `0.2.x` API family and may need small updates for later releases.
-
-This is an independent community bundle, not an official DeepSeek package.
-
-## What it adds
-
-| Gate | Tool | When |
-|---|---|---|
-| Intent check | `info_check` | Before substantive work: restate the goal, ask 2–3 detail questions, agree on quality bar / out of scope / milestones |
-| Plan confirmation | `confirm_milestone` | **Once** after the intent check: confirm the execution plan (first milestone) |
-| Milestone acceptance | `accept_milestone` | After **every** milestone: read-only completion report; accept, request rework, or pause the task; optional result files open in Explorer |
-| Delivery sign-off | `confirm_delivery` | Before the final result: read-only completion level; confirm or request adjustments |
-
-Every confirmation is a centered floating window with a read-only or editable report, a confirm checkbox, a primary action, and — for the three timed gates — a countdown (60 seconds by default) with a **Stop timer** button. “Needs rework / Needs adjustment” opens a second floating window for the reason; that reason goes back to the model as `feedback`.
-
-Dialogs are **resizable from the right edge**; the maximum width equals the dialog height (and stays within 75% of the viewport). Every point has its own box with a separate number badge (`1`, `2`, `3` …), and every confirmation ends with a free-form **Notes** field. Point boxes grow with their content.
-
-Detail questions support click-again-to-clear selection and a free-form **Other** input. The milestone acceptance card adds **Pause task**, and an optional `files` list whose paths open the file location in Explorer.
-
-Clicking the top-right **X** means **skip**, not cancel: the tool proceeds with the agent's version and continues to the next stage without user input.
-
-Detailed design and flow notes (Chinese): [docs/DETAIL.md](docs/DETAIL.md). UI notes: [docs/UI.md](docs/UI.md).
-
-## Screenshots
-
-Rendered from the plugin's actual dialog styles against a neutral mock chat background. They are UI previews, not captures of a specific live session. The interface is shown in Chinese; the English strings ship in the same bundle.
-
-**Social preview source:** [docs/social-preview.png](docs/social-preview.png) (1280×640, under 1 MB).
-
-| Intent check — editable brief | Plan confirmation — once |
-|---|---|
-| [![Intent check](docs/screenshots/01-intent-check.png)](docs/screenshots/01-intent-check.png) | [![Plan confirmation](docs/screenshots/02-plan-confirmation.png)](docs/screenshots/02-plan-confirmation.png) |
-| **Milestone acceptance — read-only report** | **Delivery confirmation — read-only report** |
-| [![Milestone acceptance](docs/screenshots/03-milestone-acceptance.png)](docs/screenshots/03-milestone-acceptance.png) | [![Delivery confirmation](docs/screenshots/04-delivery-confirmation.png)](docs/screenshots/04-delivery-confirmation.png) |
-| **Rework notes — opened by “Needs rework”** | **Adjustment notes — opened by “Needs adjustment”** |
-| [![Rework notes](docs/screenshots/05-rework-notes.png)](docs/screenshots/05-rework-notes.png) | [![Adjustment notes](docs/screenshots/06-adjustment-notes.png)](docs/screenshots/06-adjustment-notes.png) |
-
-**Settings** — preferences, auto-timer, review/ledger, and the current conversation:
-
-[![Settings](docs/screenshots/07-settings.png)](docs/screenshots/07-settings.png)
-
-## Flow
-
-```
-intent check -> plan confirmation (once) -> milestone 1
-  -> acceptance 1 -> milestone 2 -> acceptance 2 -> ...
-  -> delivery confirmation -> final result
-```
-
-## Install
-
-This is a local DSH bundle (a directory with `dsh.bundle.patch`). It is not published to npm.
-
-1. Clone/copy this directory to the machine running DSH.
-2. Open **Plugins** in DSH, choose **Add plugin**, and point at this directory.  
-   Or, with plugin-manager access:
-
-   ```text
-   plugin_manager install_bundle target=<absolute path to this directory>
-   ```
-
-3. The bundle adds one Host row (`include:dsh-info-check`). The client half loads on the next page refresh.
-
-Requirements:
-
-- DSH `0.2.x` (tested with `0.2.2-rc.3`).
-- The Host process must provide `tools`, `systemPrompt`, `userQuestions`, `workingDirectory`, `sessionProjections`, and `commands`.
-- The Web client must provide `react-dom`'s `createPortal` and the `remote.settings` namespace; without the portal the dialogs fall back to in-composer cards.
-
-## The switch
-
-A small **需求核对** switch sits next to the **创造模式** (agent preset) chip:
-
-- New-session row: in `conversation.hero.options`, right of the preset control.
-- Inside a session: in `conversation.session.header.actions`, immediately after the preset label.
-
-Clicking the underlined words opens the plugin's settings window. Clicking the switch toggles the gate **for the current conversation only**. State is written as a logged `/dsh-info-check on|off` command and folded by a session projection, so fork/resume keeps the same choice.
-
-Useful command:
+在 DSH 的 **Plugins** 页面安装：
 
 ```text
-/dsh-info-check status
+dsh-info-check
+```
+
+也可以使用 npm：
+
+```sh
+npm install dsh-info-check@0.2.1
+```
+
+安装后刷新页面。标题旁会出现一个带下划线的 **需求核对** 开关。
+
+适用于 DSH `0.2.x`，当前验证版本为 `0.2.2-rc.3`。
+
+## 它会在什么时候出现
+
+### 先对齐需求
+
+开始实质工作前，agent 会先复述它理解的目标，列出几个真正影响结果的问题，并给出完成标准、范围外和里程碑。
+
+你可以直接修改这份核对单，也可以补充自己的要求。
+
+### 确认一次方案
+
+需求明确后，agent 会给出执行方案。方案只确认一次，之后不会反复打断你。
+
+里程碑一栏会直接写明当前是哪一步、主要做什么。
+
+### 每个里程碑完成后验收
+
+每完成一个阶段，agent 会提交完成内容、验证证据和剩余风险。
+
+报告是只读的，你不需要改报告本身。你可以：
+
+- **验收通过**，继续下一阶段；
+- **需要返工**，写下理由，让 agent 修改后重新验收；
+- **暂停任务**，让 agent 整理当前进度并结束这次工作。
+
+### 交付前再确认一次
+
+最终结果出来前，agent 会再说明完成程度、交付内容、限制和验证。你确认后再交付。
+
+## 使用时的细节
+
+- 每个要点都有自己的文本框和序号，长文本会自动撑开。
+- 每张确认卡末尾都有 **备注**，可以写额外要求。
+- 浮窗可以从右边缘拉宽，双击复位。
+- 三张计时卡都有倒计时和 **停止计时**；不想等时可以手动停。
+- 选项可以再次点击取消；每个选项题下方都能自己输入“其他”。
+- 验收时可以附上结果文件路径，点击直接打开文件所在位置。
+- 右上角的 **X** 表示跳过：按 agent 的版本继续，不会中断整个任务。
+
+## 开关和设置
+
+标题旁的 **需求核对** 开关只影响当前对话。
+
+点击下划线文字可以打开设置，调整：
+
+- 里程碑数量；
+- 期望程度：完美 / 较好 / 及格；
+- 自动计时秒数；
+- 细节问题数量；
+- 新对话默认是否开启；
+- 是否记录台账，以及台账路径。
+
+改动会立即生效，不需要重启。
+
+常用命令：
+
+```text
 /dsh-info-check on
 /dsh-info-check off
-/dsh-info-check selfcheck
+/dsh-info-check status
 ```
 
-## Self-check
+## 界面预览
 
-The package ships an offline installation check:
+| 需求核对 | 方案确认 |
+|---|---|
+| [![需求核对](docs/screenshots/01-intent-check.png)](docs/screenshots/01-intent-check.png) | [![方案确认](docs/screenshots/02-plan-confirmation.png)](docs/screenshots/02-plan-confirmation.png) |
+| **里程碑验收** | **交付确认** |
+| [![里程碑验收](docs/screenshots/03-milestone-acceptance.png)](docs/screenshots/03-milestone-acceptance.png) | [![交付确认](docs/screenshots/04-delivery-confirmation.png)](docs/screenshots/04-delivery-confirmation.png) |
 
-```sh
-node scripts/self-check.mjs
-node scripts/self-check.mjs --json
-node scripts/self-check.mjs --dsh-version 0.2.2-rc.3
-```
+## 隐私
 
-On Windows, a wrapper that finds Node for you:
+- 不联网，没有遥测、统计或远程字体。
+- 你的选择会记录在当前会话目录的 `.dsh-info-check/ledger.md`。
+- 它是一个帮助你看清过程的工具，不是安全边界；关闭或跳过时不会强行阻止 agent 工作。
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/self-check.ps1
-```
+## 许可证
 
-Inside DSH:
-
-```text
-/dsh-info-check selfcheck
-```
-
-It checks the package name/version, publishable flag, required files, bundle and
-client ids, locale JSON, Node/DSH engine ranges, and (from the script) syntax. It
-does not use the network and does not print tokens, session IDs, or installation
-paths.
-
-## Settings
-
-Click the underlined **需求核对** words next to the switch to open the plugin's settings window. It edits the global Config and saves immediately; the current-conversation switch inside the window only changes this session.
-
-- **Preferences** — number of milestones (1–5) and expectation level: 完美 / 较好 / 及格. These feed the policy, acceptance evidence, and delivery sign-off.
-- **Auto-timer** — auto-skip seconds (5–600; presets 30/60/90/120).
-- **Review and ledger** — detail-question count (1–6), new-conversation default, ledger on/off, and ledger path.
-- **This conversation** — turn the gate on or off for the current session without leaving Settings.
-
-The values are volatile Config fields, so a save takes effect without restarting the plugin.
-
-## Timers and notes
-
-- Timed gates count down `timeoutSeconds` (default 60); timeout proceeds (acceptance passes / delivery proceeds).
-- **Stop timer** freezes the countdown and keeps the dialog open.
-- Opening a “rework notes” / “adjustment notes” dialog also stops the timer.
-- The acceptance and delivery reports are **read-only**; the user's input is the reason, not a rewrite of the report.
-
-## Ledger
-
-Every decision is appended to:
-
-```text
-<session working directory>/.dsh-info-check/ledger.md
-```
-
-It records the agent's report, the user's decision, edited plans, and rework notes. Writes are confined to the session directory; a path that escapes it is skipped. `ledgerEnabled` / `ledgerPath` change this behavior.
-
-## Configuration
-
-The bundle uses a small **Config schema** (loaded from the DSH-provided schemastery, so the package still has no runtime npm dependencies). All fields are volatile and are normally edited from **Settings** rather than the patch file:
-
-| Field | Default | Meaning |
-|---|---|---|
-| `milestoneCount` | `3` | Preferred number of milestones (1–5) |
-| `expectation` | `good` | `perfect` / `good` / `pass`; feeds the policy and acceptance standard |
-| `timeoutSeconds` | `60` | Countdown for plan/acceptance/delivery gates (5–600) |
-| `maxQuestions` | `3` | Intent-check detail questions (1–6) |
-| `defaultEnabled` | `true` | Default for sessions with no `/dsh-info-check` command yet |
-| `ledgerEnabled` | `true` | Append decisions to the workspace ledger |
-| `ledgerPath` | `.dsh-info-check/ledger.md` | Ledger path, relative to the session directory |
-
-## Privacy
-
-- No network calls, telemetry, analytics, or remote fonts.
-- The only file writes are the ledger under the session directory.
-- The user's choices are also present in the session log (commands and tool results).
-- This is a UX gate, not a security boundary: it does not hard-block file writes when disabled or unconfirmed.
-
-## Portability and renaming
-
-The package is prepared as the unscoped npm name `dsh-info-check`; the public registry entry is not created until `npm publish` is run. The package name, client loader id, and bundle row name must stay identical:
-
-1. `package.json` `name` — already `dsh-info-check`.
-2. `client.js` `__ModuleLoader__.load({ id: ... })` — already `dsh-info-check`.
-3. `cordis.patch.yml` row `name` — already `dsh-info-check`.
-4. Profile package/bundle references — update from `@local/dsh-info-check` to `dsh-info-check`, then reinstall.
-
-Publishing from a normal shell:
-
-```sh
-npm login
-npm whoami
-npm pack --dry-run
-npm publish --access public
-```
-
-The client also relies on DSH-specific slot names (`conversation.composer`, `conversation.hero.options`, `conversation.session.header.actions`) and the `useProjection` / `remote.commands` client services. Keep the tested DSH version pinned by `engines.dsh`.
-
-The per-session switch uses a tiny `{ parse }` schema for its `infoCheck` projection (so the bundle stays dependency-free). It is validated against DSH `0.2.2-rc.3`; if a later release requires a full schema library, add one and bump `engines.dsh`.
-
-## Limitations
-
-- Root sessions only; subagents cannot ask the user.
-- Each toggle leaves one `/dsh-info-check` command line in that conversation.
-- The dialogs use the DeepSeek Blue light palette; dark-mode adaptation is not included.
-- The new-session switch lives in the hero row; after the first message the header switch takes over.
-- Countdown behavior depends on the shipped question-card implementation; the countdown pauses while focused/edited.
-- The ledger is plain Markdown and grows over time; rotate/archive it if needed.
-
-## Development
-
-No runtime install step is required (there are no runtime dependencies):
-
-```sh
-npm run check   # node --check on Host, client and pure helpers
-npm test        # pure logic + client smoke tests
-```
-
-Project layout:
-
-```text
-index.js              Host plugin: policy, tools, projection, command, ledger
-client.js             Browser plugin: dialogs, header/hero switch, settings window
-lib/pure.js           Validation, section rendering, outcomes, ledger entries
-test/                 Node-only tests (no DSH required)
-locale/               Plugin-manager display metadata
-docs/                 Detail page, UI notes, manual test plan, screenshots
-cordis.patch.yml      Bundle patch row
-icon.svg              Original icon
-```
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/TESTING.md](docs/TESTING.md). Before a release, run the fixed [manual regression checklist](docs/MANUAL-REGRESSION.md). The component browser E2E is documented in [docs/E2E.md](docs/E2E.md).
-
-## License
-
-MIT. Copyright (c) 2026 pykkkkk (Wenhao Liu). See [LICENSE](LICENSE).
-
-Design baseline: DeepSeek Blue single-accent palette, restrained 8px radii, and read-first layouts. No third-party code or artwork is bundled; the icon is original.
+MIT。Copyright (c) 2026 pykkkkk (Wenhao Liu)。见 [LICENSE](LICENSE)。
