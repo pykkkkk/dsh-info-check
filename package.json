@@ -5,6 +5,7 @@
     "access": "public"
   },
   "type": "module",
+  "main": "./lib/index.js",
   "description": "DSH confirmation gate: intent check, one plan confirmation, per-milestone acceptance, delivery sign-off, and a workspace ledger.",
   "license": "MIT",
   "author": "pykkkkk (Wenhao Liu)",
@@ -30,7 +31,7 @@
     "dsh": ">=0.2.2-rc.3 <0.3.0"
   },
   "scripts": {
-    "check": "node --check index.js && node --check client.js && node --check lib/pure.js && node --check lib/selfcheck.js",
+    "check": "node --check index.js && node --check client.js && node --check lib/index.js && node --check lib/pure.js && node --check lib/selfcheck.js",
     "test": "node test/pure.test.mjs && node test/client.smoke.mjs && node scripts/self-check.mjs",
     "test:e2e": "powershell -NoProfile -ExecutionPolicy Bypass -File test/e2e/run.ps1",
     "selfcheck": "node scripts/self-check.mjs"
