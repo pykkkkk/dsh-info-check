@@ -8,9 +8,9 @@
 
 English | [中文](README.zh.md)
 
-`dsh-info-check` is a confirmation plugin for DeepSeek Harness. It asks the agent to pause before it starts working, before it commits to a plan, after each milestone, and before it delivers the final result.
+Agents often start executing immediately. Misunderstandings then surface only at delivery, when rework is most expensive.
 
-If you want the agent to show its work instead of rushing straight to an answer, this plugin is for you.
+dsh-info-check adds four confirmation points to the workflow, so you can review the report at each key step before deciding whether to continue.
 
 ## Install
 
