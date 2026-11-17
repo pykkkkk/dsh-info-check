@@ -1,6 +1,6 @@
 <h1><img src="icon.svg" alt="dsh-info-check icon" width="36" height="36" align="middle" /> dsh-info-check</h1>
 
-[![Version](https://img.shields.io/badge/version-0.2.1-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/pykkkkk/dsh-info-check/releases)
+[![Version](https://img.shields.io/badge/version-0.2.2-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/pykkkkk/dsh-info-check/releases)
 [![DSH](https://img.shields.io/badge/DSH-0.2.2--rc.3-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/deepseek-ai/deepseek-harness)
 [![License](https://img.shields.io/badge/license-MIT-4D6BFE?style=flat-square&labelColor=1F1F1F)](LICENSE)
 
@@ -35,7 +35,7 @@ dsh-info-check
 Or use npm:
 
 ```sh
-npm install dsh-info-check@0.2.1
+npm install dsh-info-check@0.2.2
 ```
 
 Refresh the page after installing. A small underlined **需求核对** switch will appear next to the agent preset.
@@ -91,7 +91,8 @@ Click the underlined words to open settings, where you can change:
 - the auto-skip timeout;
 - how many detail questions the agent asks;
 - whether new conversations start with the plugin on;
-- whether to keep a ledger, and where to put it.
+- whether to keep a ledger, and where to put it;
+- whether retrospectives run automatically.
 
 Changes take effect immediately; no restart is needed.
 
@@ -101,12 +102,26 @@ Useful commands:
 /dsh-info-check on
 /dsh-info-check off
 /dsh-info-check status
+/dsh-info-check retrospective
+/dsh-info-check quality
+/dsh-info-check quality rebuild
 ```
+
+## Retrospectives and quality standard
+
+After each confirmed delivery, the plugin summarizes the task's acceptance results, rework and adjustment reasons, and your notes into one retrospective file: `.dsh-info-check/retrospectives.md`.
+
+Retrospectives run automatically by default. If you turn off **Auto retrospective** in settings, the plugin asks whether to add the task to the retrospective when you confirm delivery.
+
+Every three completed tasks, the plugin updates `.dsh-info-check/quality-standard.md` from the accumulated retrospectives. That standard is included in later task instructions so the agent can follow your acceptance habits more closely. The manual section is preserved, and the standard is length-limited.
+
+Retrospectives and the quality standard stay in the current workspace; nothing is uploaded or sent over the network.
 
 ## Privacy
 
 - No network calls, telemetry, analytics, or remote fonts.
-- Your choices are written to `.dsh-info-check/ledger.md` in the current session directory.
+- Your choices are written to `.dsh-info-check/ledger.md` in the current session directory; retrospectives and the quality standard stay in the current workspace too.
+- Retrospectives include your feedback and notes, but only for later local tasks; nothing is uploaded.
 - It is a tool for keeping the process visible, not a security boundary; turning it off or skipping a card does not forcibly block the agent.
 
 ## License

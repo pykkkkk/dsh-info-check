@@ -26,6 +26,7 @@ import {
   validateAcceptance, validateDelivery, validateInfoCheck, validateMilestone,
 } from './lib/pure.js'
 import { formatSelfCheck, runSelfCheck } from './lib/selfcheck.js'
+import { RetrospectiveStore } from './lib/retrospective-store.js'
 
 export const inject = ['tools', 'systemPrompt', 'userQuestions', 'workingDirectory', 'sessionProjections']
 
@@ -86,6 +87,7 @@ export const Config = z === undefined
       defaultEnabled: z.boolean().default(true).volatile(),
       ledgerEnabled: z.boolean().default(true).volatile(),
       ledgerPath: z.string().default('.dsh-info-check/ledger.md').volatile(),
+      autoRetrospective: z.boolean().default(true).volatile(),
     })
 
 const EXPECTATION_LABELS = {
@@ -168,11 +170,18 @@ class Ledger {
     this.getOptions = getOptions
     this.tail = Promise.resolve()
     this.started = new Set()
+    this.events = new Map()
   }
 
-  append(session, body) {
+  append(session, body, event) {
     const options = this.getOptions()
     if (!options.enabled || session === undefined) return Promise.resolve()
+    const sid = String(session.id)
+    if (event !== undefined && event !== null) {
+      const current = this.events.get(sid) ?? []
+      current.push(event)
+      this.events.set(sid, current)
+    }
     try {
       const cwd = this.ctx.workingDirectory.get(session)
       const root = resolve(cwd)
@@ -181,7 +190,6 @@ class Ledger {
         this.ctx.logger?.warn?.('[dsh-info-check] ledger path escapes the session workspace; skip %s', full)
         return Promise.resolve()
       }
-      const sid = String(session.id)
       this.tail = this.tail.then(async () => {
         const directory = dirname(full)
         if (!ledgerDirs.has(directory)) {
@@ -209,6 +217,19 @@ class Ledger {
       this.ctx.logger?.warn?.('[dsh-info-check] ledger path resolution failed: %o', error)
     }
     return this.tail
+  }
+
+  consume(session) {
+    if (session === undefined) return []
+    const sid = String(session.id)
+    const events = this.events.get(sid) ?? []
+    this.events.delete(sid)
+    return events
+  }
+
+  peek(session) {
+    if (session === undefined) return []
+    return [...(this.events.get(String(session.id)) ?? [])]
   }
 }
 
@@ -558,13 +579,17 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
       } catch (error) {
         if (isCancelled(error)) {
           exec.concludeTurn()
-          await ledger.append(agent.session, acceptanceLedger(acceptance, { decision: 'cancelled' }))
+          await ledger.append(agent.session, acceptanceLedger(acceptance, { decision: 'cancelled' }), {
+            type: 'acceptance', decision: 'cancelled', milestone: acceptance.milestone,
+          })
           return { decision: 'cancelled', proceed: false }
         }
         throw error
       }
       if (result.pending === true) {
-        await ledger.append(agent.session, acceptanceLedger(acceptance, { decision: 'timeout' }))
+        await ledger.append(agent.session, acceptanceLedger(acceptance, { decision: 'timeout' }), {
+          type: 'acceptance', decision: 'timeout', milestone: acceptance.milestone,
+        })
         return { decision: 'timeout', proceed: true }
       }
       const outcome = acceptanceOutcome(result.answers[0])
@@ -572,7 +597,13 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
         decision: outcome.decision,
         ...(outcome.feedback === undefined ? {} : { feedback: outcome.feedback }),
         ...(outcome.notes === undefined ? {} : { notes: outcome.notes }),
-      }))
+      }), {
+        type: 'acceptance',
+        decision: outcome.decision,
+        milestone: acceptance.milestone,
+        ...(outcome.feedback === undefined ? {} : { feedback: outcome.feedback }),
+        ...(outcome.notes === undefined ? {} : { notes: outcome.notes }),
+      })
       return {
         decision: outcome.decision,
         proceed: outcome.proceed,
@@ -599,7 +630,7 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
   }
 }
 
-function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
+function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger, onDeliveryConfirmed }) {
   return {
     name: 'confirm_delivery',
     description: '在呈现最终结果前，向用户确认完成程度：提交完成程度、交付内容、未完成或限制、验证；用户确认（或倒计时结束）后才交付最终结果。'
@@ -669,12 +700,21 @@ function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
         decision: outcome.decision,
         ...(outcome.feedback === undefined ? {} : { feedback: outcome.feedback }),
         ...(outcome.notes === undefined ? {} : { notes: outcome.notes }),
-      }))
+      }), {
+        type: 'delivery',
+        decision: outcome.decision,
+        ...(outcome.feedback === undefined ? {} : { feedback: outcome.feedback }),
+        ...(outcome.notes === undefined ? {} : { notes: outcome.notes }),
+      })
+      const review = outcome.decision === 'confirmed' && onDeliveryConfirmed !== undefined
+        ? await onDeliveryConfirmed(agent, exec)
+        : undefined
       return {
         decision: outcome.decision,
         proceed: outcome.proceed,
         ...(outcome.feedback === undefined ? {} : { feedback: outcome.feedback }),
         ...(outcome.notes === undefined ? {} : { notes: outcome.notes }),
+        ...(review === undefined ? {} : { retrospective: review }),
       }
     },
     presentCall(args) {
@@ -717,13 +757,59 @@ export function apply(ctx, config = {}) {
     const ledgerPath = typeof rawLedgerPath === 'string' && rawLedgerPath.trim() !== ''
       ? rawLedgerPath.trim()
       : '.dsh-info-check/ledger.md'
-    return { milestoneCount, expectation, timeoutSeconds, maxQuestions, defaultEnabled, ledgerEnabled, ledgerPath }
+    const autoRetrospective = readConfig(config.autoRetrospective, true) !== false
+    return {
+      milestoneCount, expectation, timeoutSeconds, maxQuestions, defaultEnabled,
+      ledgerEnabled, ledgerPath, autoRetrospective,
+    }
   }
 
   const ledger = new Ledger(ctx, () => {
     const settings = currentSettings()
     return { enabled: settings.ledgerEnabled, path: settings.ledgerPath }
   })
+  const retrospective = new RetrospectiveStore(ctx, () => {
+    const settings = currentSettings()
+    return { enabled: settings.ledgerEnabled, path: settings.ledgerPath }
+  })
+
+  const reviewAfterDelivery = async (agent, exec) => {
+    const settings = currentSettings()
+    if (!settings.ledgerEnabled) return 'disabled'
+    let wantsReview = settings.autoRetrospective
+    if (!wantsReview) {
+      try {
+        const answer = await ctx.userQuestions.ask({
+          questions: [{
+            id: 'dsh-info-check-retrospective',
+            header: 'dsh-info-check · 复盘',
+            question: '是否将本次工作加入复盘？',
+            options: [
+              { label: '复盘（推荐）', description: '生成本次复盘，并用于维护你的工作质量标准' },
+              { label: '跳过', description: '本次不记录复盘' },
+            ],
+          }],
+          agent,
+          signal: exec.signal,
+        })
+        const selected = answer.answers?.[0]?.selected
+        const values = Array.isArray(selected) ? selected : selected === undefined || selected === null ? [] : [selected]
+        wantsReview = values.some(item => /复盘|review/i.test(String(item)))
+      } catch {
+        wantsReview = false
+      }
+    }
+    const events = ledger.consume(agent.session)
+    if (!wantsReview) return 'skipped'
+    if (events.length === 0) return 'empty'
+    try {
+      const result = await retrospective.record(agent.session, events)
+      return result.standardUpdated ? 'written+quality' : result.status
+    } catch (error) {
+      ctx.logger?.warn?.('[dsh-info-check] retrospective failed: %o', error)
+      return 'failed'
+    }
+  }
 
   // Per-Session switch. A third-party plugin cannot append a custom Session
   // event, so the switch rides the logged `/dsh-info-check on|off` command and a
@@ -774,9 +860,9 @@ export function apply(ctx, config = {}) {
     commandCtx.commands.register({
       definitionId: 'dsh-info-check',
       name: 'dsh-info-check',
-      description: 'Turn dsh-info-check on or off, report status, self-check the installation, or open a result file location',
-      input: { hint: '[on|off|status|selfcheck|open <absolute path>]' },
-      handler: ({ agent, rawInput }) => {
+      description: 'Turn dsh-info-check on or off, report status, self-check, run a retrospective, show the quality standard, or open a result file location',
+      input: { hint: '[on|off|status|selfcheck|retrospective|quality [rebuild]|open <absolute path>]' },
+      handler: async ({ agent, rawInput }) => {
         const raw = rawInput.trim()
         const value = raw.toLowerCase()
         if (value === 'selfcheck') {
@@ -784,6 +870,42 @@ export function apply(ctx, config = {}) {
           return {
             kind: report.ok ? 'success' : 'error',
             text: formatSelfCheck(report),
+          }
+        }
+        if (value === 'quality rebuild') {
+          if (agent === undefined) return { kind: 'error', text: '重建质量标准需要一个活跃对话。' }
+          try {
+            const rebuilt = await retrospective.rebuildStandard(agent.session)
+            return {
+              kind: 'success',
+              text: rebuilt ? '已根据已保存的复盘重建用户工作质量标准。' : '还没有足够的复盘记录，暂时无法重建质量标准。',
+            }
+          } catch (error) {
+            ctx.logger?.warn?.('[dsh-info-check] quality rebuild failed: %o', error)
+            return { kind: 'error', text: `质量标准重建失败：${error.message}` }
+          }
+        }
+        if (value === 'quality') {
+          const quality = agent === undefined ? '' : retrospective.standardFor(agent.session)
+          return quality === ''
+            ? { kind: 'success', text: '当前还没有用户工作质量标准；每完成 3 次任务后自动生成。' }
+            : { kind: 'success', text: quality }
+        }
+        if (value === 'retrospective') {
+          if (agent === undefined) return { kind: 'error', text: '复盘需要一个活跃对话。' }
+          const events = ledger.consume(agent.session)
+          if (events.length === 0) return { kind: 'success', text: '当前任务没有可复盘的记录。' }
+          try {
+            const result = await retrospective.record(agent.session, events)
+            return {
+              kind: 'success',
+              text: result.status === 'written'
+                ? `已记录第 ${result.taskNumber} 次复盘${result.standardUpdated ? '，并更新了用户工作质量标准' : ''}。`
+                : '当前任务没有可复盘的记录。',
+            }
+          } catch (error) {
+            ctx.logger?.warn?.('[dsh-info-check] manual retrospective failed: %o', error)
+            return { kind: 'error', text: `复盘生成失败：${error.message}` }
           }
         }
         if (value.startsWith('open ')) {
@@ -815,7 +937,7 @@ export function apply(ctx, config = {}) {
             text: `dsh-info-check is ${enabledFor(agent.session) ? 'on' : 'off'} for this conversation.`,
           }
         }
-        return { kind: 'error', text: 'Use /dsh-info-check on, off, selfcheck, or open <absolute path>.' }
+        return { kind: 'error', text: 'Use /dsh-info-check on, off, selfcheck, retrospective, quality, or open <absolute path>.' }
       },
     })
   })
@@ -826,7 +948,12 @@ export function apply(ctx, config = {}) {
     text: (context) => {
       const agent = context.agent
       if (agent === undefined) return defaultPolicy(currentSettings())
-      return enabledFor(agent.session) ? defaultPolicy(currentSettings()) : ''
+      if (!enabledFor(agent.session)) return ''
+      const quality = retrospective.standardFor(agent.session)
+      const policy = defaultPolicy(currentSettings())
+      return quality === ''
+        ? policy
+        : `${policy}\n\n## 用户工作质量标准（来自本地台账复盘）\n\n${quality}`
     },
   }), 'dsh-info-check: policy')
 
@@ -834,7 +961,10 @@ export function apply(ctx, config = {}) {
     createInfoCheckTool({ ctx, enabledFor, getMaxQuestions: () => currentSettings().maxQuestions, ledger }),
     createMilestoneTool({ ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger }),
     createAcceptTool({ ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger }),
-    createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger }),
+    createDeliveryTool({
+      ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger,
+      onDeliveryConfirmed: reviewAfterDelivery,
+    }),
   ]
   for (const definition of definitions) {
     ctx.effect(

@@ -1,6 +1,6 @@
 {
   "name": "dsh-info-check",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publishConfig": {
     "access": "public"
   },
@@ -31,8 +31,8 @@
     "dsh": ">=0.2.2-rc.3 <0.3.0"
   },
   "scripts": {
-    "check": "node --check index.js && node --check client.js && node --check lib/index.js && node --check lib/pure.js && node --check lib/selfcheck.js",
-    "test": "node test/pure.test.mjs && node test/client.smoke.mjs && node scripts/self-check.mjs",
+    "check": "node --check index.js && node --check client.js && node --check lib/index.js && node --check lib/pure.js && node --check lib/selfcheck.js && node --check lib/retrospective.js && node --check lib/retrospective-store.js",
+    "test": "node test/pure.test.mjs && node test/retrospective.test.mjs && node test/client.smoke.mjs && node scripts/self-check.mjs",
     "test:e2e": "powershell -NoProfile -ExecutionPolicy Bypass -File test/e2e/run.ps1",
     "selfcheck": "node scripts/self-check.mjs"
   },

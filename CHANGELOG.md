@@ -4,6 +4,18 @@ All notable changes to this bundle are documented here. The project uses a
 simple `MAJOR.MINOR.PATCH` version; DSH compatibility is pinned by
 `engines.dsh`.
 
+## 0.2.2 — 2026-11-17
+
+- Task retrospectives: after a confirmed delivery, write a review to a single
+  `.dsh-info-check/retrospectives.md` file.
+- Optional automatic retrospective. When off, delivery asks whether to review
+  the task; skip leaves the ledger clean for the next task.
+- Every three completed tasks, update a length-limited
+  `.dsh-info-check/quality-standard.md` from accumulated reviews; the manual
+  section is preserved.
+- Inject the quality standard into later task instructions.
+- Commands: `/dsh-info-check retrospective` and `/dsh-info-check quality`.
+
 ## 0.2.1 — 2026-11-16
 
 - Detail questions: single-select options toggle off on a second click; every

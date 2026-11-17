@@ -1,6 +1,6 @@
 <h1><img src="icon.svg" alt="dsh-info-check 图标" width="36" height="36" align="middle" /> dsh-info-check</h1>
 
-[![版本](https://img.shields.io/badge/%E7%89%88%E6%9C%AC-0.2.1-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/pykkkkk/dsh-info-check/releases)
+[![版本](https://img.shields.io/badge/%E7%89%88%E6%9C%AC-0.2.2-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/pykkkkk/dsh-info-check/releases)
 [![DSH 版本](https://img.shields.io/badge/DSH%E7%89%88%E6%9C%AC-0.2.2--rc.3-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/deepseek-ai/deepseek-harness)
 [![许可证](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF%E8%AF%81-MIT-4D6BFE?style=flat-square&labelColor=1F1F1F)](LICENSE)
 
@@ -35,7 +35,7 @@ dsh-info-check
 也可以使用 npm：
 
 ```sh
-npm install dsh-info-check@0.2.1
+npm install dsh-info-check@0.2.2
 ```
 
 安装后刷新页面。标题旁会出现一个带下划线的 **需求核对** 开关。
@@ -91,7 +91,8 @@ npm install dsh-info-check@0.2.1
 - 自动计时秒数；
 - 细节问题数量；
 - 新对话默认是否开启；
-- 是否记录台账，以及台账路径。
+- 是否记录台账，以及台账路径；
+- 是否自动复盘。
 
 改动会立即生效，不需要重启。
 
@@ -101,12 +102,26 @@ npm install dsh-info-check@0.2.1
 /dsh-info-check on
 /dsh-info-check off
 /dsh-info-check status
+/dsh-info-check retrospective
+/dsh-info-check quality
+/dsh-info-check quality rebuild
 ```
+
+## 任务复盘与质量标准
+
+每次确认交付后，插件会把本次任务的验收结果、返工和交付调整原因、用户备注整理成一份复盘，追加到同一个 `.dsh-info-check/retrospectives.md`。
+
+默认自动复盘。在设置里关闭“自动复盘”后，交付时会询问你是否将本次工作加入复盘。
+
+每完成 3 次任务，插件会根据累计复盘更新 `.dsh-info-check/quality-standard.md`。这份标准会进入后续任务的提示中，让 agent 更贴近你的验收习惯；标准里的“手工补充”区域会保留你的修改，并限制整体长度。
+
+复盘和质量标准都只保存在当前工作区，不会联网或上传。
 
 ## 隐私
 
 - 不联网，没有遥测、统计或远程字体。
-- 你的选择会记录在当前会话目录的 `.dsh-info-check/ledger.md`。
+- 你的选择会记录在当前会话目录的 `.dsh-info-check/ledger.md`；复盘和用户工作质量标准也只保存在当前工作区。
+- 复盘会包含你的反馈和备注；这些内容只用于本地后续任务，不会上传。
 - 它是一个帮助你看清过程的工具，不是安全边界；关闭或跳过时不会强行阻止 agent 工作。
 
 ## 许可证
