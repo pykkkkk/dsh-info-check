@@ -27,8 +27,9 @@ import {
 } from './lib/pure.js'
 import { formatSelfCheck, runSelfCheck } from './lib/selfcheck.js'
 import { RetrospectiveStore } from './lib/retrospective-store.js'
+import { conflictsWithPreviousAcceptance } from './lib/acceptance.js'
 
-export const inject = ['tools', 'systemPrompt', 'userQuestions', 'workingDirectory', 'sessionProjections']
+export const inject = ['tools', 'systemPrompt', 'userQuestions', 'workingDirectory', 'sessionProjections', 'agents']
 
 const ledgerDirs = new Set()
 const packageRoot = dirname(fileURLToPath(import.meta.url))
@@ -171,6 +172,7 @@ class Ledger {
     this.tail = Promise.resolve()
     this.started = new Set()
     this.events = new Map()
+    this.acceptance = new Map()
   }
 
   append(session, body, event) {
@@ -230,6 +232,16 @@ class Ledger {
   peek(session) {
     if (session === undefined) return []
     return [...(this.events.get(String(session.id)) ?? [])]
+  }
+
+  recordAcceptance(session, turn, milestone) {
+    if (session === undefined || typeof turn !== 'number') return
+    this.acceptance.set(String(session.id), { turn, milestone })
+  }
+
+  lastAcceptance(session) {
+    if (session === undefined) return undefined
+    return this.acceptance.get(String(session.id))
   }
 }
 
@@ -559,6 +571,15 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
       if (agent === undefined) throw new Error('accept_milestone requires a live agent')
       if (!enabledFor(agent.session)) throw new Error('dsh-info-check is disabled for this conversation')
       const acceptance = validateAcceptance(args)
+      let turn
+      try {
+        turn = ctx.agents.turnBoundaryOf(agent.session).lastTurn
+      } catch {
+        turn = undefined
+      }
+      if (conflictsWithPreviousAcceptance(ledger.lastAcceptance(agent.session), turn, acceptance.milestone)) {
+        throw new Error('dsh-info-check: 同一轮只能验收一个里程碑。请先继续当前工作，等下一轮再验收下一个里程碑；不要连续提交多个验收。')
+      }
       const question = {
         id: ACCEPT_MILESTONE_ID,
         header: 'dsh-info-check · 里程碑验收',
@@ -583,6 +604,7 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
           await ledger.append(agent.session, acceptanceLedger(acceptance, { decision: 'cancelled' }), {
             type: 'acceptance', decision: 'cancelled', milestone: acceptance.milestone,
           })
+          ledger.recordAcceptance(agent.session, turn, acceptance.milestone)
           return { decision: 'cancelled', proceed: false }
         }
         throw error
@@ -591,6 +613,7 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
         await ledger.append(agent.session, acceptanceLedger(acceptance, { decision: 'timeout' }), {
           type: 'acceptance', decision: 'timeout', milestone: acceptance.milestone,
         })
+        ledger.recordAcceptance(agent.session, turn, acceptance.milestone)
         return { decision: 'timeout', proceed: true }
       }
       const outcome = acceptanceOutcome(result.answers[0])
@@ -605,6 +628,7 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
         ...(outcome.feedback === undefined ? {} : { feedback: outcome.feedback }),
         ...(outcome.notes === undefined ? {} : { notes: outcome.notes }),
       })
+      ledger.recordAcceptance(agent.session, turn, acceptance.milestone)
       return {
         decision: outcome.decision,
         proceed: outcome.proceed,

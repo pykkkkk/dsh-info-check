@@ -7,6 +7,12 @@ import {
   createQualityState, extractManualStandard, recordTask, shouldUpdateQualityStandard,
 } from '../lib/retrospective.js'
 import { RetrospectiveStore } from '../lib/retrospective-store.js'
+import { conflictsWithPreviousAcceptance } from '../lib/acceptance.js'
+
+assert.equal(conflictsWithPreviousAcceptance({ turn: 5, milestone: 'm1' }, 5, 'm2'), true)
+assert.equal(conflictsWithPreviousAcceptance({ turn: 5, milestone: 'm1' }, 5, 'm1'), false)
+assert.equal(conflictsWithPreviousAcceptance({ turn: 5, milestone: 'm1' }, 6, 'm2'), false)
+assert.equal(conflictsWithPreviousAcceptance(undefined, 5, 'm2'), false)
 
 const events = [
   { type: 'acceptance', decision: 'accepted', milestone: 'm1', notes: '先给证据' },
