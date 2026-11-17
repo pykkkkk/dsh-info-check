@@ -1,101 +1,101 @@
-<h1><img src="icon.svg" alt="dsh-info-check icon" width="36" height="36" align="middle" /> dsh-info-check</h1>
+<h1><img src="icon.svg" alt="dsh-info-check 图标" width="36" height="36" align="middle" /> dsh-info-check</h1>
 
-[![Version](https://img.shields.io/badge/version-0.2.1-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/pykkkkk/dsh-info-check/releases)
-[![DSH](https://img.shields.io/badge/DSH-0.2.2--rc.3-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/deepseek-ai/deepseek-harness)
-[![License](https://img.shields.io/badge/license-MIT-4D6BFE?style=flat-square&labelColor=1F1F1F)](LICENSE)
+[![版本](https://img.shields.io/badge/%E7%89%88%E6%9C%AC-0.2.1-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/pykkkkk/dsh-info-check/releases)
+[![DSH 版本](https://img.shields.io/badge/DSH%E7%89%88%E6%9C%AC-0.2.2--rc.3-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/deepseek-ai/deepseek-harness)
+[![许可证](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF%E8%AF%81-MIT-4D6BFE?style=flat-square&labelColor=1F1F1F)](LICENSE)
 
 ![dsh-info-check](docs/social-preview.png)
 
-English | [中文](README.zh.md)
+[English](README.en.md) | 中文
 
-Agents often start executing immediately. Misunderstandings then surface only at delivery, when rework is most expensive.
+Agent 接到任务后直接进入执行，理解偏差往往到交付时才暴露，返工成本随流程推进上升。
 
-dsh-info-check adds four confirmation points to the workflow, so you can review the report at each key step before deciding whether to continue.
+dsh-info-check 的做法是在流程中插入四个确认点，让用户在关键节点看完报告再决定是否继续。
 
-## Screenshots
+## 界面预览
 
-| Intent check | Plan confirmation |
+| 需求核对 | 方案确认 |
 |---|---|
-| [![Intent check](docs/screenshots/01-intent-check.png)](docs/screenshots/01-intent-check.png) | [![Plan confirmation](docs/screenshots/02-plan-confirmation.png)](docs/screenshots/02-plan-confirmation.png) |
-| **Milestone acceptance** | **Delivery confirmation** |
-| [![Milestone acceptance](docs/screenshots/03-milestone-acceptance.png)](docs/screenshots/03-milestone-acceptance.png) | [![Delivery confirmation](docs/screenshots/04-delivery-confirmation.png)](docs/screenshots/04-delivery-confirmation.png) |
+| [![需求核对](docs/screenshots/01-intent-check.png)](docs/screenshots/01-intent-check.png) | [![方案确认](docs/screenshots/02-plan-confirmation.png)](docs/screenshots/02-plan-confirmation.png) |
+| **里程碑验收** | **交付确认** |
+| [![里程碑验收](docs/screenshots/03-milestone-acceptance.png)](docs/screenshots/03-milestone-acceptance.png) | [![交付确认](docs/screenshots/04-delivery-confirmation.png)](docs/screenshots/04-delivery-confirmation.png) |
 
-**Settings**
+**设置**
 
-[![Settings](docs/screenshots/07-settings.png)](docs/screenshots/07-settings.png)
+[![设置](docs/screenshots/07-settings.png)](docs/screenshots/07-settings.png)
 
-## Install
+## 安装
 
-Install it from the **Plugins** page in DSH:
+在 DSH 的 **插件** 页面安装：
 
 ```text
 dsh-info-check
 ```
 
-Or use npm:
+也可以使用 npm：
 
 ```sh
 npm install dsh-info-check@0.2.1
 ```
 
-Refresh the page after installing. A small underlined **需求核对** switch will appear next to the agent preset.
+安装后刷新页面。标题旁会出现一个带下划线的 **需求核对** 开关。
 
-Built for DSH `0.2.x`; currently tested with `0.2.2-rc.3`.
+适用于 DSH `0.2.x`，当前验证版本为 `0.2.2-rc.3`。
 
-## What it adds
+## 它会在什么时候出现
 
-### A moment to align on the goal
+### 先对齐需求
 
-Before substantive work, the agent restates what it understands, asks a few questions that actually affect the result, and lists the quality bar, out-of-scope items, and milestones.
+开始实质工作前，agent 会先复述它理解的目标，列出几个真正影响结果的问题，并给出完成标准、范围外和里程碑。
 
-You can edit that checklist directly and add your own requirements.
+你可以直接修改这份核对单，也可以补充自己的要求。
 
-### One plan confirmation
+### 确认一次方案
 
-Once the goal is clear, the agent proposes a plan. You confirm it once, so the work does not keep stopping for the same decision.
+需求明确后，agent 会给出执行方案。方案只确认一次，之后不会反复打断你。
 
-The milestone section shows which step you are on and what it covers.
+里程碑一栏会直接写明当前是哪一步、主要做什么。
 
-### Acceptance after every milestone
+### 每个里程碑完成后验收
 
-After each milestone, the agent reports what was completed, how it was verified, and what is still open.
+每完成一个阶段，agent 会提交完成内容、验证证据和剩余风险。
 
-The report is read-only. You can:
+报告是只读的，你不需要改报告本身。你可以：
 
-- **Accept** and move to the next milestone;
-- **Request rework**, add a reason, and let the agent revise it;
-- **Pause the task**, so the agent summarizes the current progress and stops.
+- **验收通过**，继续下一阶段；
+- **需要返工**，写下理由，让 agent 修改后重新验收；
+- **暂停任务**，让 agent 整理当前进度并结束这次工作。
 
-### A final sign-off before delivery
+### 交付前再确认一次
 
-Before the final result, the agent explains how complete it is, what it delivers, what is limited, and how it was verified. Nothing is delivered until you confirm.
+最终结果出来前，agent 会再说明完成程度、交付内容、限制和验证。你确认后再交付。
 
-## Working with the cards
+## 使用时的细节
 
-- Every point has its own box and number; long text makes the box grow.
-- Every confirmation ends with a free-form **Notes** field.
-- Drag the right edge to widen a dialog; double-click to reset it.
-- The three timed cards have a countdown and a **Stop timer** button.
-- Options can be clicked again to clear them, and each question has an **Other** field for your own answer.
-- Acceptance reports can list result files; click a path to open its location.
-- The top-right **X** means skip: continue with the agent's version without interrupting the task.
+- 每个要点都有自己的文本框和序号，长文本会自动撑开。
+- 每张确认卡末尾都有 **备注**，可以写额外要求。
+- 浮窗可以从右边缘拉宽，双击复位。
+- 三张计时卡都有倒计时和 **停止计时**；不想等时可以手动停。
+- 选项可以再次点击取消；每个选项题下方都能自己输入“其他”。
+- 验收时可以附上结果文件路径，点击直接打开文件所在位置。
+- 右上角的 **X** 表示跳过：按 agent 的版本继续，不会中断整个任务。
 
-## Switch and settings
+## 开关和设置
 
-The **需求核对** switch next to the title only affects the current conversation.
+标题旁的 **需求核对** 开关只影响当前对话。
 
-Click the underlined words to open settings, where you can change:
+点击下划线文字可以打开设置，调整：
 
-- the number of milestones;
-- the expectation level: perfect, good, or pass;
-- the auto-skip timeout;
-- how many detail questions the agent asks;
-- whether new conversations start with the plugin on;
-- whether to keep a ledger, and where to put it.
+- 里程碑数量；
+- 期望程度：完美 / 较好 / 及格；
+- 自动计时秒数；
+- 细节问题数量；
+- 新对话默认是否开启；
+- 是否记录台账，以及台账路径。
 
-Changes take effect immediately; no restart is needed.
+改动会立即生效，不需要重启。
 
-Useful commands:
+常用命令：
 
 ```text
 /dsh-info-check on
@@ -103,12 +103,12 @@ Useful commands:
 /dsh-info-check status
 ```
 
-## Privacy
+## 隐私
 
-- No network calls, telemetry, analytics, or remote fonts.
-- Your choices are written to `.dsh-info-check/ledger.md` in the current session directory.
-- It is a tool for keeping the process visible, not a security boundary; turning it off or skipping a card does not forcibly block the agent.
+- 不联网，没有遥测、统计或远程字体。
+- 你的选择会记录在当前会话目录的 `.dsh-info-check/ledger.md`。
+- 它是一个帮助你看清过程的工具，不是安全边界；关闭或跳过时不会强行阻止 agent 工作。
 
-## License
+## 许可证
 
-MIT. Copyright (c) 2026 pykkkkk (Wenhao Liu). See [LICENSE](LICENSE).
+MIT。Copyright (c) 2026 pykkkkk (Wenhao Liu)。见 [LICENSE](LICENSE)。
