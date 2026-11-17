@@ -12,6 +12,14 @@ Agents often start executing immediately. Misunderstandings then surface only at
 
 dsh-info-check adds four confirmation points to the workflow, so you can review the report at each key step before deciding whether to continue.
 
+## Screenshots
+
+| Intent check | Plan confirmation |
+|---|---|
+| [![Intent check](docs/screenshots/01-intent-check.png)](docs/screenshots/01-intent-check.png) | [![Plan confirmation](docs/screenshots/02-plan-confirmation.png)](docs/screenshots/02-plan-confirmation.png) |
+| **Milestone acceptance** | **Delivery confirmation** |
+| [![Milestone acceptance](docs/screenshots/03-milestone-acceptance.png)](docs/screenshots/03-milestone-acceptance.png) | [![Delivery confirmation](docs/screenshots/04-delivery-confirmation.png)](docs/screenshots/04-delivery-confirmation.png) |
+
 ## Install
 
 Install it from the **Plugins** page in DSH:
@@ -90,14 +98,6 @@ Useful commands:
 /dsh-info-check off
 /dsh-info-check status
 ```
-
-## Screenshots
-
-| Intent check | Plan confirmation |
-|---|---|
-| [![Intent check](docs/screenshots/01-intent-check.png)](docs/screenshots/01-intent-check.png) | [![Plan confirmation](docs/screenshots/02-plan-confirmation.png)](docs/screenshots/02-plan-confirmation.png) |
-| **Milestone acceptance** | **Delivery confirmation** |
-| [![Milestone acceptance](docs/screenshots/03-milestone-acceptance.png)](docs/screenshots/03-milestone-acceptance.png) | [![Delivery confirmation](docs/screenshots/04-delivery-confirmation.png)](docs/screenshots/04-delivery-confirmation.png) |
 
 ## Privacy
 

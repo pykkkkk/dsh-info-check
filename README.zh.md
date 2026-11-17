@@ -12,6 +12,14 @@ Agent 接到任务后直接进入执行，理解偏差往往到交付时才暴�
 
 dsh-info-check 的做法是在流程中插入四个确认点，让用户在关键节点看完报告再决定是否继续。
 
+## 界面预览
+
+| 需求核对 | 方案确认 |
+|---|---|
+| [![需求核对](docs/screenshots/01-intent-check.png)](docs/screenshots/01-intent-check.png) | [![方案确认](docs/screenshots/02-plan-confirmation.png)](docs/screenshots/02-plan-confirmation.png) |
+| **里程碑验收** | **交付确认** |
+| [![里程碑验收](docs/screenshots/03-milestone-acceptance.png)](docs/screenshots/03-milestone-acceptance.png) | [![交付确认](docs/screenshots/04-delivery-confirmation.png)](docs/screenshots/04-delivery-confirmation.png) |
+
 ## 安装
 
 在 DSH 的 **插件** 页面安装：
@@ -90,14 +98,6 @@ npm install dsh-info-check@0.2.1
 /dsh-info-check off
 /dsh-info-check status
 ```
-
-## 界面预览
-
-| 需求核对 | 方案确认 |
-|---|---|
-| [![需求核对](docs/screenshots/01-intent-check.png)](docs/screenshots/01-intent-check.png) | [![方案确认](docs/screenshots/02-plan-confirmation.png)](docs/screenshots/02-plan-confirmation.png) |
-| **里程碑验收** | **交付确认** |
-| [![里程碑验收](docs/screenshots/03-milestone-acceptance.png)](docs/screenshots/03-milestone-acceptance.png) | [![交付确认](docs/screenshots/04-delivery-confirmation.png)](docs/screenshots/04-delivery-confirmation.png) |
 
 ## 隐私
 
