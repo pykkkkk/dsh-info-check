@@ -20,6 +20,10 @@ dsh-info-check adds four confirmation points to the workflow, so you can review 
 | **Milestone acceptance** | **Delivery confirmation** |
 | [![Milestone acceptance](docs/screenshots/03-milestone-acceptance.png)](docs/screenshots/03-milestone-acceptance.png) | [![Delivery confirmation](docs/screenshots/04-delivery-confirmation.png)](docs/screenshots/04-delivery-confirmation.png) |
 
+**Settings**
+
+[![Settings](docs/screenshots/07-settings.png)](docs/screenshots/07-settings.png)
+
 ## Install
 
 Install it from the **Plugins** page in DSH:
