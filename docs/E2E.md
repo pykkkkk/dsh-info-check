@@ -33,7 +33,7 @@ confirmation panels.
 ## Run
 
 ```powershell
-cd "D:\dsh workspace\tool manage\dsh-info-check"
+cd "<path-to-dsh-info-check>"
 pnpm install
 pnpm test:e2e
 ```
