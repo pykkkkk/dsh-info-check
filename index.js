@@ -657,6 +657,10 @@ function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger, onDeli
           proceed: { type: 'boolean' },
           feedback: { type: 'string' },
           notes: { type: 'string' },
+          retrospective: {
+            type: 'string',
+            enum: ['written', 'written+quality', 'skipped', 'empty', 'failed', 'disabled'],
+          },
         },
         required: ['decision', 'proceed'],
       },
