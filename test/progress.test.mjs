@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import {
   applyProgressEvent, createProgressState, normalizeProgress,
 } from '../lib/progress.js'
+import { hasDeliverableNewer } from '../lib/acceptance.js'
 
 let state = createProgressState(true)
 state = applyProgressEvent(state, {
@@ -91,5 +92,14 @@ state = applyProgressEvent(state, {
 assert.equal(state.enabled, false)
 state = normalizeProgress(state, true)
 assert.equal(state.enabled, false)
+
+const stats = {
+  'old.js': { mtimeMs: 100 },
+  'new.js': { mtimeMs: 300 },
+}
+assert.equal(hasDeliverableNewer(['old.js'], 200, file => stats[file]), false)
+assert.equal(hasDeliverableNewer(['old.js', 'new.js'], 200, file => stats[file]), true)
+assert.equal(hasDeliverableNewer([], 200, file => stats[file]), false)
+assert.equal(hasDeliverableNewer(['missing.js'], 200, () => { throw new Error('ENOENT') }), false)
 
 console.log('dsh-info-check progress tests: ok')
