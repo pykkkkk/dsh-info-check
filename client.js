@@ -171,12 +171,29 @@ window.__ModuleLoader__.load({
 @keyframes ic-fade{from{opacity:0}to{opacity:1}}
 @keyframes ic-cb{0%{transform:scale(.8)}60%{transform:scale(1.16)}100%{transform:scale(1.12)}}
 @keyframes ic-rip{to{transform:translate(-50%,-50%) scale(1);opacity:0}}
+.ic-progress{--ic-primary:#4D6BFE;--ic-primary-ink:#3B55D4;--ic-ink:#1F1F1F;--ic-text-3:#94A3B8;--ic-line:#E5E7EB;--ic-surface:#FFFFFF;position:fixed;left:50%;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:10px;width:min(640px,calc(100vw - 24px));box-sizing:border-box;padding:5px 12px 6px;border:1px solid rgba(215,220,227,.9);border-radius:999px;background:rgba(255,255,255,.88);box-shadow:0 4px 16px rgba(15,23,42,.07);backdrop-filter:blur(10px);color:var(--ic-text-3);font-family:"Urbanist","Segoe UI",system-ui,"PingFang SC","Microsoft YaHei",sans-serif;pointer-events:none;user-select:none}
+.ic-progress-label{flex:none;font-size:10.5px;font-weight:700;letter-spacing:.01em;color:var(--ic-text-3);white-space:nowrap}
+.ic-progress-count{flex:none;min-width:24px;text-align:right;font-size:10px;font-weight:700;color:var(--ic-text-3);font-variant-numeric:tabular-nums}
+.ic-progress-track{position:relative;flex:1;height:3px;border-radius:999px;background:var(--ic-line);margin:0 4px}
+.ic-progress-fill{position:absolute;left:0;top:0;height:100%;border-radius:999px;background:linear-gradient(90deg,#7B91FF,var(--ic-primary));transition:width 1.45s cubic-bezier(.22,.61,.36,1)}
+.ic-progress-fast .ic-progress-fill{transition-duration:.32s}
+.ic-progress-stone{position:absolute;top:50%;width:16px;height:22px;transform:translate(-50%,-50%);display:grid;place-items:center;color:#AEB7C4;transition:color .3s ease,transform .3s ease}
+.ic-progress-stone svg{display:block;width:14px;height:18px;overflow:visible}
+.ic-progress-stone path{fill:none;stroke:currentColor;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+.ic-progress-stone.done{color:var(--ic-primary)}
+.ic-progress-stone.current{color:var(--ic-primary-ink);transform:translate(-50%,-50%) scale(1.12)}
+.ic-progress-stone.current svg{animation:ic-stone-pulse 1.8s ease-in-out infinite}
+@keyframes ic-stone-pulse{0%,100%{filter:drop-shadow(0 0 0 rgba(77,107,254,0))}50%{filter:drop-shadow(0 0 4px rgba(77,107,254,.55))}}
+@media (max-width:520px){.ic-progress-label{display:none}.ic-progress{gap:6px;padding-left:10px;padding-right:10px}}
+@media (prefers-reduced-motion:reduce){.ic-progress-fill{transition:none}.ic-progress-stone.current svg{animation:none}}
 @media (max-height:640px){.ic-card{min-height:0}}
 @media (prefers-reduced-motion:reduce){.ic-card,.ic-backdrop,.ic-cbox input:checked + .ic-box,.ic-ripple,.ic-step{animation:none}.ic-btn,.ic-opt,.ic-readbox,.ic-bar-fill,.ic-icon-btn,.ic-track i,.ic-box,.ic-box path{transition:none}}
 `
 
     const zh = {
       'title': '需求核对',
+      'progress.label': '任务进度',
+      'progress.milestone': '里程碑',
       'state.on': '已开启',
       'state.off': '已关闭',
       'hint.on': '开工前核对意图，确认一次执行方案，逐个验收里程碑，交付前确认完成程度；每次选择都会写入 .dsh-info-check/ledger.md',
@@ -290,6 +307,8 @@ window.__ModuleLoader__.load({
     }
     const en = {
       'title': 'Info checker',
+      'progress.label': 'Task progress',
+      'progress.milestone': 'Milestone',
       'state.on': 'On',
       'state.off': 'Off',
       'hint.on': 'Clarifies intent, confirms the plan once, accepts each milestone, and signs off delivery; choices go to .dsh-info-check/ledger.md',
@@ -1860,6 +1879,115 @@ window.__ModuleLoader__.load({
       }
     }
 
+    function createProgress(ctx) {
+      return function Progress(props) {
+        const t = ctx.locale.bind(NS)
+        const view = props.useProjection('infoCheck')
+        const milestones = Array.isArray(view?.milestones) ? view.milestones : []
+        const accepted = Array.isArray(view?.accepted) ? view.accepted : []
+        const phase = typeof view?.phase === 'string' ? view.phase : 'idle'
+        const active = typeof view?.active === 'string' ? view.active : null
+        const enabled = view === undefined || view.enabled !== false
+        const show = enabled && milestones.length > 0
+          && ['working', 'accepting', 'paused', 'delivering', 'delivered'].includes(phase)
+        const [visual, setVisual] = React.useState(0)
+        const [bottom, setBottom] = React.useState(96)
+
+        React.useEffect(() => {
+          if (!show) return undefined
+          let timer
+          const measure = () => {
+            try {
+              const areas = Array.from(document.querySelectorAll('textarea'))
+                .map(node => ({ node, rect: node.getBoundingClientRect() }))
+                .filter(item => item.rect.width > 80 && item.rect.height > 10)
+              areas.sort((a, b) => b.rect.bottom - a.rect.bottom)
+              const rect = areas[0]?.rect
+              if (rect !== undefined && rect.top > 0 && rect.top < window.innerHeight) {
+                setBottom(Math.max(10, Math.round(window.innerHeight - rect.top + 6)))
+              }
+            } catch {
+              // Keep the fallback offset.
+            }
+          }
+          measure()
+          window.addEventListener('resize', measure)
+          window.addEventListener('scroll', measure, true)
+          timer = window.setInterval(measure, 1500)
+          return () => {
+            window.removeEventListener('resize', measure)
+            window.removeEventListener('scroll', measure, true)
+            window.clearInterval(timer)
+          }
+        }, [show])
+
+        React.useEffect(() => {
+          if (!show) return undefined
+          const tick = () => {
+            const total = milestones.length
+            const done = accepted.length
+            if (total === 0) {
+              setVisual(0)
+              return
+            }
+            const base = Math.min(1, done / total)
+            const next = Math.min(1, (done + 1) / total)
+            const stageStart = Number(view?.stageStartedAt) || Date.now()
+            const elapsed = Math.max(0, Date.now() - stageStart)
+            const slow = base + Math.min(0.9, elapsed / 180000) * (next - base)
+            const cap = Math.max(base, next - 0.05)
+            let target
+            if (phase === 'delivered' || phase === 'delivering') target = 1
+            else if (phase === 'accepting') target = next
+            else if (done >= total) target = 1
+            else target = Math.min(cap, slow)
+            setVisual(Math.min(1, Math.max(base, target)))
+          }
+          tick()
+          const timer = window.setInterval(tick, 1000)
+          return () => window.clearInterval(timer)
+        }, [show, phase, accepted.length, milestones.length, view?.stageStartedAt])
+
+        if (!show || createPortal === undefined || typeof document === 'undefined') return null
+
+        const total = milestones.length
+        const done = accepted.length
+        const fast = phase === 'accepting' || phase === 'delivering' || phase === 'delivered'
+        const stones = milestones.map((milestone, index) => {
+          const position = total === 0 ? 0 : ((index + 1) / total) * 100
+          const complete = accepted.includes(milestone.id) || phase === 'delivered'
+          const current = active === milestone.id && phase !== 'delivered'
+          const className = `ic-progress-stone${complete ? ' done' : ''}${current ? ' current' : ''}`
+          return React.createElement('span', {
+            key: milestone.id,
+            className,
+            style: { left: `${position}%` },
+            title: `${milestone.title}${complete ? ' · done' : current ? ' · current' : ''}`,
+            'aria-hidden': 'true',
+          }, React.createElement('svg', { viewBox: '0 0 16 20', 'aria-hidden': 'true' },
+            React.createElement('path', { d: 'M8 1.7c-3.1 0-5.2 2.1-5.2 5.2v9.4h10.4V6.9c0-3.1-2.1-5.2-5.2-5.2Z' }),
+            React.createElement('path', { d: 'M8 5.4v6.1M5.8 9.2h4.4M4.2 17.9h7.6' })))
+        })
+
+        const bar = React.createElement('div', {
+          className: `ic-progress${fast ? ' ic-progress-fast' : ''}`,
+          style: { bottom: `${bottom}px` },
+          role: 'status',
+          'aria-label': `${t('progress.label')} ${done}/${total}`,
+        },
+        React.createElement('span', { className: 'ic-progress-label' }, t('progress.label')),
+        React.createElement('div', { className: 'ic-progress-track' },
+          React.createElement('span', {
+            className: 'ic-progress-fill',
+            style: { width: `${(visual * 100).toFixed(2)}%` },
+          }),
+          ...stones),
+        React.createElement('span', { className: 'ic-progress-count' }, `${done}/${total}`))
+
+        return createPortal(bar, document.body)
+      }
+    }
+
     return {
       inject: ['slots', 'locale', 'remote', 'remote.commands', 'remote.settings'],
       apply(ctx) {
@@ -1901,6 +2029,12 @@ window.__ModuleLoader__.load({
           id: 'dsh-info-check',
           order: -9,
         }, createToggle(ctx))), 'dsh-info-check: header toggle')
+
+        ctx.effect(() => ctx.slots.inject('conversation.session.header.actions', () => ctx.slots.register({
+          name: 'conversation.session.header.actions',
+          id: 'dsh-info-check-progress',
+          order: -10,
+        }, createProgress(ctx))), 'dsh-info-check: progress bar')
       },
     }
   },

@@ -12,6 +12,12 @@ Agents often start executing immediately. Misunderstandings then surface only at
 
 dsh-info-check adds four confirmation points to the workflow, so you can review the report at each key step before deciding whether to continue.
 
+## Task progress
+
+A progress bar appears just above the message box. Each milestone is a line-drawn stone tablet: progress moves slowly, stops near the next tablet while it waits for acceptance, reaches the tablet when you accept, and finishes at the end after delivery.
+
+Progress is saved per conversation and survives switching, refreshing, or restoring the session.
+
 ## Screenshots
 
 | Intent check | Plan confirmation |

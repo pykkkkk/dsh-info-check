@@ -28,6 +28,7 @@ import {
 import { formatSelfCheck, runSelfCheck } from './lib/selfcheck.js'
 import { RetrospectiveStore } from './lib/retrospective-store.js'
 import { conflictsWithPreviousAcceptance } from './lib/acceptance.js'
+import { applyProgressEvent, createProgressState, normalizeProgress } from './lib/progress.js'
 
 export const inject = ['tools', 'systemPrompt', 'userQuestions', 'workingDirectory', 'sessionProjections', 'agents']
 
@@ -842,39 +843,32 @@ export function apply(ctx, config = {}) {
     }
   }
 
-  // Per-Session switch. A third-party plugin cannot append a custom Session
-  // event, so the switch rides the logged `/dsh-info-check on|off` command and a
-  // projection folds it; fork and resume replay the same commands.
-  const enabledSchema = {
+  // Per-Session switch and milestone progress. A third-party plugin cannot
+  // append a custom Session event, so state is folded from logged commands and
+  // the plugin's own tool call/result events.
+  const progressSchema = {
     parse(value) {
-      if (value === null || typeof value !== 'object' || typeof value.enabled !== 'boolean') {
-        throw new Error('dsh-info-check projection state must be { enabled: boolean }')
+      if (value === null || typeof value !== 'object') {
+        throw new Error('dsh-info-check projection state must be an object')
       }
-      return value
+      return normalizeProgress(value, currentSettings().defaultEnabled)
     },
   }
   let projection
   Promise.resolve(ctx.sessionProjections.register({
     key: 'infoCheck',
-    stateVersion: 1,
-    stateSchema: enabledSchema,
-    init: () => ({ enabled: currentSettings().defaultEnabled }),
-    apply: (state, event) => {
-      if (event.type === 'command/run' && event.data.name === 'dsh-info-check') {
-        const value = typeof event.data.args === 'string' ? event.data.args.trim().toLowerCase() : ''
-        if (value === 'on') return { enabled: true }
-        if (value === 'off') return { enabled: false }
-      }
-      return state
-    },
+    stateVersion: 2,
+    stateSchema: progressSchema,
+    init: () => createProgressState(currentSettings().defaultEnabled),
+    apply: (state, event) => applyProgressEvent(state, event, currentSettings().defaultEnabled),
     wire: {
-      viewSchema: enabledSchema,
-      view: state => state,
+      viewSchema: progressSchema,
+      view: state => normalizeProgress(state, currentSettings().defaultEnabled),
     },
   })).then((handle) => {
     projection = handle
   }, (error) => {
-    ctx.logger?.warn?.('[dsh-info-check] enabled projection registration failed: %o', error)
+    ctx.logger?.warn?.('[dsh-info-check] progress projection registration failed: %o', error)
   })
 
   const enabledFor = (session) => {
