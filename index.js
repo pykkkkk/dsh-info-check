@@ -16,6 +16,7 @@ import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { dirname, isAbsolute, join, resolve, sep } from 'node:path'
 import { appendFile, mkdir, readFile } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 import {
   ACCEPT_LABEL, ACCEPT_MILESTONE_ID, ADJUST_DELIVERY_LABEL, APPROVE_MILESTONE_LABEL, DELIVER_LABEL,
   DELIVERY_CONFIRM_ID, INTENT_BRIEF_ID, MILESTONE_CONFIRM_ID, PAUSE_LABEL, REWORK_LABEL,
@@ -24,10 +25,12 @@ import {
   infoCheckLedger, intentOutcome, milestoneLedger, milestoneOutcome, numberPoints,
   validateAcceptance, validateDelivery, validateInfoCheck, validateMilestone,
 } from './lib/pure.js'
+import { formatSelfCheck, runSelfCheck } from './lib/selfcheck.js'
 
 export const inject = ['tools', 'systemPrompt', 'userQuestions', 'workingDirectory', 'sessionProjections']
 
 const ledgerDirs = new Set()
+const packageRoot = dirname(fileURLToPath(import.meta.url))
 
 /* ------------------------------------------------------------------ */
 /* Config                                                              */
@@ -771,11 +774,18 @@ export function apply(ctx, config = {}) {
     commandCtx.commands.register({
       definitionId: 'dsh-info-check',
       name: 'dsh-info-check',
-      description: 'Turn dsh-info-check on or off, report status, or open a result file location',
-      input: { hint: '[on|off|status|open <absolute path>]' },
+      description: 'Turn dsh-info-check on or off, report status, self-check the installation, or open a result file location',
+      input: { hint: '[on|off|status|selfcheck|open <absolute path>]' },
       handler: ({ agent, rawInput }) => {
         const raw = rawInput.trim()
         const value = raw.toLowerCase()
+        if (value === 'selfcheck') {
+          const report = runSelfCheck({ root: packageRoot, checkSyntax: false })
+          return {
+            kind: report.ok ? 'success' : 'error',
+            text: formatSelfCheck(report),
+          }
+        }
         if (value.startsWith('open ')) {
           const requested = raw.slice(5).trim().replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1')
           if (!isAbsolute(requested)) {
@@ -805,7 +815,7 @@ export function apply(ctx, config = {}) {
             text: `dsh-info-check is ${enabledFor(agent.session) ? 'on' : 'off'} for this conversation.`,
           }
         }
-        return { kind: 'error', text: 'Use /dsh-info-check on, /dsh-info-check off, or /dsh-info-check status.' }
+        return { kind: 'error', text: 'Use /dsh-info-check on, off, selfcheck, or open <absolute path>.' }
       },
     })
   })

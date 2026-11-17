@@ -1,6 +1,6 @@
 # dsh-info-check
 
-[![版本](https://img.shields.io/badge/%E7%89%88%E6%9C%AC-0.2.1-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/pykkkkk/dsh-info-check/releases)
+[![版本](https://img.shields.io/badge/%E7%89%88%E6%9C%AC-0.2.2-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/pykkkkk/dsh-info-check/releases)
 [![DSH 版本](https://img.shields.io/badge/DSH%E7%89%88%E6%9C%AC-0.2.2--rc.3-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/deepseek-ai/deepseek-harness)
 [![许可证](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF%E8%AF%81-MIT-4D6BFE?style=flat-square&labelColor=1F1F1F)](LICENSE)
 
@@ -100,7 +100,32 @@
 /dsh-info-check status
 /dsh-info-check on
 /dsh-info-check off
+/dsh-info-check selfcheck
 ```
+
+## 自检
+
+包内附带离线自检脚本：
+
+```sh
+node scripts/self-check.mjs
+node scripts/self-check.mjs --json
+node scripts/self-check.mjs --dsh-version 0.2.2-rc.3
+```
+
+Windows 包装器会自动查找 Node：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/self-check.ps1
+```
+
+在 DSH 对话里：
+
+```text
+/dsh-info-check selfcheck
+```
+
+检查包名/版本、可发布标记、必需文件、bundle 与 client id、locale JSON、Node/DSH 引擎范围；脚本还会检查语法。全程离线，不输出 token、session ID 或安装路径。
 
 ## 设置
 

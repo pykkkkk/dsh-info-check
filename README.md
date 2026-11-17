@@ -1,6 +1,6 @@
 # dsh-info-check
 
-[![Version](https://img.shields.io/badge/version-0.2.1-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/pykkkkk/dsh-info-check/releases)
+[![Version](https://img.shields.io/badge/version-0.2.2-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/pykkkkk/dsh-info-check/releases)
 [![DSH](https://img.shields.io/badge/DSH-0.2.2--rc.3-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/deepseek-ai/deepseek-harness)
 [![License](https://img.shields.io/badge/license-MIT-4D6BFE?style=flat-square&labelColor=1F1F1F)](LICENSE)
 
@@ -100,7 +100,35 @@ Useful command:
 /dsh-info-check status
 /dsh-info-check on
 /dsh-info-check off
+/dsh-info-check selfcheck
 ```
+
+## Self-check
+
+The package ships an offline installation check:
+
+```sh
+node scripts/self-check.mjs
+node scripts/self-check.mjs --json
+node scripts/self-check.mjs --dsh-version 0.2.2-rc.3
+```
+
+On Windows, a wrapper that finds Node for you:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/self-check.ps1
+```
+
+Inside DSH:
+
+```text
+/dsh-info-check selfcheck
+```
+
+It checks the package name/version, publishable flag, required files, bundle and
+client ids, locale JSON, Node/DSH engine ranges, and (from the script) syntax. It
+does not use the network and does not print tokens, session IDs, or installation
+paths.
 
 ## Settings
 

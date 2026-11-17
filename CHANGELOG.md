@@ -4,6 +4,15 @@ All notable changes to this bundle are documented here. The project uses a
 simple `MAJOR.MINOR.PATCH` version; DSH compatibility is pinned by
 `engines.dsh`.
 
+## 0.2.2 — 2026-11-17
+
+- Offline installation self-check: `node scripts/self-check.mjs`,
+  `scripts/self-check.ps1`, and `/dsh-info-check selfcheck`.
+- Checks package version/metadata, required files, bundle and client ids,
+  locale JSON, Node/DSH engine ranges, and script-side syntax.
+- Self-check is included in the npm package and prints no tokens, session IDs,
+  or installation paths.
+
 ## 0.2.1 — 2026-11-16
 
 - Detail questions: single-select options toggle off on a second click; every
