@@ -1,4 +1,4 @@
-# dsh-info-check
+<h1><img src="icon.svg" alt="dsh-info-check icon" width="36" height="36" align="middle" /> dsh-info-check</h1>
 
 [![Version](https://img.shields.io/badge/version-0.2.1-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/pykkkkk/dsh-info-check/releases)
 [![DSH](https://img.shields.io/badge/DSH-0.2.2--rc.3-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/deepseek-ai/deepseek-harness)
