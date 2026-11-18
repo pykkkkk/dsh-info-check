@@ -294,6 +294,7 @@ window.__ModuleLoader__.load({
       'settings.fileRetrospective': '复盘分析',
       'settings.fileQuality': '质量标准',
       'settings.openLocation': '打开所在位置',
+      'settings.openFailed': '无法打开文件位置；文件可能尚未生成。',
       'settings.autoRetrospective': '自动复盘',
       'settings.autoRetrospectiveHint': '交付确认后自动生成复盘；关闭后改为交付时询问。',
       'settings.supervision': '监督方式',
@@ -418,6 +419,7 @@ window.__ModuleLoader__.load({
       'settings.fileRetrospective': 'Retrospective',
       'settings.fileQuality': 'Quality standard',
       'settings.openLocation': 'Open file location',
+      'settings.openFailed': 'Could not open the file location; the file may not exist yet.',
       'settings.autoRetrospective': 'Auto retrospective',
       'settings.autoRetrospectiveHint': 'Generate a retrospective after delivery; when off, ask at delivery time.',
       'settings.supervision': 'Supervision',
@@ -1506,6 +1508,7 @@ window.__ModuleLoader__.load({
         const [loading, setLoading] = React.useState(true)
         const [saving, setSaving] = React.useState(false)
         const [error, setError] = React.useState('')
+        const [openError, setOpenError] = React.useState('')
         const [saved, setSaved] = React.useState(false)
         const [ns, setNs] = React.useState('')
         const [revision, setRevision] = React.useState(undefined)
@@ -1631,8 +1634,32 @@ window.__ModuleLoader__.load({
           ['quality', t('settings.fileQuality'), `${assetBase}${separator}quality-standard.md`],
         ]
         const openAsset = (kind) => {
-          if (props.sessionId === undefined) return
-          ctx.remote.commands.execute(props.sessionId, `/dsh-info-check open ${kind}`, []).catch(() => {})
+          if (props.sessionId === undefined) {
+            setOpenError(t('settings.openFailed'))
+            return
+          }
+          setOpenError('')
+          let request
+          try {
+            const controller = new AbortController()
+            request = ctx.remote.commands.execute(
+              props.sessionId,
+              `/dsh-info-check open ${kind}`,
+              [],
+              controller.signal,
+            )
+          } catch {
+            setOpenError(t('settings.openFailed'))
+            return
+          }
+          Promise.resolve(request).then((response) => {
+            const result = response?.result ?? response
+            if (result !== null && typeof result === 'object' && result.kind === 'error') {
+              setOpenError(result.text ?? t('settings.openFailed'))
+            }
+          }).catch(() => {
+            setOpenError(t('settings.openFailed'))
+          })
         }
         const body = loading
           ? React.createElement('div', { className: 'ic-settings-loading' }, t('settings.loading'))
@@ -1807,7 +1834,8 @@ window.__ModuleLoader__.load({
                       onClick: () => openAsset(kind),
                     },
                     React.createElement('span', { className: 'ic-file-kind' }, label),
-                    React.createElement('span', { className: 'ic-file-path' }, path)))))))
+                    React.createElement('span', { className: 'ic-file-path' }, path))))),
+                openError === '' ? null : React.createElement('div', { className: 'ic-settings-error' }, openError)))
 
         const footer = ns === ''
           ? [

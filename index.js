@@ -1047,7 +1047,7 @@ export function apply(ctx, config = {}) {
             if (!existsSync(target)) {
               return { kind: 'error', text: `文件尚未生成：${target}` }
             }
-            spawn('explorer.exe', ['/select,', target], { detached: true, stdio: 'ignore' }).unref()
+            spawn('explorer.exe', [`/select,${target}`], { detached: true, stdio: 'ignore' }).unref()
             return { kind: 'success', text: `Opened the file location: ${target}` }
           } catch (error) {
             return { kind: 'error', text: `Could not open the file location: ${error.message}` }
