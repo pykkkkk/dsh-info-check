@@ -1113,7 +1113,11 @@ export function apply(ctx, config = {}) {
           }
         }
         if (value === 'reset') {
-          if (agent !== undefined) ledger.clearPlan(agent.session)
+          if (agent !== undefined) {
+            const time = new Date().toLocaleString('zh-CN', { hour12: false })
+            await ledger.append(agent.session, `### 任务重置 · ${time}\n\n- 用户清除进度条，当前任务结束。\n`)
+            ledger.clearPlan(agent.session)
+          }
           return { kind: 'success', text: '已清除本次任务的进度条和里程碑计划。' }
         }
         if (value === 'on' || value === 'off') {
