@@ -90,6 +90,7 @@ export const Config = z === undefined
       ledgerEnabled: z.boolean().default(true).volatile(),
       ledgerPath: z.string().default('.dsh-info-check/ledger.md').volatile(),
       autoRetrospective: z.boolean().default(true).volatile(),
+      supervisionMode: z.string().default('strict').volatile(),
     })
 
 const EXPECTATION_LABELS = {
@@ -547,7 +548,7 @@ function createMilestoneTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
   }
 }
 
-function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
+function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger, getSupervisionMode }) {
   return {
     name: 'accept_milestone',
     description: '在一个里程碑完成后，向用户验收：提交完成内容、验证证据、未完成或风险；用户验收通过（或倒计时结束）后再进入下一个里程碑。'
@@ -600,17 +601,20 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
       } catch {
         turn = undefined
       }
-      if (conflictsWithPreviousAcceptance(ledger.lastAcceptance(agent.session), turn, acceptance.milestone)) {
-        throw new Error('dsh-info-check: 同一轮只能验收一个里程碑。请先继续当前工作，等下一轮再验收下一个里程碑；不要连续提交多个验收。')
-      }
-      if (!Array.isArray(acceptance.files) || acceptance.files.length === 0) {
-        throw new Error('dsh-info-check: 每个里程碑验收至少要提交一个标志性文件或脚本（files），不能空验收。')
-      }
-      const boundary = ledger.lastAcceptanceAt(agent.session) ?? ledger.taskStartedAt(agent.session) ?? 0
-      const cwd = ctx.workingDirectory.get(agent.session)
-      const deliverables = acceptance.files.map(file => isAbsolute(file) ? file : resolve(cwd, file))
-      if (!hasDeliverableNewer(deliverables, boundary, statSync)) {
-        throw new Error('dsh-info-check: 验收文件在上一次里程碑验收后没有新的修改。请先完成当前里程碑的文件/脚本，再提交验收。')
+      if (getSupervisionMode?.() !== 'advisory') {
+        const previous = ledger.lastAcceptance(agent.session)
+        if (conflictsWithPreviousAcceptance(previous, turn, acceptance.milestone)) {
+          throw new Error('dsh-info-check: 同一轮只能验收一个里程碑。请先继续当前工作，等下一轮再验收下一个里程碑；不要连续提交多个验收。')
+        }
+        if (!Array.isArray(acceptance.files) || acceptance.files.length === 0) {
+          throw new Error('dsh-info-check: 每个里程碑验收至少要提交一个标志性文件或脚本（files），不能空验收。')
+        }
+        const boundary = ledger.lastAcceptanceAt(agent.session) ?? ledger.taskStartedAt(agent.session) ?? 0
+        const cwd = ctx.workingDirectory.get(agent.session)
+        const deliverables = acceptance.files.map(file => isAbsolute(file) ? file : resolve(cwd, file))
+        if (!hasDeliverableNewer(deliverables, boundary, statSync)) {
+          throw new Error('dsh-info-check: 验收文件在上一次里程碑验收后没有新的修改。请先完成当前里程碑的文件/脚本，再提交验收。')
+        }
       }
       const question = {
         id: ACCEPT_MILESTONE_ID,
@@ -819,9 +823,10 @@ export function apply(ctx, config = {}) {
       ? rawLedgerPath.trim()
       : '.dsh-info-check/ledger.md'
     const autoRetrospective = readConfig(config.autoRetrospective, true) !== false
+    const supervisionMode = readConfig(config.supervisionMode, 'strict') === 'advisory' ? 'advisory' : 'strict'
     return {
       milestoneCount, expectation, timeoutSeconds, maxQuestions, defaultEnabled,
-      ledgerEnabled, ledgerPath, autoRetrospective,
+      ledgerEnabled, ledgerPath, autoRetrospective, supervisionMode,
     }
   }
 
@@ -1014,7 +1019,10 @@ export function apply(ctx, config = {}) {
   const definitions = [
     createInfoCheckTool({ ctx, enabledFor, getMaxQuestions: () => currentSettings().maxQuestions, ledger }),
     createMilestoneTool({ ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger }),
-    createAcceptTool({ ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger }),
+    createAcceptTool({
+      ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger,
+      getSupervisionMode: () => currentSettings().supervisionMode,
+    }),
     createDeliveryTool({
       ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger,
       onDeliveryConfirmed: reviewAfterDelivery,

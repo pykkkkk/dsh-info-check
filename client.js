@@ -286,6 +286,10 @@ window.__ModuleLoader__.load({
       'settings.ledgerPathHint': '相对于会话工作目录；越界路径会被跳过。',
       'settings.autoRetrospective': '自动复盘',
       'settings.autoRetrospectiveHint': '交付确认后自动生成复盘；关闭后改为交付时询问。',
+      'settings.supervision': '监督方式',
+      'settings.supervisionHint': '严格门禁会阻止同轮连续验收和没有新文件变更的验收；仅提醒只保留策略提示。',
+      'settings.supervisionStrict': '严格门禁',
+      'settings.supervisionAdvisory': '仅提醒',
       'settings.current': '当前对话',
       'settings.currentOn': '已开启',
       'settings.currentOff': '已关闭',
@@ -401,6 +405,10 @@ window.__ModuleLoader__.load({
       'settings.ledgerPathHint': 'Relative to the session directory; escaping paths are skipped.',
       'settings.autoRetrospective': 'Auto retrospective',
       'settings.autoRetrospectiveHint': 'Generate a retrospective after delivery; when off, ask at delivery time.',
+      'settings.supervision': 'Supervision',
+      'settings.supervisionHint': 'Strict blocks same-turn acceptance and acceptance without new file changes; advisory keeps the policy reminder only.',
+      'settings.supervisionStrict': 'Strict',
+      'settings.supervisionAdvisory': 'Advisory',
       'settings.current': 'This conversation',
       'settings.currentOn': 'On',
       'settings.currentOff': 'Off',
@@ -1416,6 +1424,7 @@ window.__ModuleLoader__.load({
         defaultEnabled: source.defaultEnabled !== false,
         ledgerEnabled: source.ledgerEnabled !== false,
         autoRetrospective: source.autoRetrospective !== false,
+        supervisionMode: source.supervisionMode === 'advisory' ? 'advisory' : 'strict',
         ledgerPath: typeof source.ledgerPath === 'string' && source.ledgerPath.trim() !== ''
           ? source.ledgerPath.trim()
           : '.dsh-info-check/ledger.md',
@@ -1476,6 +1485,7 @@ window.__ModuleLoader__.load({
           defaultEnabled: true,
           ledgerEnabled: true,
           autoRetrospective: true,
+          supervisionMode: 'strict',
           ledgerPath: '.dsh-info-check/ledger.md',
         })
         const [loading, setLoading] = React.useState(true)
@@ -1720,6 +1730,19 @@ window.__ModuleLoader__.load({
                   }, React.createElement('i'))),
                 React.createElement('div', { className: 'ic-set-row' },
                   React.createElement('div', { className: 'ic-set-copy' },
+                    React.createElement('span', { className: 'ic-set-label' }, t('settings.supervision')),
+                    React.createElement('span', { className: 'ic-set-hint' }, t('settings.supervisionHint'))),
+                  React.createElement('div', { className: 'ic-seg' },
+                    [['strict', 'settings.supervisionStrict'], ['advisory', 'settings.supervisionAdvisory']].map(([value, key]) =>
+                      React.createElement('button', {
+                        key: value,
+                        type: 'button',
+                        className: values.supervisionMode === value ? 'on' : '',
+                        disabled: saving,
+                        onClick: () => update('supervisionMode', value),
+                      }, t(key))))),
+                React.createElement('div', { className: 'ic-set-row' },
+                  React.createElement('div', { className: 'ic-set-copy' },
                     React.createElement('span', { className: 'ic-set-label' }, t('settings.autoRetrospective')),
                     React.createElement('span', { className: 'ic-set-hint' }, t('settings.autoRetrospectiveHint'))),
                   React.createElement('button', {
@@ -1889,7 +1912,7 @@ window.__ModuleLoader__.load({
         const active = typeof view?.active === 'string' ? view.active : null
         const enabled = view === undefined || view.enabled !== false
         const show = enabled && milestones.length > 0
-          && ['working', 'accepting', 'paused', 'delivering', 'delivered'].includes(phase)
+          && ['working', 'accepting', 'paused', 'delivering'].includes(phase)
         const [visual, setVisual] = React.useState(0)
         const [placement, setPlacement] = React.useState({
           left: 16,
@@ -1952,7 +1975,7 @@ window.__ModuleLoader__.load({
             const next = Math.min(1, (done + 1) / total)
             const stageStart = Number(view?.stageStartedAt) || Date.now()
             const elapsed = Math.max(0, Date.now() - stageStart)
-            const slow = base + Math.min(0.9, elapsed / 180000) * (next - base)
+            const slow = base + Math.min(0.9, elapsed / 60000) * (next - base)
             const cap = Math.max(base, next - 0.05)
             let target
             if (phase === 'delivered' || phase === 'delivering') target = 1
@@ -1980,7 +2003,7 @@ window.__ModuleLoader__.load({
             key: milestone.id,
             className,
             style: { left: `${position}%` },
-            title: `${milestone.title}${complete ? ' · done' : current ? ' · current' : ''}`,
+            title: milestone.title,
             'aria-hidden': 'true',
           }, React.createElement('svg', { viewBox: '0 0 16 20', 'aria-hidden': 'true' },
             React.createElement('path', { d: 'M8 1.7c-3.1 0-5.2 2.1-5.2 5.2v9.4h10.4V6.9c0-3.1-2.1-5.2-5.2-5.2Z' }),

@@ -14,9 +14,9 @@ dsh-info-check adds four confirmation points to the workflow, so you can review 
 
 ## Task progress
 
-A progress bar appears just above the message box. Each milestone is a line-drawn stone tablet: progress moves slowly, stops near the next tablet while it waits for acceptance, reaches the tablet when you accept, and finishes at the end after delivery.
+A progress bar appears just above the message box. Each milestone is a line-drawn stone tablet: progress moves forward faster, stops near the next tablet while it waits for acceptance, reaches the tablet when you accept, and finishes at the end after delivery, then hides. It reappears when the next task confirms its plan.
 
-Progress is saved per conversation and survives switching, refreshing, or restoring the session.
+Hover a tablet to see the milestone title. Progress is saved per conversation and survives switching, refreshing, or restoring the session.
 
 ## Screenshots
 
@@ -98,7 +98,8 @@ Click the underlined words to open settings, where you can change:
 - how many detail questions the agent asks;
 - whether new conversations start with the plugin on;
 - whether to keep a ledger, and where to put it;
-- whether retrospectives run automatically.
+- whether retrospectives run automatically;
+- supervision mode: strict checks or advisory.
 
 Changes take effect immediately; no restart is needed.
 

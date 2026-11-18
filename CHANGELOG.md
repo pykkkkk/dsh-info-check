@@ -7,8 +7,9 @@ simple `MAJOR.MINOR.PATCH` version; DSH compatibility is pinned by
 ## 0.2.2 — 2026-11-17
 
 - Task progress bar above the message box: one line-drawn stone tablet per
-  milestone, with per-session progress, slow forward motion, a hold before
-  acceptance, a fast jump when accepting, and completion after delivery.
+  milestone, with per-session progress, faster forward motion, a hold before
+  acceptance, a fast jump when accepting, and hiding after delivery. Hovering a
+  tablet shows its title. Supervision mode can be strict or advisory.
 - Task retrospectives: after a confirmed delivery, write a review to a single
   `.dsh-info-check/retrospectives.md` file.
 - Optional automatic retrospective. When off, delivery asks whether to review
