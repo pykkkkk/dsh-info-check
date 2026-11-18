@@ -100,6 +100,7 @@ Click the underlined words to open settings, where you can change:
 - whether to keep a ledger, and where to put it;
 - whether retrospectives run automatically;
 - supervision mode: strict checks or advisory;
+- quality standard: enter your own requirements, saved into `.dsh-info-check/quality-standard.md`;
 - file locations: open the ledger, retrospective, or quality standard directly.
 
 Changes take effect immediately; no restart is needed.

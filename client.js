@@ -78,6 +78,7 @@ window.__ModuleLoader__.load({
 .ic-settings-switch:disabled{opacity:.5;cursor:default}
 .ic-set-path{width:210px;max-width:100%}
 .ic-set-files{display:flex;flex-direction:column;gap:6px;width:min(360px,100%)}
+.ic-quality-input{min-height:64px;max-height:180px;resize:vertical;line-height:1.6}
 .ic-set-files .ic-file-link{width:100%}
 .ic-file-kind{flex:none;font-size:10px;font-weight:700;color:var(--ic-text-3);white-space:nowrap}
 .ic-file-path{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ic-text-2);font-size:10.5px;text-align:left}
@@ -272,6 +273,9 @@ window.__ModuleLoader__.load({
       'settings.milestonesHint': '希望 agent 把任务拆成几个里程碑（1–5）。',
       'settings.expectation': '期望程度',
       'settings.expectationHint': '影响方案深度、验收标准和交付确认。',
+      'settings.qualityStandard': '质量标准',
+      'settings.qualityStandardHint': '填写你自己的质量要求，保存后写入 quality-standard.md 的手工补充区。',
+      'settings.qualityWriteFailed': '设置已保存，但质量标准文件写入失败。',
       'settings.perfect': '完美',
       'settings.perfectDesc': '可发布/可开源；边界、回归、文档都要覆盖。',
       'settings.good': '较好',
@@ -398,6 +402,9 @@ window.__ModuleLoader__.load({
       'settings.milestonesHint': 'How many milestones the agent should plan (1–5).',
       'settings.expectation': 'Expectation',
       'settings.expectationHint': 'Controls plan depth, acceptance, and delivery sign-off.',
+      'settings.qualityStandard': 'Quality standard',
+      'settings.qualityStandardHint': 'Your own quality requirements; saved into the manual section of quality-standard.md.',
+      'settings.qualityWriteFailed': 'Settings saved, but writing the quality standard file failed.',
       'settings.perfect': 'Excellent',
       'settings.perfectDesc': 'Release/open-source ready; boundaries, regression, and docs covered.',
       'settings.good': 'Good',
@@ -1446,6 +1453,7 @@ window.__ModuleLoader__.load({
         ledgerEnabled: source.ledgerEnabled !== false,
         autoRetrospective: source.autoRetrospective !== false,
         supervisionMode: source.supervisionMode === 'advisory' ? 'advisory' : 'strict',
+        qualityStandard: typeof source.qualityStandard === 'string' ? source.qualityStandard : '',
         ledgerPath: typeof source.ledgerPath === 'string' && source.ledgerPath.trim() !== ''
           ? source.ledgerPath.trim()
           : '.dsh-info-check/ledger.md',
@@ -1507,6 +1515,7 @@ window.__ModuleLoader__.load({
           ledgerEnabled: true,
           autoRetrospective: true,
           supervisionMode: 'strict',
+          qualityStandard: '',
           ledgerPath: '.dsh-info-check/ledger.md',
         })
         const [loading, setLoading] = React.useState(true)
@@ -1579,6 +1588,28 @@ window.__ModuleLoader__.load({
           setValues(normalizeSettings({}))
         }
 
+        const syncQuality = (text) => {
+          if (props.sessionId === undefined) return Promise.resolve()
+          else {
+            const bytes = new TextEncoder().encode(text)
+            let binary = ''
+            for (const byte of bytes) binary += String.fromCharCode(byte)
+            const encoded = btoa(binary)
+            const controller = new AbortController()
+            return Promise.resolve(ctx.remote.commands.execute(
+              props.sessionId,
+              `/dsh-info-check quality custom ${encoded}`,
+              [],
+              controller.signal,
+            )).then((response) => {
+              const result = response?.result ?? response
+              if (result !== null && typeof result === 'object' && result.kind === 'error') {
+                throw new Error(result.text ?? 'quality write failed')
+              }
+            })
+          }
+        }
+
         const save = () => {
           if (saving || ns === '') return
           const next = normalizeSettings(values)
@@ -1614,8 +1645,13 @@ window.__ModuleLoader__.load({
             if (result !== undefined && result !== null && typeof result.revision === 'number') {
               setRevision(result.revision)
             }
-            setSaving(false)
-            setSaved(true)
+            syncQuality(next.qualityStandard).then(() => {
+              setSaving(false)
+              setSaved(true)
+            }).catch(() => {
+              setSaving(false)
+              setError(t('settings.qualityWriteFailed'))
+            })
           }).catch(() => {
             setSaving(false)
             setError(t('settings.saveFailed'))
@@ -1720,6 +1756,19 @@ window.__ModuleLoader__.load({
                   },
                   React.createElement('b', null, label),
                   React.createElement('span', null, description))))),
+              React.createElement('div', { className: 'ic-set-section' },
+                React.createElement('div', { className: 'ic-set-head' }, t('settings.qualityStandard')),
+                React.createElement('div', { className: 'ic-set-row' },
+                  React.createElement('div', { className: 'ic-set-copy' },
+                    React.createElement('span', { className: 'ic-set-hint' }, t('settings.qualityStandardHint')))),
+                React.createElement('textarea', {
+                  className: 'ic-input ic-quality-input',
+                  value: values.qualityStandard,
+                  maxLength: 2000,
+                  disabled: saving,
+                  placeholder: t('settings.qualityStandardHint'),
+                  onChange: (event) => update('qualityStandard', event.target.value),
+                })),
               React.createElement('div', { className: 'ic-set-section' },
                 React.createElement('div', { className: 'ic-set-head' }, t('settings.timer')),
                 React.createElement('div', { className: 'ic-set-row' },

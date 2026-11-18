@@ -80,6 +80,8 @@ try {
   assert.equal(sixth.standardUpdated, true)
   assert.equal(await store.rebuildStandard({}), true)
   assert.match(await readFile(join(directory, '.dsh-info-check', 'quality-standard.md'), 'utf8'), /手工规则：先跑回归/)
+  await store.writeManual({}, '必须给出可复核的测试证据。')
+  assert.match(await readFile(join(directory, '.dsh-info-check', 'quality-standard.md'), 'utf8'), /必须给出可复核的测试证据/)
   const saved = JSON.parse(await readFile(join(directory, '.dsh-info-check', 'quality-state.json'), 'utf8'))
   assert.equal(saved.taskCount, 6)
 } finally {

@@ -15,6 +15,8 @@ simple `MAJOR.MINOR.PATCH` version; DSH compatibility is pinned by
 - Session progress projection is fault-isolated: malformed state or a reducer
   error no longer fails historical session loading. Added replay and
   const-reassignment regression tests.
+- Settings includes a free-form quality standard input; saving writes it into
+  the manual section of `.dsh-info-check/quality-standard.md`.
 - Settings includes file-location links for the ledger, the retrospective file,
   and the quality standard.
 - Task retrospectives: after a confirmed delivery, write a review to a single

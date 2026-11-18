@@ -91,6 +91,7 @@ export const Config = z === undefined
       ledgerPath: z.string().default('.dsh-info-check/ledger.md').volatile(),
       autoRetrospective: z.boolean().default(true).volatile(),
       supervisionMode: z.string().default('strict').volatile(),
+      qualityStandard: z.string().default('').volatile(),
     })
 
 const EXPECTATION_LABELS = {
@@ -1041,6 +1042,20 @@ export function apply(ctx, config = {}) {
           return {
             kind: report.ok ? 'success' : 'error',
             text: formatSelfCheck(report),
+          }
+        }
+        if (raw.toLowerCase().startsWith('quality custom ')) {
+          if (agent === undefined) return { kind: 'error', text: '写入质量标准需要一个活跃对话。' }
+          try {
+            const encoded = raw.slice('quality custom '.length).trim()
+            const text = Buffer.from(encoded, 'base64').toString('utf8')
+            const written = await retrospective.writeManual(agent.session, text)
+            return written
+              ? { kind: 'success', text: '质量标准已写入 quality-standard.md。' }
+              : { kind: 'error', text: '无法写入质量标准文件。' }
+          } catch (error) {
+            ctx.logger?.warn?.('[dsh-info-check] quality custom failed: %o', error)
+            return { kind: 'error', text: `质量标准写入失败：${error.message}` }
           }
         }
         if (value === 'quality rebuild') {
