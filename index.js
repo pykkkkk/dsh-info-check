@@ -1134,9 +1134,7 @@ export function apply(ctx, config = {}) {
   ]
   for (const definition of definitions) {
     ctx.effect(
-      () => ctx.tools.register(definition, {
-        when: ({ agent }) => enabledFor(agent.session),
-      }),
+      () => ctx.tools.register(definition),
       `dsh-info-check: tool ${definition.name}`,
     )
   }
