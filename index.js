@@ -27,7 +27,7 @@ import {
 } from './lib/pure.js'
 import { formatSelfCheck, runSelfCheck } from './lib/selfcheck.js'
 import { RetrospectiveStore } from './lib/retrospective-store.js'
-import { conflictsWithPreviousAcceptance, hasDeliverableNewer } from './lib/acceptance.js'
+import { hasDeliverableNewer } from './lib/acceptance.js'
 import { applyProgressEvent, createProgressState, normalizeProgress } from './lib/progress.js'
 
 export const inject = ['tools', 'systemPrompt', 'userQuestions', 'workingDirectory', 'sessionProjections', 'agents']
@@ -144,16 +144,15 @@ function defaultPolicy(settings) {
 
 用户偏好：希望拆成 ${milestoneCount} 个里程碑；期望程度为 **${EXPECTATION_LABELS[normalizeExpectation(expectation)]}**。按这个标准设计方案、验收和交付确认。
 
-1. 先调用 \`info_check\`：用一段话复述目标；列出 ${minQuestions}–${maxQuestions} 条真正影响结果的**细节**核对问题（每题给选项，推荐项放第一并标注“（推荐）”）；给出可检查的完成标准（quality_bar）、明确的范围外（out_of_scope）、${milestoneRule}（milestones）。每个里程碑必须对应可交付的标志性文件或脚本，并在标题/内容中写清楚；所有要点每点单独一行/一段，用 1. 2. 3. 编号，不要挤成一段。第一张卡是**可编辑的核对单**：用户会直接在你的版本上修改、补充，勾选确认后才进入细节选择；返回的 \`edited_brief\` 若与你的版本不同，以 \`edited_brief\` 为准。
+1. 先调用 \`info_check\`：用一段话复述目标；列出 ${minQuestions}–${maxQuestions} 条真正影响结果的**细节**核对问题（每题给选项，推荐项放第一并标注“（推荐）”）；给出可检查的完成标准（quality_bar）、明确的范围外（out_of_scope）、${milestoneRule}（milestones）。每个里程碑必须对应可交付的标志性文件或脚本，并在标题/内容中写清楚；里程碑必须按执行顺序排列，后一个里程碑的文件只能在前一个验收通过后开始修改。所有要点每点单独一行/一段，用 1. 2. 3. 编号，不要挤成一段。第一张卡是**可编辑的核对单**：用户会直接在你的版本上修改、补充，勾选确认后才进入细节选择；返回的 \`edited_brief\` 若与你的版本不同，以 \`edited_brief\` 为准。
 2. 用户点卡片右上角的 X 表示**跳过**，不是取消任务：工具会返回 confirmed=true / decision=skipped，按 agent 原始版本自动进入下一阶段；不要重新发起确认，也不要停下来等待。
 3. \`confirmed=true\` 后再开工；\`confirmed=false\`（工具明确拒绝或真实失败）时不要执行；需要时按用户的最新说法重新发起核对。
 4. 需求核对确认后，**只调用一次** \`confirm_milestone\`，确认整体执行方案/第一个里程碑（做什么、改哪些文件、怎么验证）；后续里程碑**不再调用** \`confirm_milestone\`，直接执行。方案每一点单独一段并用 1. 2. 3. 编号。卡片顶部会标注 \`dsh-info-check · 里程碑确认\`，方案可编辑；返回的 \`edited_plan\` 若与你的版本不同，以它为准。
 5. \`confirm_milestone\` 的结果：
    - \`approved\` / \`skipped\` / \`timeout\`：按方案执行（timeout 表示用户 ${timeoutSeconds} 秒未操作，已按约定跳过）。
    - 用户可以在倒计时处点“停止计时”，倒计时停止、浮窗不关闭；等用户修改完再按“按此方案执行”。不要在没有用户确认时继续。
-6. 每完成一个里程碑的文件/脚本后，立即调用 \`accept_milestone\` 验收**当前这一个**里程碑；验收通过（或超时）后才能开始下一个里程碑。验收必须提交至少一个本里程碑实际新增或修改的文件/脚本（files），且这些文件必须在上一里程碑验收之后有更新；没有新文件变更会被拒绝。禁止先把所有里程碑都做完、再一次性连续验收；每张验收卡只对应一个里程碑。
+6. 每完成一个里程碑的文件/脚本后，立即调用 \`accept_milestone\` 验收**当前这一个**里程碑；验收通过后才能开始下一个里程碑。验收必须提交至少一个本里程碑实际新增或修改的文件/脚本（files），且这些文件必须在上一里程碑验收之后有更新；没有新文件变更会被拒绝。验收通过后可以继续在同一轮做下一个里程碑，不需要中断对话；但下一个里程碑的文件必须在这次验收之后才开始修改。里程碑计划确认后，数量在任务结束前锁定，不能增加或减少。
 6a. 如果 \`accept_milestone\` 返回 \`decision=paused\`，立即停止当前任务：整理已完成内容、当前进度、未完成/风险和相关文件路径，然后结束当前任务（不再等待继续）；不要进入下一里程碑，也不要调用 \`confirm_delivery\`。
-6b. 验收通过后，如果还有下一个里程碑，结束当前轮并等待用户再次发消息；不要在同一轮继续下一个里程碑并调用验收。
 7. 任务明显简单且无歧义（单文件小改、用户已给出完整规格）时，说明假设后直接做，不必走流程。
 8. 不要手动修改 \`.dsh-info-check/ledger.md\`；插件会自动记录每次选择。需要补充执行说明时，写在最终答复里。
 9. 子代理不要调用 \`info_check\` / \`confirm_milestone\` / \`accept_milestone\` / \`confirm_delivery\`；把需要用户决定的问题写进最终结果。
@@ -177,6 +176,7 @@ class Ledger {
     this.events = new Map()
     this.acceptance = new Map()
     this.taskStarts = new Map()
+    this.plans = new Map()
   }
 
   append(session, body, event) {
@@ -261,6 +261,16 @@ class Ledger {
   taskStartedAt(session) {
     if (session === undefined) return undefined
     return this.taskStarts.get(String(session.id))
+  }
+
+  setPlan(session, milestoneIds) {
+    if (session === undefined || !Array.isArray(milestoneIds)) return
+    this.plans.set(String(session.id), milestoneIds.map(String))
+  }
+
+  planOf(session) {
+    if (session === undefined) return undefined
+    return this.plans.get(String(session.id))
   }
 }
 
@@ -402,6 +412,7 @@ function createInfoCheckTool({ ctx, enabledFor, getMaxQuestions, ledger }) {
           editedBrief: detail,
           answers: [],
         }))
+        ledger.setPlan(agent.session, brief.milestones.map(item => item.id))
         return { confirmed: true, reason: 'skipped', edited_brief: detail, answers: [] }
       }
       if (!outcome.confirmed) {
@@ -417,6 +428,7 @@ function createInfoCheckTool({ ctx, enabledFor, getMaxQuestions, ledger }) {
         editedBrief: outcome.editedBrief,
         answers: outcome.answers,
       }))
+      ledger.setPlan(agent.session, brief.milestones.map(item => item.id))
       return {
         confirmed: true,
         reason: 'confirmed',
@@ -553,7 +565,7 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger, getSuper
     name: 'accept_milestone',
     description: '在一个里程碑完成后，向用户验收：提交完成内容、验证证据、未完成或风险；用户验收通过（或倒计时结束）后再进入下一个里程碑。'
       + '每次只验收当前一个里程碑；禁止把所有里程碑都做完后再连续提交验收。'
-      + '验收通过后如果还有下一个里程碑，结束当前轮等待用户继续，不要在同一轮继续并验收下一个。'
+      + '验收通过后可以继续同一轮做下一个里程碑，不需要中断对话；但下一个里程碑的文件必须在这之前验收之后才修改。'
       + 'files 至少一个，必须是本里程碑实际新增或修改的文件/脚本，并且在上一里程碑验收之后有更新；否则工具会拒绝。'
       + '用户可以在倒计时处停止计时；验收报告是只读的，用户点“需要返工”时会在“返修说明”浮窗里填写理由，reason 通过 feedback 返回，按它修改后再次验收。'
       + '用户点“暂停任务”时返回 decision=paused；此时整理进度并结束当前任务，不进入下一里程碑。'
@@ -595,6 +607,10 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger, getSuper
       if (agent === undefined) throw new Error('accept_milestone requires a live agent')
       if (!enabledFor(agent.session)) throw new Error('dsh-info-check is disabled for this conversation')
       const acceptance = validateAcceptance(args)
+      const plan = ledger.planOf(agent.session)
+      if (Array.isArray(plan) && !plan.includes(acceptance.milestone)) {
+        throw new Error(`dsh-info-check: 里程碑「${acceptance.milestone}」不在已确认的计划中；任务结束前里程碑数量不能增减。`)
+      }
       let turn
       try {
         turn = ctx.agents.turnBoundaryOf(agent.session).lastTurn
@@ -602,10 +618,6 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger, getSuper
         turn = undefined
       }
       if (getSupervisionMode?.() !== 'advisory') {
-        const previous = ledger.lastAcceptance(agent.session)
-        if (conflictsWithPreviousAcceptance(previous, turn, acceptance.milestone)) {
-          throw new Error('dsh-info-check: 同一轮只能验收一个里程碑。请先继续当前工作，等下一轮再验收下一个里程碑；不要连续提交多个验收。')
-        }
         if (!Array.isArray(acceptance.files) || acceptance.files.length === 0) {
           throw new Error('dsh-info-check: 每个里程碑验收至少要提交一个标志性文件或脚本（files），不能空验收。')
         }

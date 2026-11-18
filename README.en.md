@@ -16,7 +16,7 @@ dsh-info-check adds four confirmation points to the workflow, so you can review 
 
 A progress bar appears just above the message box. Each milestone is a line-drawn stone tablet: progress moves forward faster, stops near the next tablet while it waits for acceptance, reaches the tablet when you accept, and finishes at the end after delivery, then hides. It reappears when the next task confirms its plan.
 
-Hover a tablet to see the milestone title. Progress is saved per conversation and survives switching, refreshing, or restoring the session.
+Hover a tablet to see the milestone title. Progress is saved per conversation and survives switching, refreshing, or restoring the session. The milestone list is locked after plan confirmation and cannot grow or shrink before the task ends.
 
 ## Screenshots
 

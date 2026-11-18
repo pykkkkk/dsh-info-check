@@ -27,6 +27,27 @@ state = applyProgressEvent(state, {
   type: 'tool/call', time: 110, data: { name: 'confirm_milestone', callId: 'call-plan', arguments: '{}' },
 })
 assert.equal(state.phase, 'working')
+assert.equal(state.locked, true)
+
+state = applyProgressEvent(state, {
+  type: 'tool/call',
+  time: 115,
+  data: {
+    name: 'info_check',
+    callId: 'call-info-2',
+    arguments: JSON.stringify({ milestones: [{ id: 'm3', title: 'Third' }] }),
+  },
+})
+assert.equal(state.milestones.length, 2)
+assert.equal(state.locked, true)
+assert.deepEqual(state.accepted, [])
+state = applyProgressEvent(state, {
+  type: 'tool/call',
+  time: 116,
+  data: { name: 'accept_milestone', callId: 'call-unknown', arguments: JSON.stringify({ milestone: 'm3' }) },
+})
+assert.equal(state.milestones.length, 2)
+assert.equal(state.phase, 'working')
 
 state = applyProgressEvent(state, {
   type: 'tool/call',
