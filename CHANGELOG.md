@@ -10,7 +10,8 @@ simple `MAJOR.MINOR.PATCH` version; DSH compatibility is pinned by
   milestone, with per-session progress, faster forward motion, a hold before
   acceptance, a fast jump when accepting, and hiding after delivery. Hovering a
   tablet shows its title. The milestone list locks after plan confirmation, and
-  supervision mode can be strict or advisory.
+  supervision mode can be strict or advisory. A task's bar can be dismissed with
+  its × button or `/dsh-info-check reset`.
 - Session progress projection is fault-isolated: malformed state or a reducer
   error no longer fails historical session loading. Added replay and
   const-reassignment regression tests.

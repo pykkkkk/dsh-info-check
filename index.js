@@ -336,6 +336,15 @@ class Ledger {
     if (session === undefined) return undefined
     return this.plans.get(String(session.id))
   }
+
+  clearPlan(session) {
+    if (session === undefined) return
+    const sid = String(session.id)
+    this.plans.delete(sid)
+    this.taskStarts.delete(sid)
+    this.acceptance.delete(sid)
+    this.events.delete(sid)
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -1023,7 +1032,7 @@ export function apply(ctx, config = {}) {
       definitionId: 'dsh-info-check',
       name: 'dsh-info-check',
       description: 'Turn dsh-info-check on or off, report status, self-check, run a retrospective, show the quality standard, or open a result file location',
-      input: { hint: '[on|off|status|selfcheck|retrospective|quality [rebuild]|open <absolute path>]' },
+      input: { hint: '[on|off|reset|status|selfcheck|retrospective|quality [rebuild]|open <absolute path>]' },
       handler: async ({ agent, rawInput }) => {
         const raw = rawInput.trim()
         const value = raw.toLowerCase()
@@ -1102,6 +1111,10 @@ export function apply(ctx, config = {}) {
           } catch (error) {
             return { kind: 'error', text: `Could not open the file location: ${error.message}` }
           }
+        }
+        if (value === 'reset') {
+          if (agent !== undefined) ledger.clearPlan(agent.session)
+          return { kind: 'success', text: '已清除本次任务的进度条和里程碑计划。' }
         }
         if (value === 'on' || value === 'off') {
           return {

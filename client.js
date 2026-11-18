@@ -179,6 +179,8 @@ window.__ModuleLoader__.load({
 .ic-progress{--ic-primary:#4D6BFE;--ic-primary-ink:#3B55D4;--ic-ink:#1F1F1F;--ic-text-3:#94A3B8;--ic-line:#E5E7EB;--ic-surface:#FFFFFF;position:fixed;z-index:60;display:flex;align-items:center;gap:10px;box-sizing:border-box;padding:5px 12px 6px;border:1px solid rgba(215,220,227,.9);border-radius:999px;background:rgba(255,255,255,.88);box-shadow:0 4px 16px rgba(15,23,42,.07);backdrop-filter:blur(10px);color:var(--ic-text-3);font-family:"Urbanist","Segoe UI",system-ui,"PingFang SC","Microsoft YaHei",sans-serif;pointer-events:none;user-select:none}
 .ic-progress-label{flex:none;font-size:10.5px;font-weight:700;letter-spacing:.01em;color:var(--ic-text-3);white-space:nowrap}
 .ic-progress-count{flex:none;min-width:24px;text-align:right;font-size:10px;font-weight:700;color:var(--ic-text-3);font-variant-numeric:tabular-nums}
+.ic-progress-close{flex:none;width:18px;height:18px;padding:0;border:none;border-radius:50%;background:transparent;color:var(--ic-text-3);font:inherit;font-size:14px;line-height:1;cursor:pointer;pointer-events:auto;display:grid;place-items:center}
+.ic-progress-close:hover{background:var(--ic-line);color:var(--ic-ink)}
 .ic-progress-track{position:relative;flex:1;height:3px;border-radius:999px;background:var(--ic-line);margin:0 4px}
 .ic-progress-fill{position:absolute;left:0;top:0;height:100%;border-radius:999px;background:linear-gradient(90deg,#7B91FF,var(--ic-primary));transition:width 1.45s cubic-bezier(.22,.61,.36,1)}
 .ic-progress-fast .ic-progress-fill{transition-duration:.32s}
@@ -199,6 +201,7 @@ window.__ModuleLoader__.load({
       'title': '需求核对',
       'progress.label': '任务进度',
       'progress.milestone': '里程碑',
+      'progress.clear': '清除进度条',
       'state.on': '已开启',
       'state.off': '已关闭',
       'hint.on': '开工前核对意图，确认一次执行方案，逐个验收里程碑，交付前确认完成程度；每次选择都会写入 .dsh-info-check/ledger.md',
@@ -324,6 +327,7 @@ window.__ModuleLoader__.load({
       'title': 'Info checker',
       'progress.label': 'Task progress',
       'progress.milestone': 'Milestone',
+      'progress.clear': 'Clear progress bar',
       'state.on': 'On',
       'state.off': 'Off',
       'hint.on': 'Clarifies intent, confirms the plan once, accepts each milestone, and signs off delivery; choices go to .dsh-info-check/ledger.md',
@@ -1982,13 +1986,27 @@ window.__ModuleLoader__.load({
         const active = typeof view?.active === 'string' ? view.active : null
         const enabled = view === undefined || view.enabled !== false
         const show = enabled && milestones.length > 0
-          && ['working', 'accepting', 'paused', 'delivering'].includes(phase)
+          && ['working', 'accepting', 'delivering'].includes(phase)
         const [visual, setVisual] = React.useState(0)
         const [placement, setPlacement] = React.useState({
           left: 16,
           width: 640,
           bottom: 96,
         })
+        const dismiss = () => {
+          if (props.sessionId === undefined) return
+          try {
+            const controller = new AbortController()
+            ctx.remote.commands.execute(
+              props.sessionId,
+              '/dsh-info-check reset',
+              [],
+              controller.signal,
+            ).catch(() => {})
+          } catch {
+            // The command can be unavailable while the plugin is unloading.
+          }
+        }
 
         React.useEffect(() => {
           if (!show) return undefined
@@ -2097,7 +2115,14 @@ window.__ModuleLoader__.load({
             style: { width: `${(visual * 100).toFixed(2)}%` },
           }),
           ...stones),
-        React.createElement('span', { className: 'ic-progress-count' }, `${done}/${total}`))
+        React.createElement('span', { className: 'ic-progress-count' }, `${done}/${total}`),
+        React.createElement('button', {
+          type: 'button',
+          className: 'ic-progress-close',
+          title: t('progress.clear'),
+          'aria-label': t('progress.clear'),
+          onClick: dismiss,
+        }, '×'))
 
         return createPortal(bar, document.body)
       }

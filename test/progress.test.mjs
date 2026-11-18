@@ -132,6 +132,11 @@ state = applyProgressEvent(state, {
 assert.equal(state.enabled, false)
 state = normalizeProgress(state, true)
 assert.equal(state.enabled, false)
+state = applyProgressEvent(state, {
+  type: 'command/run', data: { name: 'dsh-info-check', args: 'reset' },
+})
+assert.equal(state.milestones.length, 0)
+assert.equal(state.phase, 'idle')
 
 const stats = {
   'old.js': { mtimeMs: 100 },
