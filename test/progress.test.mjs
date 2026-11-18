@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import {
-  applyProgressEvent, createProgressState, normalizeProgress,
+  applyProgressEvent, createProgressState, normalizeProgress, parseMilestonesFromBrief,
 } from '../lib/progress.js'
 import { hasDeliverableNewer } from '../lib/acceptance.js'
 
@@ -122,5 +122,9 @@ assert.equal(hasDeliverableNewer(['old.js'], 200, file => stats[file]), false)
 assert.equal(hasDeliverableNewer(['old.js', 'new.js'], 200, file => stats[file]), true)
 assert.equal(hasDeliverableNewer([], 200, file => stats[file]), false)
 assert.equal(hasDeliverableNewer(['missing.js'], 200, () => { throw new Error('ENOENT') }), false)
+
+const parsed = parseMilestonesFromBrief('【里程碑】\n\n1. m1 — 生成文件\n2. m2 修改文件\n3. m3 删除文件')
+assert.deepEqual(parsed.map(item => item.id), ['m1', 'm2', 'm3'])
+assert.equal(parsed[1].title, '修改文件')
 
 console.log('dsh-info-check progress tests: ok')

@@ -28,7 +28,7 @@ import {
 import { formatSelfCheck, runSelfCheck } from './lib/selfcheck.js'
 import { RetrospectiveStore } from './lib/retrospective-store.js'
 import { hasDeliverableNewer } from './lib/acceptance.js'
-import { applyProgressEvent, createProgressState, normalizeProgress } from './lib/progress.js'
+import { applyProgressEvent, createProgressState, normalizeProgress, parseMilestonesFromBrief } from './lib/progress.js'
 
 export const inject = ['tools', 'systemPrompt', 'userQuestions', 'workingDirectory', 'sessionProjections', 'agents']
 
@@ -494,7 +494,8 @@ function createInfoCheckTool({ ctx, enabledFor, getMaxQuestions, ledger }) {
         answers: outcome.answers,
       }))
       await ledger.startTask(agent.session)
-      ledger.setPlan(agent.session, brief.milestones.map(item => item.id))
+      const editedMilestones = parseMilestonesFromBrief(outcome.editedBrief)
+      ledger.setPlan(agent.session, (editedMilestones.length > 0 ? editedMilestones : brief.milestones).map(item => item.id))
       return {
         confirmed: true,
         reason: 'confirmed',
