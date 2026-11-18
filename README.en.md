@@ -116,7 +116,7 @@ Useful commands:
 
 ## Retrospectives and quality standard
 
-After each confirmed delivery, the plugin summarizes the task's acceptance results, rework and adjustment reasons, and your notes into one retrospective file: `.dsh-info-check/retrospectives.md`.
+After each confirmed delivery, the plugin summarizes the task's acceptance results, rework and adjustment reasons, and your notes into one retrospective file: `.dsh-info-check/retrospectives.md`, and returns a short retrospective summary with the delivery. Acceptance events are persisted so a plugin reload does not lose the current task's review.
 
 Retrospectives run automatically by default. If you turn off **Auto retrospective** in settings, the plugin asks whether to add the task to the retrospective when you confirm delivery.
 

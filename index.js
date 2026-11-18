@@ -216,6 +216,19 @@ class Ledger {
           }
         }
         await appendFile(full, `${header}\n${body}\n`, 'utf8')
+        if (event !== undefined && event !== null) {
+          const eventsFile = join(directory, 'task-events.jsonl')
+          try {
+            await appendFile(eventsFile, `${JSON.stringify({
+              session: sid,
+              type: 'event',
+              at: Date.now(),
+              event,
+            })}\n`, 'utf8')
+          } catch (error) {
+            this.ctx.logger?.warn?.('[dsh-info-check] event journal write failed: %o', error)
+          }
+        }
       }).catch((error) => {
         this.ctx.logger?.warn?.('[dsh-info-check] ledger write failed: %o', error)
       })
@@ -226,11 +239,62 @@ class Ledger {
   }
 
   consume(session) {
-    if (session === undefined) return []
+    if (session === undefined) return Promise.resolve([])
     const sid = String(session.id)
-    const events = this.events.get(sid) ?? []
+    const memory = this.events.get(sid) ?? []
     this.events.delete(sid)
-    return events
+    const eventFile = this.eventFile(session)
+    if (eventFile === undefined) return Promise.resolve(memory)
+    return readFile(eventFile, 'utf8').then((text) => {
+      const records = text.split(/\r?\n/).filter(Boolean).flatMap((line) => {
+        try {
+          const record = JSON.parse(line)
+          return record !== null && typeof record === 'object' && record.session === sid ? [record] : []
+        } catch {
+          return []
+        }
+      })
+      let start = -1
+      for (let index = 0; index < records.length; index += 1) {
+        if (records[index].type === 'task-start') start = index
+      }
+      const events = records.slice(start + 1)
+        .filter(record => record.type === 'event' && record.event !== null && typeof record.event === 'object')
+        .map(record => record.event)
+      return events.length > 0 ? events : memory
+    }).catch(() => memory)
+  }
+
+  eventFile(session) {
+    if (session === undefined) return undefined
+    try {
+      const options = this.getOptions()
+      const cwd = this.ctx.workingDirectory.get(session)
+      const root = resolve(cwd)
+      const full = isAbsolute(options.path) ? resolve(options.path) : resolve(root, options.path)
+      if (full !== root && !full.startsWith(root + sep)) return undefined
+      return join(dirname(full), 'task-events.jsonl')
+    } catch {
+      return undefined
+    }
+  }
+
+  async startTask(session) {
+    if (session === undefined) return
+    const sid = String(session.id)
+    this.events.delete(sid)
+    const eventFile = this.eventFile(session)
+    if (eventFile === undefined) return
+    try {
+      await mkdir(dirname(eventFile), { recursive: true })
+      await appendFile(eventFile, `${JSON.stringify({
+        session: sid,
+        type: 'task-start',
+        at: Date.now(),
+      })}\n`, 'utf8')
+    } catch (error) {
+      this.ctx.logger?.warn?.('[dsh-info-check] event journal start failed: %o', error)
+    }
   }
 
   peek(session) {
@@ -412,6 +476,7 @@ function createInfoCheckTool({ ctx, enabledFor, getMaxQuestions, ledger }) {
           editedBrief: detail,
           answers: [],
         }))
+        await ledger.startTask(agent.session)
         ledger.setPlan(agent.session, brief.milestones.map(item => item.id))
         return { confirmed: true, reason: 'skipped', edited_brief: detail, answers: [] }
       }
@@ -428,6 +493,7 @@ function createInfoCheckTool({ ctx, enabledFor, getMaxQuestions, ledger }) {
         editedBrief: outcome.editedBrief,
         answers: outcome.answers,
       }))
+      await ledger.startTask(agent.session)
       ledger.setPlan(agent.session, brief.milestones.map(item => item.id))
       return {
         confirmed: true,
@@ -733,6 +799,7 @@ function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger, onDeli
             type: 'string',
             enum: ['written', 'written+quality', 'skipped', 'empty', 'failed', 'disabled'],
           },
+          retrospective_summary: { type: 'string' },
         },
         required: ['decision', 'proceed'],
       },
@@ -791,7 +858,10 @@ function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger, onDeli
         proceed: outcome.proceed,
         ...(outcome.feedback === undefined ? {} : { feedback: outcome.feedback }),
         ...(outcome.notes === undefined ? {} : { notes: outcome.notes }),
-        ...(review === undefined ? {} : { retrospective: review }),
+        ...(review === undefined ? {} : {
+          retrospective: review.status,
+          ...(review.summary === '' ? {} : { retrospective_summary: review.summary }),
+        }),
       }
     },
     presentCall(args) {
@@ -853,7 +923,7 @@ export function apply(ctx, config = {}) {
 
   const reviewAfterDelivery = async (agent, exec) => {
     const settings = currentSettings()
-    if (!settings.ledgerEnabled) return 'disabled'
+    if (!settings.ledgerEnabled) return { status: 'disabled', summary: '' }
     let wantsReview = settings.autoRetrospective
     if (!wantsReview) {
       try {
@@ -877,15 +947,18 @@ export function apply(ctx, config = {}) {
         wantsReview = false
       }
     }
-    const events = ledger.consume(agent.session)
-    if (!wantsReview) return 'skipped'
-    if (events.length === 0) return 'empty'
+    const events = await ledger.consume(agent.session)
+    if (!wantsReview) return { status: 'skipped', summary: '' }
+    if (events.length === 0) return { status: 'empty', summary: '' }
     try {
       const result = await retrospective.record(agent.session, events)
-      return result.standardUpdated ? 'written+quality' : result.status
+      return {
+        status: result.standardUpdated ? 'written+quality' : result.status,
+        summary: result.summary,
+      }
     } catch (error) {
       ctx.logger?.warn?.('[dsh-info-check] retrospective failed: %o', error)
-      return 'failed'
+      return { status: 'failed', summary: '' }
     }
   }
 
@@ -964,14 +1037,14 @@ export function apply(ctx, config = {}) {
         }
         if (value === 'retrospective') {
           if (agent === undefined) return { kind: 'error', text: '复盘需要一个活跃对话。' }
-          const events = ledger.consume(agent.session)
+          const events = await ledger.consume(agent.session)
           if (events.length === 0) return { kind: 'success', text: '当前任务没有可复盘的记录。' }
           try {
             const result = await retrospective.record(agent.session, events)
             return {
               kind: 'success',
               text: result.status === 'written'
-                ? `已记录第 ${result.taskNumber} 次复盘${result.standardUpdated ? '，并更新了用户工作质量标准' : ''}。`
+                ? `已记录第 ${result.taskNumber} 次复盘${result.standardUpdated ? '，并更新了用户工作质量标准' : ''}。${result.summary === '' ? '' : `\n\n${result.summary}`}`
                 : '当前任务没有可复盘的记录。',
             }
           } catch (error) {

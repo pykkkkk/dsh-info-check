@@ -4,7 +4,8 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import {
   MAX_STANDARD_CHARS, analyzeTask, appendRetrospective, buildQualityStandard,
-  createQualityState, extractManualStandard, recordTask, shouldUpdateQualityStandard,
+  createQualityState, extractManualStandard, formatRetrospectiveSummary, recordTask,
+  shouldUpdateQualityStandard,
 } from '../lib/retrospective.js'
 import { RetrospectiveStore } from '../lib/retrospective-store.js'
 import { conflictsWithPreviousAcceptance } from '../lib/acceptance.js'
@@ -30,6 +31,8 @@ assert.equal(summary.adjustments, 1)
 assert.equal(summary.feedback[0], '验证证据不够')
 assert.equal(summary.adjustmentsFeedback[0], '限制写得不清楚')
 assert.ok(summary.suggestions.length >= 2)
+assert.match(formatRetrospectiveSummary(summary), /里程碑 3 个/)
+assert.match(formatRetrospectiveSummary(summary), /返工 1/)
 
 const first = appendRetrospective('', 1, '2026-11-17 10:00:00', summary)
 const second = appendRetrospective(first, 2, '2026-11-17 11:00:00', summary)
