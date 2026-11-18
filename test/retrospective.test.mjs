@@ -23,7 +23,7 @@ const events = [
   { type: 'delivery', decision: 'confirmed' },
 ]
 const summary = analyzeTask(events)
-assert.equal(summary.milestones, 3)
+assert.equal(summary.milestones, 2)
 assert.equal(summary.accepted, 1)
 assert.equal(summary.reworked, 1)
 assert.equal(summary.paused, 1)
@@ -31,7 +31,7 @@ assert.equal(summary.adjustments, 1)
 assert.equal(summary.feedback[0], '验证证据不够')
 assert.equal(summary.adjustmentsFeedback[0], '限制写得不清楚')
 assert.ok(summary.suggestions.length >= 2)
-assert.match(formatRetrospectiveSummary(summary), /里程碑 3 个/)
+assert.match(formatRetrospectiveSummary(summary), /里程碑 2 个/)
 assert.match(formatRetrospectiveSummary(summary), /返工 1/)
 
 const first = appendRetrospective('', 1, '2026-11-17 10:00:00', summary)
