@@ -24,6 +24,25 @@ assert.equal(state.milestones.length, 2)
 assert.equal(state.active, 'm1')
 
 state = applyProgressEvent(state, {
+  type: 'tool/result',
+  time: 105,
+  data: {
+    message: {
+      toolCallId: 'call-info',
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          confirmed: true,
+          edited_brief: '【里程碑】\n\n1. m1 — First\n2. m2 — Second\n3. m3 — Third',
+        }),
+      }],
+    },
+  },
+})
+assert.equal(state.milestones.length, 3)
+assert.equal(state.milestones[2].id, 'm3')
+
+state = applyProgressEvent(state, {
   type: 'tool/call', time: 110, data: { name: 'confirm_milestone', callId: 'call-plan', arguments: '{}' },
 })
 assert.equal(state.phase, 'working')
@@ -38,15 +57,15 @@ state = applyProgressEvent(state, {
     arguments: JSON.stringify({ milestones: [{ id: 'm3', title: 'Third' }] }),
   },
 })
-assert.equal(state.milestones.length, 2)
+assert.equal(state.milestones.length, 3)
 assert.equal(state.locked, true)
 assert.deepEqual(state.accepted, [])
 state = applyProgressEvent(state, {
   type: 'tool/call',
   time: 116,
-  data: { name: 'accept_milestone', callId: 'call-unknown', arguments: JSON.stringify({ milestone: 'm3' }) },
+  data: { name: 'accept_milestone', callId: 'call-unknown', arguments: JSON.stringify({ milestone: 'm4' }) },
 })
-assert.equal(state.milestones.length, 2)
+assert.equal(state.milestones.length, 3)
 assert.equal(state.phase, 'working')
 
 state = applyProgressEvent(state, {
@@ -105,7 +124,7 @@ state = applyProgressEvent(state, {
   },
 })
 assert.equal(state.phase, 'delivered')
-assert.deepEqual(state.accepted, ['m1', 'm2'])
+assert.deepEqual(state.accepted, ['m1', 'm2', 'm3'])
 
 state = applyProgressEvent(state, {
   type: 'command/run', data: { name: 'dsh-info-check', args: 'off' },
