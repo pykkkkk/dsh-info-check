@@ -1887,7 +1887,7 @@ window.__ModuleLoader__.load({
         useSnapshot(ctx.locale)
         const t = ctx.locale.bind(NS)
         const view = props.useProjection('infoCheck')
-        const enabled = view === undefined ? true : view.enabled !== false
+        const enabled = view === undefined ? false : view.enabled !== false
         const [busy, setBusy] = React.useState(false)
         const [error, setError] = React.useState('')
         const [settingsOpen, setSettingsOpen] = React.useState(false)
