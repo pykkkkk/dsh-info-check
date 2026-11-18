@@ -11,6 +11,9 @@ simple `MAJOR.MINOR.PATCH` version; DSH compatibility is pinned by
   acceptance, a fast jump when accepting, and hiding after delivery. Hovering a
   tablet shows its title. The milestone list locks after plan confirmation, and
   supervision mode can be strict or advisory.
+- Session progress projection is fault-isolated: malformed state or a reducer
+  error no longer fails historical session loading. Added replay and
+  const-reassignment regression tests.
 - Settings includes file-location links for the ledger, the retrospective file,
   and the quality standard.
 - Task retrospectives: after a confirmed delivery, write a review to a single

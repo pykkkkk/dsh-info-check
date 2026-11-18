@@ -28,7 +28,7 @@ import {
 import { formatSelfCheck, runSelfCheck } from './lib/selfcheck.js'
 import { RetrospectiveStore } from './lib/retrospective-store.js'
 import { hasDeliverableNewer } from './lib/acceptance.js'
-import { applyProgressEvent, createProgressState, normalizeProgress, parseMilestonesFromBrief } from './lib/progress.js'
+import { applyProgressSafely, createProgressState, normalizeProgress, parseMilestonesFromBrief } from './lib/progress.js'
 
 export const inject = ['tools', 'systemPrompt', 'userQuestions', 'workingDirectory', 'sessionProjections', 'agents']
 
@@ -968,10 +968,15 @@ export function apply(ctx, config = {}) {
   // the plugin's own tool call/result events.
   const progressSchema = {
     parse(value) {
-      if (value === null || typeof value !== 'object') {
-        throw new Error('dsh-info-check projection state must be an object')
+      try {
+        if (value === null || typeof value !== 'object') {
+          throw new Error('dsh-info-check projection state must be an object')
+        }
+        return normalizeProgress(value, currentSettings().defaultEnabled)
+      } catch (error) {
+        ctx.logger?.warn?.('[dsh-info-check] projection state reset: %o', error)
+        return createProgressState(currentSettings().defaultEnabled)
       }
-      return normalizeProgress(value, currentSettings().defaultEnabled)
     },
   }
   let projection
@@ -980,10 +985,22 @@ export function apply(ctx, config = {}) {
     stateVersion: 2,
     stateSchema: progressSchema,
     init: () => createProgressState(currentSettings().defaultEnabled),
-    apply: (state, event) => applyProgressEvent(state, event, currentSettings().defaultEnabled),
+    apply: (state, event) => applyProgressSafely(
+      state,
+      event,
+      currentSettings().defaultEnabled,
+      error => ctx.logger?.warn?.('[dsh-info-check] projection event skipped: %o', error),
+    ),
     wire: {
       viewSchema: progressSchema,
-      view: state => normalizeProgress(state, currentSettings().defaultEnabled),
+      view: state => {
+        try {
+          return normalizeProgress(state, currentSettings().defaultEnabled)
+        } catch (error) {
+          ctx.logger?.warn?.('[dsh-info-check] projection view reset: %o', error)
+          return createProgressState(currentSettings().defaultEnabled)
+        }
+      },
     },
   })).then((handle) => {
     projection = handle
