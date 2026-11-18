@@ -1035,6 +1035,24 @@ export function apply(ctx, config = {}) {
             ? { kind: 'success', text: '当前还没有用户工作质量标准；每完成 3 次任务后自动生成。' }
             : { kind: 'success', text: quality }
         }
+        if (value === 'open ledger' || value === 'open retrospectives' || value === 'open quality') {
+          if (agent === undefined) return { kind: 'error', text: '文件位置需要一个活跃对话。' }
+          try {
+            const settings = currentSettings()
+            const cwd = ctx.workingDirectory.get(agent.session)
+            const ledgerFull = isAbsolute(settings.ledgerPath) ? resolve(settings.ledgerPath) : resolve(cwd, settings.ledgerPath)
+            const target = value === 'open ledger'
+              ? ledgerFull
+              : join(dirname(ledgerFull), value === 'open retrospectives' ? 'retrospectives.md' : 'quality-standard.md')
+            if (!existsSync(target)) {
+              return { kind: 'error', text: `文件尚未生成：${target}` }
+            }
+            spawn('explorer.exe', ['/select,', target], { detached: true, stdio: 'ignore' }).unref()
+            return { kind: 'success', text: `Opened the file location: ${target}` }
+          } catch (error) {
+            return { kind: 'error', text: `Could not open the file location: ${error.message}` }
+          }
+        }
         if (value === 'retrospective') {
           if (agent === undefined) return { kind: 'error', text: '复盘需要一个活跃对话。' }
           const events = await ledger.consume(agent.session)

@@ -77,6 +77,11 @@ window.__ModuleLoader__.load({
 .ic-settings-switch.on i{left:14px}
 .ic-settings-switch:disabled{opacity:.5;cursor:default}
 .ic-set-path{width:210px;max-width:100%}
+.ic-set-files{display:flex;flex-direction:column;gap:6px;width:min(360px,100%)}
+.ic-set-files .ic-file-link{width:100%}
+.ic-file-kind{flex:none;font-size:10px;font-weight:700;color:var(--ic-text-3);white-space:nowrap}
+.ic-file-path{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ic-text-2);font-size:10.5px;text-align:left}
+.ic-file-link:disabled{opacity:.55;cursor:default}
 .ic-set-current{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--ic-line);border-radius:8px;background:var(--ic-read)}
 .ic-set-current b{font-size:12px;font-weight:700}
 .ic-set-current span{font-size:10.5px;color:var(--ic-text-3)}
@@ -284,6 +289,11 @@ window.__ModuleLoader__.load({
       'settings.ledgerHint': '把每次确认和决定写入会话目录。',
       'settings.ledgerPath': '台账路径',
       'settings.ledgerPathHint': '相对于会话工作目录；越界路径会被跳过。',
+      'settings.files': '文件位置',
+      'settings.fileLedger': '台账',
+      'settings.fileRetrospective': '复盘分析',
+      'settings.fileQuality': '质量标准',
+      'settings.openLocation': '打开所在位置',
       'settings.autoRetrospective': '自动复盘',
       'settings.autoRetrospectiveHint': '交付确认后自动生成复盘；关闭后改为交付时询问。',
       'settings.supervision': '监督方式',
@@ -403,6 +413,11 @@ window.__ModuleLoader__.load({
       'settings.ledgerHint': 'Write every confirmation and decision into the session directory.',
       'settings.ledgerPath': 'Ledger path',
       'settings.ledgerPathHint': 'Relative to the session directory; escaping paths are skipped.',
+      'settings.files': 'Files',
+      'settings.fileLedger': 'Ledger',
+      'settings.fileRetrospective': 'Retrospective',
+      'settings.fileQuality': 'Quality standard',
+      'settings.openLocation': 'Open file location',
       'settings.autoRetrospective': 'Auto retrospective',
       'settings.autoRetrospectiveHint': 'Generate a retrospective after delivery; when off, ask at delivery time.',
       'settings.supervision': 'Supervision',
@@ -1606,6 +1621,19 @@ window.__ModuleLoader__.load({
         }
 
         const current = enabled ? t('settings.currentOn') : t('settings.currentOff')
+        const ledgerPath = values.ledgerPath || '.dsh-info-check/ledger.md'
+        const slashIndex = Math.max(ledgerPath.lastIndexOf('/'), ledgerPath.lastIndexOf('\\'))
+        const assetBase = slashIndex >= 0 ? ledgerPath.slice(0, slashIndex) : '.'
+        const separator = assetBase.includes('\\') ? '\\' : '/'
+        const assets = [
+          ['ledger', t('settings.fileLedger'), ledgerPath],
+          ['retrospectives', t('settings.fileRetrospective'), `${assetBase}${separator}retrospectives.md`],
+          ['quality', t('settings.fileQuality'), `${assetBase}${separator}quality-standard.md`],
+        ]
+        const openAsset = (kind) => {
+          if (props.sessionId === undefined) return
+          ctx.remote.commands.execute(props.sessionId, `/dsh-info-check open ${kind}`, []).catch(() => {})
+        }
         const body = loading
           ? React.createElement('div', { className: 'ic-settings-loading' }, t('settings.loading'))
           : ns === ''
@@ -1765,7 +1793,21 @@ window.__ModuleLoader__.load({
                       value: values.ledgerPath,
                       disabled: saving || !values.ledgerEnabled,
                       onChange: (event) => update('ledgerPath', event.target.value),
-                    })))))
+                    }))),
+                React.createElement('div', { className: 'ic-set-row' },
+                  React.createElement('div', { className: 'ic-set-copy' },
+                    React.createElement('span', { className: 'ic-set-label' }, t('settings.files'))),
+                  React.createElement('div', { className: 'ic-set-files' },
+                    assets.map(([kind, label, path]) => React.createElement('button', {
+                      key: kind,
+                      type: 'button',
+                      className: 'ic-file-link',
+                      title: t('settings.openLocation'),
+                      disabled: saving,
+                      onClick: () => openAsset(kind),
+                    },
+                    React.createElement('span', { className: 'ic-file-kind' }, label),
+                    React.createElement('span', { className: 'ic-file-path' }, path)))))))
 
         const footer = ns === ''
           ? [

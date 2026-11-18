@@ -11,6 +11,8 @@ simple `MAJOR.MINOR.PATCH` version; DSH compatibility is pinned by
   acceptance, a fast jump when accepting, and hiding after delivery. Hovering a
   tablet shows its title. The milestone list locks after plan confirmation, and
   supervision mode can be strict or advisory.
+- Settings includes file-location links for the ledger, the retrospective file,
+  and the quality standard.
 - Task retrospectives: after a confirmed delivery, write a review to a single
   `.dsh-info-check/retrospectives.md` file and return a short summary with the
   delivery. Acceptance events are persisted so reloads do not produce partial

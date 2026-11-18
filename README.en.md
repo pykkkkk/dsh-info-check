@@ -99,7 +99,8 @@ Click the underlined words to open settings, where you can change:
 - whether new conversations start with the plugin on;
 - whether to keep a ledger, and where to put it;
 - whether retrospectives run automatically;
-- supervision mode: strict checks or advisory.
+- supervision mode: strict checks or advisory;
+- file locations: open the ledger, retrospective, or quality standard directly.
 
 Changes take effect immediately; no restart is needed.
 
