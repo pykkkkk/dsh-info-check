@@ -26,6 +26,10 @@ Hover a tablet to see the milestone title. Progress is saved per conversation an
 | **Milestone acceptance** | **Delivery confirmation** |
 | [![Milestone acceptance](docs/screenshots/03-milestone-acceptance.png)](docs/screenshots/03-milestone-acceptance.png) | [![Delivery confirmation](docs/screenshots/04-delivery-confirmation.png)](docs/screenshots/04-delivery-confirmation.png) |
 
+**Task progress**
+
+[![Task progress](docs/screenshots/08-progress-bar.png)](docs/screenshots/08-progress-bar.png)
+
 **Settings**
 
 [![Settings](docs/screenshots/07-settings.png)](docs/screenshots/07-settings.png)

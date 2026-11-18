@@ -26,6 +26,10 @@ dsh-info-check 的做法是在流程中插入四个确认点，让用户在关�
 | **里程碑验收** | **交付确认** |
 | [![里程碑验收](docs/screenshots/03-milestone-acceptance.png)](docs/screenshots/03-milestone-acceptance.png) | [![交付确认](docs/screenshots/04-delivery-confirmation.png)](docs/screenshots/04-delivery-confirmation.png) |
 
+**任务进度条**
+
+[![任务进度条](docs/screenshots/08-progress-bar.png)](docs/screenshots/08-progress-bar.png)
+
 **设置**
 
 [![设置](docs/screenshots/07-settings.png)](docs/screenshots/07-settings.png)
