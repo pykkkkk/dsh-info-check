@@ -48,6 +48,20 @@ Refresh the page after installing. A small underlined **需求核对** switch wi
 
 Built for DSH `0.2.x`; currently tested with `0.2.2-rc.3`.
 
+## Check after install
+
+From the plugin install directory, run:
+
+```sh
+node scripts/minimal-test.mjs
+```
+
+It checks package.json, entry files, the bundle, and the client loader id in a few seconds. For the fuller offline check:
+
+```sh
+node scripts/self-check.mjs
+```
+
 ## What it adds
 
 ### A moment to align on the goal

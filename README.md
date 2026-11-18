@@ -48,6 +48,20 @@ npm install dsh-info-check@0.2.2
 
 适用于 DSH `0.2.x`，当前验证版本为 `0.2.2-rc.3`。
 
+## 安装后检查
+
+进入插件安装目录后运行：
+
+```sh
+node scripts/minimal-test.mjs
+```
+
+几秒内检查 package.json、入口文件、bundle 和 client loader id。需要更完整的离线检查时运行：
+
+```sh
+node scripts/self-check.mjs
+```
+
 ## 它会在什么时候出现
 
 ### 先对齐需求

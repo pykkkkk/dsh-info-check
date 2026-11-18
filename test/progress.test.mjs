@@ -147,7 +147,7 @@ assert.equal(hasDeliverableNewer(['old.js', 'new.js'], 200, file => stats[file])
 assert.equal(hasDeliverableNewer([], 200, file => stats[file]), false)
 assert.equal(hasDeliverableNewer(['missing.js'], 200, () => { throw new Error('ENOENT') }), false)
 
-const parsed = parseMilestonesFromBrief('【里程碑】\n\n1. m1 — 生成文件\n2. m2 修改文件\n3. m3 删除文件')
+const parsed = parseMilestonesFromBrief('【里程碑】\n\n1. m1 — 生成文件\n2. 修改文件\n3. 删除文件')
 assert.deepEqual(parsed.map(item => item.id), ['m1', 'm2', 'm3'])
 assert.equal(parsed[1].title, '修改文件')
 

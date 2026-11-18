@@ -28,6 +28,7 @@
 
 ## 其他
 
+- 新增安装后可直接运行的最小测试：`node scripts/minimal-test.mjs`。
 - 离线自检：`node scripts/self-check.mjs`、`scripts/self-check.ps1` 和 `/dsh-info-check selfcheck`。
 - 中英文 README；中文为主 README。
 - 开源准备流程先跑隐私门禁，再跑测试/自检，通过后才写 README/发布说明；pre-push 只作为最后防线。
