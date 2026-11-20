@@ -22,6 +22,7 @@ window.__ModuleLoader__.load({
     const BUDGET_REVIEW_ID = 'budget-review'
     const BUDGET_SETTLEMENT_ID = 'budget-settlement'
     const SIGN_BUDGET_LABEL = '签约并开始'
+    const BUDGET_PLAN_CONFIRM_LABEL = '确认预算方案'
     const ADJUST_BUDGET_LABEL = '要求调整'
     const APPROVE_BUDGET_LABEL = '批准并继续'
     const DENY_BUDGET_LABEL = '不追加，继续'
@@ -233,6 +234,16 @@ window.__ModuleLoader__.load({
       'panel.deliveryPrimary': '确认并交付',
       'panel.deliverySecondary': '需要调整',
       'panel.budgetProposalTitle': '预算签约',
+      'panel.budgetPlanTitle': '预算方案',
+      'panel.budgetPlanHint': '确认总预算和每个里程碑预算；可直接修改数字，总和不能超过总预算。',
+      'panel.budgetPlanTotal': '总预算',
+      'panel.budgetPlanMilestones': '里程碑预算',
+      'panel.budgetPlanAllocated': '已分配',
+      'panel.budgetPlanRemaining': '未分配',
+      'panel.budgetPlanInvalid': '里程碑预算之和不能超过总预算，且每项必须是非负整数。',
+      'panel.budgetPlanAdjustment': '乙方调整说明',
+      'panel.budgetPlanConfirm': '确认预算方案',
+      'panel.budgetPlanSkip': '取消',
       'panel.budgetProposalHint': '作为乙方提交报价与分解；甲方签约后才开始执行。',
       'panel.budgetProposalCheck': '我已确认报价、范围与预算分解',
       'panel.budgetProposalPrimary': '签约并开始',
@@ -389,6 +400,16 @@ window.__ModuleLoader__.load({
       'panel.deliveryPrimary': 'Confirm and deliver',
       'panel.deliverySecondary': 'Needs adjustment',
       'panel.budgetProposalTitle': 'Budget sign-off',
+      'panel.budgetPlanTitle': 'Budget plan',
+      'panel.budgetPlanHint': 'Confirm the total and per-milestone budgets; edit the numbers directly, but the total cannot be exceeded.',
+      'panel.budgetPlanTotal': 'Total budget',
+      'panel.budgetPlanMilestones': 'Milestone budgets',
+      'panel.budgetPlanAllocated': 'Allocated',
+      'panel.budgetPlanRemaining': 'Unallocated',
+      'panel.budgetPlanInvalid': 'Milestone budgets must be non-negative integers and cannot exceed the total.',
+      'panel.budgetPlanAdjustment': 'Contractor adjustment',
+      'panel.budgetPlanConfirm': 'Confirm budget plan',
+      'panel.budgetPlanSkip': 'Cancel',
       'panel.budgetProposalHint': 'Quote and breakdown from the contractor; execution starts after the client signs.',
       'panel.budgetProposalCheck': 'I confirm the quote, scope, and budget breakdown',
       'panel.budgetProposalPrimary': 'Sign and start',
@@ -1477,6 +1498,167 @@ window.__ModuleLoader__.load({
       }
     }
 
+    function createBudgetPlanPanel(ctx) {
+      return function BudgetPlanPanel({ pending, sessionId }) {
+        const snapshot = usePending(pending)
+        const base = useCountdownBase(snapshot)
+        const t = ctx.locale.bind(NS)
+        const question = pending.questions.find(item => item !== null && item.id === BUDGET_PROPOSAL_ID)
+        let plan = question?.budgetPlan
+        if (plan === undefined && typeof question?.detail === 'string') {
+          const match = /<!--dsh-budget-plan:([\s\S]*?)-->/.exec(question.detail)
+          if (match !== null) {
+            try { plan = JSON.parse(match[1]) } catch { plan = undefined }
+          }
+        }
+        plan = plan ?? { total: 0, milestones: [] }
+        const [total, setTotal] = React.useState(plan.total ?? 0)
+        const [amounts, setAmounts] = React.useState(() => (plan.milestones ?? []).map(item => item.amount ?? 0))
+        const [busy, setBusy] = React.useState(false)
+        const [error, setError] = React.useState('')
+
+        React.useEffect(() => {
+          setTotal(plan.total ?? 0)
+          setAmounts((plan.milestones ?? []).map(item => item.amount ?? 0))
+          setBusy(false)
+          setError('')
+        }, [pending.key])
+
+        if (snapshot.closed) return null
+
+        const sum = amounts.reduce((value, amount) => value + (Number(amount) || 0), 0)
+        const totalValue = Number(total)
+        const invalid = !Number.isInteger(totalValue) || totalValue < 0
+          || amounts.some(amount => !Number.isInteger(Number(amount)) || Number(amount) < 0)
+          || sum > totalValue
+
+        const close = () => {
+          if (busy) return
+          setBusy(true)
+          pending.answer({
+            answers: [{ id: BUDGET_PROPOSAL_ID, selected: [SKIP_LABEL] }],
+          }).catch(() => { setBusy(false) })
+        }
+
+        const step = (index, delta) => {
+          if (busy) return
+          setAmounts(current => current.map((value, at) => at === index ? Math.max(0, (Number(value) || 0) + delta) : value))
+        }
+
+        const submit = () => {
+          if (busy) return
+          if (invalid) {
+            setError(t('panel.budgetPlanInvalid'))
+            return
+          }
+          setBusy(true)
+          setError('')
+          pending.answer({
+            answers: [{
+              id: BUDGET_PROPOSAL_ID,
+              selected: [BUDGET_PLAN_CONFIRM_LABEL],
+              custom: JSON.stringify({
+                total: totalValue,
+                milestones: (plan.milestones ?? []).map((item, index) => ({
+                  ...item,
+                  amount: Number(amounts[index]) || 0,
+                })),
+              }),
+            }],
+          }).catch(() => {
+            setError(t('panel.failed'))
+            setBusy(false)
+          })
+        }
+
+        const milestoneRows = (plan.milestones ?? []).map((item, index) => React.createElement('div', {
+          key: item.id,
+          style: { display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 0', borderBottom: '1px solid #f0f2f5' },
+        },
+        React.createElement('span', { style: { flex: '1 1 auto', minWidth: 0, fontSize: '12px', color: '#475569' } }, `${item.id} — ${item.title}`),
+        React.createElement('button', {
+          type: 'button',
+          className: 'ic-btn ic-btn-ghost',
+          style: { width: '24px', height: '24px', padding: 0 },
+          disabled: busy,
+          onClick: () => step(index, -1),
+        }, '−'),
+        React.createElement('input', {
+          type: 'number',
+          min: 0,
+          step: 1,
+          className: 'ic-input',
+          style: { width: '72px', height: '28px', padding: '0 6px', textAlign: 'right' },
+          value: amounts[index] ?? 0,
+          disabled: busy,
+          onChange: event => setAmounts(current => current.map((value, at) => at === index ? Number(event.target.value) : value)),
+        }),
+        React.createElement('button', {
+          type: 'button',
+          className: 'ic-btn ic-btn-ghost',
+          style: { width: '24px', height: '24px', padding: 0 },
+          disabled: busy,
+          onClick: () => step(index, 1),
+        }, '+')))
+
+        const children = React.createElement(React.Fragment, null,
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 0 12px' } },
+            React.createElement('span', { style: { fontSize: '12px', fontWeight: 700, color: '#334155' } }, t('panel.budgetPlanTotal')),
+            React.createElement('input', {
+              type: 'number',
+              min: 0,
+              step: 1,
+              className: 'ic-input',
+              style: { width: '120px', height: '32px', padding: '0 8px', textAlign: 'right', fontWeight: 700 },
+              value: total,
+              disabled: busy,
+              onChange: event => setTotal(event.target.value),
+            }),
+            React.createElement('span', { style: { fontSize: '11px', color: '#94a3b8' } }, '预算点')),
+          React.createElement('div', { style: { fontSize: '11px', fontWeight: 700, color: '#64748b', padding: '4px 0 2px' } }, t('panel.budgetPlanMilestones')),
+          milestoneRows,
+          React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', paddingTop: '10px', fontSize: '11px', color: '#64748b' } },
+            React.createElement('span', null, `${t('panel.budgetPlanAllocated')} ${sum}`),
+            React.createElement('span', null, `${t('panel.budgetPlanRemaining')} ${Number.isInteger(totalValue) ? totalValue - sum : '—'}`)),
+          invalid
+            ? React.createElement('div', { style: { paddingTop: '8px', fontSize: '11px', color: '#dc2626' } }, t('panel.budgetPlanInvalid'))
+            : null,
+          plan.round === 2 && plan.adjustment
+            ? React.createElement('div', { style: { marginTop: '12px', padding: '10px 12px', borderRadius: '8px', background: '#f6f8ff', color: '#475569', fontSize: '12px', lineHeight: 1.7 } },
+              React.createElement('b', null, `${t('panel.budgetPlanAdjustment')} `), plan.adjustment)
+            : null)
+
+        return React.createElement(ModalShell, null, PanelShell({
+          t,
+          title: t('panel.budgetPlanTitle'),
+          step: 1,
+          stepCount: 1,
+          description: t('panel.budgetPlanHint'),
+          countdown: countdownNode(t, snapshot, base, () => {
+            if (typeof pending.takeTime === 'function') pending.takeTime()
+          }),
+          onClose: close,
+          error,
+          children,
+          footer: [
+            React.createElement('span', { key: 'spacer', className: 'ic-spacer' }),
+            React.createElement(RippleButton, {
+              key: 'skip',
+              className: 'ic-btn ic-btn-ghost',
+              disabled: busy,
+              onClick: close,
+            }, t('panel.budgetPlanSkip')),
+            React.createElement(RippleButton, {
+              key: 'confirm',
+              className: 'ic-btn ic-btn-primary',
+              disabled: busy || invalid,
+              onClick: submit,
+            }, busy ? t('panel.saving') : t('panel.budgetPlanConfirm')),
+          ],
+        }))
+      }
+    }
+
     function createPanel(ctx) {
       const IntentPanel = createIntentPanel(ctx)
       const MilestonePanel = createMilestonePanel(ctx)
@@ -1512,23 +1694,7 @@ window.__ModuleLoader__.load({
         reasonCancelKey: 'panel.adjustCancel',
         reasonPlaceholderKey: 'panel.adjustPlaceholder',
       })
-      const BudgetProposalPanel = createReportPanel(ctx, {
-        id: BUDGET_PROPOSAL_ID,
-        titleKey: 'panel.budgetProposalTitle',
-        hintKey: 'panel.budgetProposalHint',
-        checkKey: 'panel.budgetProposalCheck',
-        primaryKey: 'panel.budgetProposalPrimary',
-        secondaryKey: 'panel.budgetProposalSecondary',
-        approveLabel: SIGN_BUDGET_LABEL,
-        secondaryLabel: ADJUST_BUDGET_LABEL,
-        pauseLabel: ACCEPT_PAUSE_LABEL,
-        pauseKey: 'panel.budgetPause',
-        reasonTitleKey: 'panel.budgetAdjustTitle',
-        reasonHintKey: 'panel.budgetAdjustHint',
-        reasonSubmitKey: 'panel.budgetAdjustSubmit',
-        reasonCancelKey: 'panel.budgetAdjustCancel',
-        reasonPlaceholderKey: 'panel.budgetAdjustPlaceholder',
-      })
+      const BudgetPlanPanel = createBudgetPlanPanel(ctx)
       const BudgetReviewPanel = createReportPanel(ctx, {
         id: BUDGET_REVIEW_ID,
         titleKey: 'panel.budgetReviewTitle',
@@ -1569,7 +1735,7 @@ window.__ModuleLoader__.load({
         const matched = props.matched
         if (matched.kind === 'intent') return React.createElement(IntentPanel, { pending: matched.pending })
         if (matched.kind === 'milestone') return React.createElement(MilestonePanel, { pending: matched.pending })
-        if (matched.kind === 'budget-proposal') return React.createElement(BudgetProposalPanel, { pending: matched.pending, sessionId: props.sessionId })
+        if (matched.kind === 'budget-proposal') return React.createElement(BudgetPlanPanel, { pending: matched.pending, sessionId: props.sessionId })
         if (matched.kind === 'accept') return React.createElement(AcceptPanel, { pending: matched.pending, sessionId: props.sessionId })
         if (matched.kind === 'budget-review') return React.createElement(BudgetReviewPanel, { pending: matched.pending, sessionId: props.sessionId })
         if (matched.kind === 'budget-settlement') return React.createElement(BudgetSettlementPanel, { pending: matched.pending, sessionId: props.sessionId })

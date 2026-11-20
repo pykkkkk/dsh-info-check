@@ -1,9 +1,9 @@
 /**
  * dsh-info-check Host half.
  *
- * Registers a policy section, the `info_check` / `confirm_milestone` /
- * `accept_milestone` / `confirm_delivery` tools, a per-Session enabled
- * projection, and a workspace ledger. The header switch executes
+ * Registers a policy section, the `info_check` / `confirm_budget` /
+ * `accept_milestone` / `review_budget` / `confirm_delivery` /
+ * `settle_budget` tools, a per-Session enabled projection, and a workspace ledger. The header switch executes
  * `/dsh-info-check on|off`; the logged command drives the projection, so each
  * conversation owns its own state.
  *
@@ -152,11 +152,9 @@ function defaultPolicy(settings) {
 1. **任务书形成**：先调用 \`info_check\`，用一段话复述目标；列出 ${minQuestions}–${maxQuestions} 条真正影响结果的**细节**核对问题（每题给选项，推荐项放第一并标注“（推荐）”）；给出可检查的完成标准（quality_bar）、明确的范围外（out_of_scope）、${milestoneRule}（milestones）。每个里程碑必须对应可交付的标志性文件或脚本，并在标题/内容中写清楚；里程碑必须按执行顺序排列，后一个里程碑的文件只能在前一个验收通过后开始修改。所有要点每点单独一行/一段，用 1. 2. 3. 编号，不要挤成一段。第一张卡是**可编辑的核对单**：用户会直接在你的版本上修改、补充，勾选确认后才进入细节选择；返回的 \`edited_brief\` 若与你的版本不同，以 \`edited_brief\` 为准。
 2. 用户点卡片右上角的 X 表示**跳过**，不是取消任务：工具会返回 confirmed=true / decision=skipped，按 agent 原始版本自动进入下一阶段；不要重新发起确认，也不要停下来等待。
 3. \`confirmed=true\` 后再开工；\`confirmed=false\`（工具明确拒绝或真实失败）时不要执行；需要时按用户的最新说法重新发起核对。
-4. **执行方案确认**：需求核对确认后，**只调用一次** \`confirm_milestone\`，确认整体执行方案/第一个里程碑（做什么、改哪些文件、怎么验证）；后续里程碑**不再调用** \`confirm_milestone\`，直接执行。方案每一点单独一段并用 1. 2. 3. 编号。卡片顶部会标注 \`dsh-info-check · 里程碑确认\`，方案可编辑；返回的 \`edited_plan\` 若与你的版本不同，以它为准。
-5. \`confirm_milestone\` 的结果：
-   - \`approved\` / \`skipped\` / \`timeout\`：按方案执行（timeout 表示用户 ${timeoutSeconds} 秒未操作，已按约定跳过）。
-   - 用户可以在倒计时处点“停止计时”，倒计时停止、浮窗不关闭；等用户修改完再按“按此方案执行”。不要在没有用户确认时继续。
-6. **预算签约**：方案确认后、开始执行前，必须调用 \`confirm_budget\` 向甲方报价（整数预算点 + 预算分解 + 假设/风险）。甲方签约、要求调整或暂停；要求调整时按 feedback 修改后再次报价，直到签约。**预算未签约时不得开始执行、不得调用 \`accept_milestone\`。**
+4. **预算方案卡**：任务书确认后，**不再调用 \`confirm_milestone\`**。立即调用 \`confirm_budget\` 的 \`round=1\`，把任务书的里程碑和每个里程碑预算放进同一张预算方案卡；总预算输入框和每个里程碑的步进输入框由甲方直接修改，所有里程碑预算之和不得超过总预算。
+5. **两轮确认**：用户确认第 1 轮方案后，先思考并给出调整意见，用 \`round=2\` 再次调用 \`confirm_budget\`，在调整说明中写清楚改了什么、为什么改；用户再次确认后预算才签约，里程碑计划同时锁定。
+6. **预算签约**：只有第 2 轮用户确认后才算签约。**预算未签约时不得开始执行、不得调用 \`accept_milestone\`。** 卡片的倒计时结束或点击 X 均不视为签约。
 7. **里程碑执行与验收**：每完成一个里程碑的文件/脚本后，立即调用 \`accept_milestone\` 验收**当前这一个**里程碑；验收必须提交至少一个本里程碑实际新增或修改的文件/脚本（files），且必须在上一里程碑验收之后更新。验收通过后可以继续同一轮，不需要中断对话；但下一个里程碑的文件必须在这之后修改。计划确认后里程碑数量锁定。
 8. **预算审核**：验收通过后、进入下一里程碑前，必须调用 \`review_budget\`，提交累计已用、本阶段使用、追加请求和超支说明。甲方批准追加、不追加、要求调整或暂停；审核完成前不能提交下一里程碑验收。
 9. 如果验收或预算审核返回 \`decision=paused\`，立即停止当前任务：整理进度、未完成项/风险和相关文件路径，结束任务；不进入下一里程碑，也不调用 \`confirm_delivery\`。
@@ -367,8 +365,8 @@ function isCancelled(error) {
 function infoCheckQuestion(detail) {
   return {
     id: INTENT_BRIEF_ID,
-    header: 'dsh-info-check · 需求核对',
-    question: '请先修改下面的核对单；确认无误后勾选“我已确认”，再进入细节确认。',
+    header: 'dsh-info-check · 任务书',
+    question: '请先修改下面的任务书；确认无误后勾选“我已确认”，再进入细节确认。',
     detail,
   }
 }
@@ -1207,7 +1205,6 @@ export function apply(ctx, config = {}) {
 
   const definitions = [
     createInfoCheckTool({ ctx, enabledFor, getMaxQuestions: () => currentSettings().maxQuestions, ledger, budgetStore }),
-    createMilestoneTool({ ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger }),
     createBudgetProposalTool({ ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger, budgetStore }),
     createAcceptTool({
       ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger,

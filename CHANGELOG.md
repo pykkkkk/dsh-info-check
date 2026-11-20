@@ -10,6 +10,11 @@ pinned by `engines.dsh`.
 - Engineering-contract workflow: the user is the client and the agent is the
   contractor.
 - Task book with goal, quality bar, scope boundaries, and milestones.
+- Budget plan card immediately after the task book: one editable total budget
+  plus an editable budget for every milestone, with direct numeric editing and
+  inline validation that the milestone sum cannot exceed the total.
+- Two-round budget confirmation: the user confirms the first plan, the agent
+  rethinks and explains adjustments, then the user confirms the signed plan.
 - Budget sign-off: quote, breakdown, assumptions, risks, negotiation, and a
   signed initial budget before execution.
 - Milestone budget review: cumulative spend, remaining budget, extra requests,
