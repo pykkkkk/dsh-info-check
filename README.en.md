@@ -71,11 +71,11 @@ node scripts/self-check.mjs
 Each task is handled like a small engineering contract:
 
 1. **Task book**: the agent restates the goal, quality bar, out-of-scope items, and milestones; the user reviews and edits it.
-2. **Budget plan**: right after the task book, the budget plan card shows a total budget and a budget for each milestone; the user edits both directly, and the milestone sum cannot exceed the total.
+2. **Budget plan**: right after the task book, the budget plan card shows a total budget in CNY and a budget for each milestone; the user edits both directly, the milestone label is fixed (`m1`, `m2`), the content input holds only the milestone text, the sum cannot exceed the total, and the remainder is the reserve.
 3. **Two rounds**: after the first confirmation, the agent rethinks and explains its adjustments; the second confirmation signs the budget and locks the milestones.
 4. **Execution and acceptance**: finish one milestone, then accept that milestone.
-5. **Budget review**: see cumulative spend, remaining budget, and any extra request; decide whether to approve it before the next milestone.
-6. **Delivery and settlement**: confirm delivery, then rate the budget; the ledger feeds the quality and budget standards.
+5. **Budget review**: a text display box plus a numeric display; whether to add budget is a choice inside the card, and the amount input appears only after choosing to add.
+6. **Delivery and settlement**: confirm delivery, then rate the budget in a financial-report table; the ledger feeds the quality and budget standards.
 
 See **[docs/FLOW.md](docs/FLOW.md)** for the full flowchart and stage table.
 

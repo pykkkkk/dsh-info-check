@@ -239,7 +239,7 @@ window.__ModuleLoader__.load({
       'panel.budgetPlanTotal': '总预算',
       'panel.budgetPlanMilestones': '里程碑预算',
       'panel.budgetPlanAllocated': '已分配',
-      'panel.budgetPlanRemaining': '未分配',
+      'panel.budgetPlanRemaining': '备用预算',
       'panel.budgetPlanInvalid': '里程碑预算之和不能超过总预算，且每项必须是非负整数。',
       'panel.budgetPlanAdjustment': '乙方调整说明',
       'panel.budgetPlanConfirm': '确认预算方案',
@@ -249,7 +249,25 @@ window.__ModuleLoader__.load({
       'panel.budgetProposalPrimary': '签约并开始',
       'panel.budgetProposalSecondary': '要求调整',
       'panel.budgetReviewTitle': '预算使用',
-      'panel.budgetReviewHint': '审核本阶段预算使用；批准追加后可继续下一里程碑。',
+      'panel.budgetReviewHint': '审核本阶段预算使用；选择是否追加预算，批准后可继续下一里程碑。',
+      'panel.budgetReviewText': '预算使用说明',
+      'panel.budgetReviewSpent': '累计已用',
+      'panel.budgetReviewChoice': '是否追加预算？',
+      'panel.budgetReviewNoExtra': '不追加预算',
+      'panel.budgetReviewExtra': '追加预算',
+      'panel.budgetReviewExtraAmount': '追加金额',
+      'panel.budgetReviewNotes': '备注（可选）',
+      'panel.budgetReviewConfirm': '确认预算审核',
+      'panel.budgetReviewInvalid': '累计已用和追加金额必须是非负人民币金额。',
+      'panel.budgetSettlementItem': '项目',
+      'panel.budgetSettlementAmount': '金额（CNY）',
+      'panel.budgetSettlementTotal': '预算合计（初始 + 追加）',
+      'panel.budgetSettlementActual': '实际使用',
+      'panel.budgetSettlementVariance': '差额',
+      'panel.budgetSettlementSource': '数据来源',
+      'panel.budgetSettlementRating': '评价',
+      'panel.budgetSettlementNotes': '预算评价说明（可选）',
+      'panel.budgetSettlementConfirm': '提交结算',
       'panel.budgetReviewCheck': '我已核对本阶段预算使用',
       'panel.budgetReviewPrimary': '批准并继续',
       'panel.budgetReviewSecondary': '要求调整',
@@ -265,7 +283,7 @@ window.__ModuleLoader__.load({
       'panel.budgetAdjustHint': '说明哪里需要调整、希望的目标金额或分解；乙方会按此重新报价。',
       'panel.budgetAdjustSubmit': '提交预算调整',
       'panel.budgetAdjustCancel': '取消',
-      'panel.budgetAdjustPlaceholder': '例如：实现部分压缩到 40 预算点，测试保留 10。',
+      'panel.budgetAdjustPlaceholder': '例如：实现部分压缩到 40 元，测试保留 10。',
       'panel.budgetSettlementReasonTitle': '预算评价说明',
       'panel.budgetSettlementReasonHint': '说明评价“一般”的原因；这会写入预算标准。',
       'panel.budgetSettlementPlaceholder': '例如：报价偏高，实际只用了约一半；说明不够细。',
@@ -405,7 +423,7 @@ window.__ModuleLoader__.load({
       'panel.budgetPlanTotal': 'Total budget',
       'panel.budgetPlanMilestones': 'Milestone budgets',
       'panel.budgetPlanAllocated': 'Allocated',
-      'panel.budgetPlanRemaining': 'Unallocated',
+      'panel.budgetPlanRemaining': 'Reserve',
       'panel.budgetPlanInvalid': 'Milestone budgets must be non-negative integers and cannot exceed the total.',
       'panel.budgetPlanAdjustment': 'Contractor adjustment',
       'panel.budgetPlanConfirm': 'Confirm budget plan',
@@ -415,7 +433,25 @@ window.__ModuleLoader__.load({
       'panel.budgetProposalPrimary': 'Sign and start',
       'panel.budgetProposalSecondary': 'Request changes',
       'panel.budgetReviewTitle': 'Budget usage',
-      'panel.budgetReviewHint': 'Review this stage; approving an extra budget unlocks the next milestone.',
+      'panel.budgetReviewHint': 'Review this stage and choose whether to add budget; approval unlocks the next milestone.',
+      'panel.budgetReviewText': 'Budget usage notes',
+      'panel.budgetReviewSpent': 'Used so far',
+      'panel.budgetReviewChoice': 'Add budget?',
+      'panel.budgetReviewNoExtra': 'No extra budget',
+      'panel.budgetReviewExtra': 'Add budget',
+      'panel.budgetReviewExtraAmount': 'Extra amount',
+      'panel.budgetReviewNotes': 'Notes (optional)',
+      'panel.budgetReviewConfirm': 'Confirm budget review',
+      'panel.budgetReviewInvalid': 'Used and extra amounts must be non-negative CNY amounts.',
+      'panel.budgetSettlementItem': 'Item',
+      'panel.budgetSettlementAmount': 'Amount (CNY)',
+      'panel.budgetSettlementTotal': 'Total budget (initial + extra)',
+      'panel.budgetSettlementActual': 'Actual usage',
+      'panel.budgetSettlementVariance': 'Variance',
+      'panel.budgetSettlementSource': 'Source',
+      'panel.budgetSettlementRating': 'Rating',
+      'panel.budgetSettlementNotes': 'Budget rating notes (optional)',
+      'panel.budgetSettlementConfirm': 'Submit settlement',
       'panel.budgetReviewCheck': 'I have checked this stage budget',
       'panel.budgetReviewPrimary': 'Approve and continue',
       'panel.budgetReviewSecondary': 'Request changes',
@@ -1514,12 +1550,14 @@ window.__ModuleLoader__.load({
         plan = plan ?? { total: 0, milestones: [] }
         const [total, setTotal] = React.useState(plan.total ?? 0)
         const [amounts, setAmounts] = React.useState(() => (plan.milestones ?? []).map(item => item.amount ?? 0))
+        const [titles, setTitles] = React.useState(() => (plan.milestones ?? []).map(item => item.title ?? ''))
         const [busy, setBusy] = React.useState(false)
         const [error, setError] = React.useState('')
 
         React.useEffect(() => {
           setTotal(plan.total ?? 0)
           setAmounts((plan.milestones ?? []).map(item => item.amount ?? 0))
+          setTitles((plan.milestones ?? []).map(item => item.title ?? ''))
           setBusy(false)
           setError('')
         }, [pending.key])
@@ -1528,8 +1566,8 @@ window.__ModuleLoader__.load({
 
         const sum = amounts.reduce((value, amount) => value + (Number(amount) || 0), 0)
         const totalValue = Number(total)
-        const invalid = !Number.isInteger(totalValue) || totalValue < 0
-          || amounts.some(amount => !Number.isInteger(Number(amount)) || Number(amount) < 0)
+        const invalid = !Number.isFinite(totalValue) || totalValue < 0
+          || amounts.some(amount => !Number.isFinite(Number(amount)) || Number(amount) < 0)
           || sum > totalValue
 
         const close = () => {
@@ -1561,6 +1599,7 @@ window.__ModuleLoader__.load({
                 total: totalValue,
                 milestones: (plan.milestones ?? []).map((item, index) => ({
                   ...item,
+                  title: String(titles[index] ?? item.title ?? '').trim() || item.title,
                   amount: Number(amounts[index]) || 0,
                 })),
               }),
@@ -1575,7 +1614,15 @@ window.__ModuleLoader__.load({
           key: item.id,
           style: { display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 0', borderBottom: '1px solid #f0f2f5' },
         },
-        React.createElement('span', { style: { flex: '1 1 auto', minWidth: 0, fontSize: '12px', color: '#475569' } }, `${item.id} — ${item.title}`),
+        React.createElement('span', { style: { flex: '0 0 28px', fontSize: '11px', fontWeight: 700, color: '#4D6BFE' } }, item.id),
+        React.createElement('input', {
+          type: 'text',
+          className: 'ic-input',
+          style: { flex: '1 1 auto', minWidth: 0, height: '28px', padding: '0 6px' },
+          value: titles[index] ?? '',
+          disabled: busy,
+          onChange: event => setTitles(current => current.map((value, at) => at === index ? event.target.value : value)),
+        }),
         React.createElement('button', {
           type: 'button',
           className: 'ic-btn ic-btn-ghost',
@@ -1586,12 +1633,12 @@ window.__ModuleLoader__.load({
         React.createElement('input', {
           type: 'number',
           min: 0,
-          step: 1,
+          step: 0.01,
           className: 'ic-input',
-          style: { width: '72px', height: '28px', padding: '0 6px', textAlign: 'right' },
+          style: { width: '80px', height: '28px', padding: '0 6px', textAlign: 'right' },
           value: amounts[index] ?? 0,
           disabled: busy,
-          onChange: event => setAmounts(current => current.map((value, at) => at === index ? Number(event.target.value) : value)),
+          onChange: event => setAmounts(current => current.map((value, at) => at === index ? event.target.value : value)),
         }),
         React.createElement('button', {
           type: 'button',
@@ -1604,22 +1651,23 @@ window.__ModuleLoader__.load({
         const children = React.createElement(React.Fragment, null,
           React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 0 12px' } },
             React.createElement('span', { style: { fontSize: '12px', fontWeight: 700, color: '#334155' } }, t('panel.budgetPlanTotal')),
+            React.createElement('span', { style: { fontSize: '12px', color: '#64748b' } }, '¥'),
             React.createElement('input', {
               type: 'number',
               min: 0,
-              step: 1,
+              step: 0.01,
               className: 'ic-input',
               style: { width: '120px', height: '32px', padding: '0 8px', textAlign: 'right', fontWeight: 700 },
               value: total,
               disabled: busy,
               onChange: event => setTotal(event.target.value),
             }),
-            React.createElement('span', { style: { fontSize: '11px', color: '#94a3b8' } }, '预算点')),
+            React.createElement('span', { style: { fontSize: '11px', color: '#94a3b8' } }, 'CNY')),
           React.createElement('div', { style: { fontSize: '11px', fontWeight: 700, color: '#64748b', padding: '4px 0 2px' } }, t('panel.budgetPlanMilestones')),
           milestoneRows,
           React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', paddingTop: '10px', fontSize: '11px', color: '#64748b' } },
             React.createElement('span', null, `${t('panel.budgetPlanAllocated')} ${sum}`),
-            React.createElement('span', null, `${t('panel.budgetPlanRemaining')} ${Number.isInteger(totalValue) ? totalValue - sum : '—'}`)),
+            React.createElement('span', null, `${t('panel.budgetPlanRemaining')} ¥${Number.isFinite(totalValue) ? (totalValue - sum).toFixed(2) : '—'}`)),
           invalid
             ? React.createElement('div', { style: { paddingTop: '8px', fontSize: '11px', color: '#dc2626' } }, t('panel.budgetPlanInvalid'))
             : null,
@@ -1654,6 +1702,209 @@ window.__ModuleLoader__.load({
               disabled: busy || invalid,
               onClick: submit,
             }, busy ? t('panel.saving') : t('panel.budgetPlanConfirm')),
+          ],
+        }))
+      }
+    }
+
+    function createBudgetReviewPanel(ctx) {
+      return function BudgetReviewPanel({ pending }) {
+        const snapshot = usePending(pending)
+        const base = useCountdownBase(snapshot)
+        const t = ctx.locale.bind(NS)
+        const question = pending.questions.find(item => item !== null && item.id === BUDGET_REVIEW_ID)
+        const data = question?.budgetReview ?? { spent: 0, requestedExtra: 0 }
+        const [spent, setSpent] = React.useState(data.spent ?? 0)
+        const [extraMode, setExtraMode] = React.useState((data.requestedExtra ?? 0) > 0 ? 'extra' : 'none')
+        const [extra, setExtra] = React.useState(data.requestedExtra ?? 0)
+        const [notes, setNotes] = React.useState('')
+        const [busy, setBusy] = React.useState(false)
+        const [error, setError] = React.useState('')
+
+        React.useEffect(() => {
+          setSpent(data.spent ?? 0)
+          setExtraMode((data.requestedExtra ?? 0) > 0 ? 'extra' : 'none')
+          setExtra(data.requestedExtra ?? 0)
+          setNotes('')
+          setBusy(false)
+          setError('')
+        }, [pending.key])
+
+        if (snapshot.closed) return null
+
+        const spentValue = Number(spent)
+        const extraValue = Number(extra)
+        const invalid = !Number.isFinite(spentValue) || spentValue < 0
+          || (extraMode === 'extra' && (!Number.isFinite(extraValue) || extraValue < 0))
+
+        const close = () => {
+          if (busy) return
+          setBusy(true)
+          pending.answer({ answers: [{ id: BUDGET_REVIEW_ID, selected: [SKIP_LABEL] }] }).catch(() => setBusy(false))
+        }
+
+        const submit = () => {
+          if (busy) return
+          if (invalid) { setError(t('panel.budgetReviewInvalid')); return }
+          setBusy(true)
+          setError('')
+          pending.answer({
+            answers: [{
+              id: BUDGET_REVIEW_ID,
+              selected: ['批准并继续'],
+              custom: JSON.stringify({
+                spent: spentValue,
+                requestedExtra: extraMode === 'extra' ? extraValue : 0,
+                notes: notes.trim() || undefined,
+              }),
+            }],
+          }).catch(() => { setError(t('panel.failed')); setBusy(false) })
+        }
+
+        const children = React.createElement(React.Fragment, null,
+          React.createElement('textarea', {
+            readOnly: true,
+            className: 'ic-readbox',
+            style: { minHeight: '120px', width: '100%', resize: 'vertical', marginBottom: '12px' },
+            value: question?.detail ?? '',
+            'aria-label': t('panel.budgetReviewText'),
+          }),
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' } },
+            React.createElement('span', { style: { fontSize: '12px', fontWeight: 700, color: '#334155' } }, t('panel.budgetReviewSpent')),
+            React.createElement('span', { style: { fontSize: '12px', color: '#64748b' } }, '¥'),
+            React.createElement('input', {
+              type: 'number', min: 0, step: 0.01, className: 'ic-input',
+              style: { width: '130px', height: '30px', padding: '0 8px', textAlign: 'right' },
+              value: spent, disabled: busy,
+              onChange: event => setSpent(event.target.value),
+            }),
+            React.createElement('span', { style: { fontSize: '11px', color: '#94a3b8' } }, 'CNY')),
+          React.createElement('div', { style: { fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' } }, t('panel.budgetReviewChoice')),
+          React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 0', fontSize: '12px', color: '#475569' } },
+            React.createElement('input', { type: 'radio', name: 'budget-extra', checked: extraMode === 'none', disabled: busy, onChange: () => setExtraMode('none') }),
+            t('panel.budgetReviewNoExtra')),
+          React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 0', fontSize: '12px', color: '#475569' } },
+            React.createElement('input', { type: 'radio', name: 'budget-extra', checked: extraMode === 'extra', disabled: busy, onChange: () => setExtraMode('extra') }),
+            t('panel.budgetReviewExtra')),
+          extraMode === 'extra'
+            ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0 8px 24px' } },
+              React.createElement('span', { style: { fontSize: '11px', color: '#64748b' } }, t('panel.budgetReviewExtraAmount')),
+              React.createElement('span', { style: { fontSize: '12px', color: '#64748b' } }, '¥'),
+              React.createElement('input', {
+                type: 'number', min: 0, step: 0.01, className: 'ic-input',
+                style: { width: '110px', height: '28px', padding: '0 8px', textAlign: 'right' },
+                value: extra, disabled: busy,
+                onChange: event => setExtra(event.target.value),
+              }),
+              React.createElement('span', { style: { fontSize: '11px', color: '#94a3b8' } }, 'CNY'))
+            : null,
+          React.createElement('textarea', {
+            className: 'ic-readbox',
+            style: { height: '64px', width: '100%', marginTop: '8px' },
+            value: notes,
+            placeholder: t('panel.budgetReviewNotes'),
+            disabled: busy,
+            onChange: event => setNotes(event.target.value),
+          }))
+
+        return React.createElement(ModalShell, null, PanelShell({
+          t,
+          title: t('panel.budgetReviewTitle'),
+          step: 1, stepCount: 1,
+          description: t('panel.budgetReviewHint'),
+          countdown: countdownNode(t, snapshot, base, () => { if (typeof pending.takeTime === 'function') pending.takeTime() }),
+          onClose: close,
+          error,
+          children,
+          footer: [
+            React.createElement('span', { key: 'spacer', className: 'ic-spacer' }),
+            React.createElement(RippleButton, { key: 'cancel', className: 'ic-btn ic-btn-ghost', disabled: busy, onClick: close }, t('panel.budgetPlanSkip')),
+            React.createElement(RippleButton, { key: 'confirm', className: 'ic-btn ic-btn-primary', disabled: busy || invalid, onClick: submit }, busy ? t('panel.saving') : t('panel.budgetReviewConfirm')),
+          ],
+        }))
+      }
+    }
+
+    function createBudgetSettlementPanel(ctx) {
+      return function BudgetSettlementPanel({ pending }) {
+        const snapshot = usePending(pending)
+        const base = useCountdownBase(snapshot)
+        const t = ctx.locale.bind(NS)
+        const question = pending.questions.find(item => item !== null && item.id === BUDGET_SETTLEMENT_ID)
+        const data = question?.budgetSettlement ?? { initial: 0, extra: 0, finalSpent: 0 }
+        const [rating, setRating] = React.useState(SATISFIED_BUDGET_LABEL)
+        const [notes, setNotes] = React.useState('')
+        const [busy, setBusy] = React.useState(false)
+        const [error, setError] = React.useState('')
+
+        React.useEffect(() => {
+          setRating(SATISFIED_BUDGET_LABEL)
+          setNotes('')
+          setBusy(false)
+          setError('')
+        }, [pending.key])
+
+        if (snapshot.closed) return null
+
+        const close = () => {
+          if (busy) return
+          setBusy(true)
+          pending.answer({ answers: [{ id: BUDGET_SETTLEMENT_ID, selected: [SKIP_LABEL] }] }).catch(() => setBusy(false))
+        }
+
+        const submit = () => {
+          if (busy) return
+          setBusy(true)
+          setError('')
+          pending.answer({
+            answers: [{ id: BUDGET_SETTLEMENT_ID, selected: [rating], ...(notes.trim() === '' ? {} : { custom: notes.trim() }) }],
+          }).catch(() => { setError(t('panel.failed')); setBusy(false) })
+        }
+
+        const total = Number(data.initial) + Number(data.extra)
+        const variant = Number(data.finalSpent) - total
+        const rows = [
+          [t('panel.budgetSettlementTotal'), `¥${total.toFixed(2)}`],
+          [t('panel.budgetSettlementActual'), `¥${Number(data.finalSpent).toFixed(2)}`],
+          [t('panel.budgetSettlementVariance'), `${variant > 0 ? '超支' : variant < 0 ? '结余' : '持平'} ¥${Math.abs(variant).toFixed(2)}`],
+          [t('panel.budgetSettlementSource'), data.source === 'dsh-ui-usage-billing' ? 'dsh-ui-usage-billing' : '手动/估算'],
+        ]
+        const table = React.createElement('table', {
+          style: { width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginBottom: '12px' },
+        },
+        React.createElement('thead', null, React.createElement('tr', null,
+          React.createElement('th', { style: { textAlign: 'left', padding: '8px', borderBottom: '1px solid #dbe2ea', color: '#64748b' } }, t('panel.budgetSettlementItem')),
+          React.createElement('th', { style: { textAlign: 'right', padding: '8px', borderBottom: '1px solid #dbe2ea', color: '#64748b' } }, t('panel.budgetSettlementAmount')))),
+        React.createElement('tbody', null, rows.map(([label, value]) => React.createElement('tr', { key: label },
+          React.createElement('td', { style: { padding: '8px', borderBottom: '1px solid #f1f5f9', color: '#475569' } }, label),
+          React.createElement('td', { style: { padding: '8px', borderBottom: '1px solid #f1f5f9', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' } }, value)))))
+
+        const choices = [SATISFIED_BUDGET_LABEL, NEUTRAL_BUDGET_LABEL, DISSATISFIED_BUDGET_LABEL]
+        const ratingRow = React.createElement('div', { style: { display: 'flex', gap: '14px', alignItems: 'center', marginBottom: '10px', fontSize: '12px' } },
+          React.createElement('span', { style: { fontWeight: 700, color: '#334155' } }, t('panel.budgetSettlementRating')),
+          choices.map(label => React.createElement('label', { key: label, style: { display: 'flex', gap: '5px', alignItems: 'center', color: '#475569' } },
+            React.createElement('input', { type: 'radio', name: 'budget-rating', checked: rating === label, disabled: busy, onChange: () => setRating(label) }),
+            label)))
+
+        const children = React.createElement(React.Fragment, null,
+          React.createElement('div', { style: { fontSize: '12px', color: '#64748b', marginBottom: '10px' } }, question?.detail ?? ''),
+          table,
+          ratingRow,
+          React.createElement('textarea', {
+            className: 'ic-readbox', style: { height: '64px', width: '100%' },
+            value: notes, placeholder: t('panel.budgetSettlementNotes'), disabled: busy,
+            onChange: event => setNotes(event.target.value),
+          }))
+
+        return React.createElement(ModalShell, null, PanelShell({
+          t, title: t('panel.budgetSettlementTitle'), step: 1, stepCount: 1,
+          description: t('panel.budgetSettlementHint'),
+          countdown: countdownNode(t, snapshot, base, () => { if (typeof pending.takeTime === 'function') pending.takeTime() }),
+          onClose: close, error, children,
+          footer: [
+            React.createElement('span', { key: 'spacer', className: 'ic-spacer' }),
+            React.createElement(RippleButton, { key: 'cancel', className: 'ic-btn ic-btn-ghost', disabled: busy, onClick: close }, t('panel.budgetPlanSkip')),
+            React.createElement(RippleButton, { key: 'confirm', className: 'ic-btn ic-btn-primary', disabled: busy, onClick: submit }, busy ? t('panel.saving') : t('panel.budgetSettlementConfirm')),
           ],
         }))
       }
@@ -1695,42 +1946,8 @@ window.__ModuleLoader__.load({
         reasonPlaceholderKey: 'panel.adjustPlaceholder',
       })
       const BudgetPlanPanel = createBudgetPlanPanel(ctx)
-      const BudgetReviewPanel = createReportPanel(ctx, {
-        id: BUDGET_REVIEW_ID,
-        titleKey: 'panel.budgetReviewTitle',
-        hintKey: 'panel.budgetReviewHint',
-        checkKey: 'panel.budgetReviewCheck',
-        primaryKey: 'panel.budgetReviewPrimary',
-        secondaryKey: 'panel.budgetReviewSecondary',
-        tertiaryKey: 'panel.budgetReviewTertiary',
-        tertiaryLabel: DENY_BUDGET_LABEL,
-        approveLabel: APPROVE_BUDGET_LABEL,
-        secondaryLabel: ADJUST_BUDGET_LABEL,
-        pauseLabel: ACCEPT_PAUSE_LABEL,
-        pauseKey: 'panel.budgetPause',
-        reasonTitleKey: 'panel.budgetAdjustTitle',
-        reasonHintKey: 'panel.budgetAdjustHint',
-        reasonSubmitKey: 'panel.budgetAdjustSubmit',
-        reasonCancelKey: 'panel.budgetAdjustCancel',
-        reasonPlaceholderKey: 'panel.budgetAdjustPlaceholder',
-      })
-      const BudgetSettlementPanel = createReportPanel(ctx, {
-        id: BUDGET_SETTLEMENT_ID,
-        titleKey: 'panel.budgetSettlementTitle',
-        hintKey: 'panel.budgetSettlementHint',
-        checkKey: 'panel.budgetSettlementCheck',
-        primaryKey: 'panel.budgetSettlementPrimary',
-        secondaryKey: 'panel.budgetSettlementSecondary',
-        tertiaryKey: 'panel.budgetSettlementTertiary',
-        tertiaryLabel: DISSATISFIED_BUDGET_LABEL,
-        approveLabel: SATISFIED_BUDGET_LABEL,
-        secondaryLabel: NEUTRAL_BUDGET_LABEL,
-        reasonTitleKey: 'panel.budgetSettlementReasonTitle',
-        reasonHintKey: 'panel.budgetSettlementReasonHint',
-        reasonSubmitKey: 'panel.budgetAdjustSubmit',
-        reasonCancelKey: 'panel.budgetAdjustCancel',
-        reasonPlaceholderKey: 'panel.budgetSettlementPlaceholder',
-      })
+      const BudgetReviewPanel = createBudgetReviewPanel(ctx)
+      const BudgetSettlementPanel = createBudgetSettlementPanel(ctx)
       return function InfoCheckerPanel(props) {
         const matched = props.matched
         if (matched.kind === 'intent') return React.createElement(IntentPanel, { pending: matched.pending })

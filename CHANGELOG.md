@@ -11,8 +11,16 @@ pinned by `engines.dsh`.
   contractor.
 - Task book with goal, quality bar, scope boundaries, and milestones.
 - Budget plan card immediately after the task book: one editable total budget
-  plus an editable budget for every milestone, with direct numeric editing and
-  inline validation that the milestone sum cannot exceed the total.
+  plus an editable budget for every milestone, with fixed `m1`/`m2` labels,
+  content-only milestone inputs, direct numeric editing, and inline validation
+  that the milestone sum cannot exceed the total. The remainder is shown as
+  reserve budget.
+- Budget usage uses a text display and a numeric CNY display; adding budget is
+  a choice inside the card, with the amount input shown only when selected.
+- Budget settlement is a financial-report table.
+- Budget amounts are CNY; actual usage comes from
+  `@kenz1117/dsh-ui-usage-billing` when installed, otherwise from a token-usage
+  estimate read from the session log.
 - Two-round budget confirmation: the user confirms the first plan, the agent
   rethinks and explains adjustments, then the user confirms the signed plan.
 - Budget sign-off: quote, breakdown, assumptions, risks, negotiation, and a
