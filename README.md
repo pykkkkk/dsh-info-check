@@ -8,8 +8,6 @@
 
 [English](README.en.md) | 中文
 
-## 工作路径
-
 [![一次任务，一份工程合同：说清需求、确认任务书、锁定预算、逐个验收、交付结算](docs/screenshots/flow-poster-simple.png)](docs/screenshots/flow-poster-simple.png)
 
 Agent 接到任务后直接进入执行，理解偏差往往到交付时才暴露，返工成本随流程推进上升。
