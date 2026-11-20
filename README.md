@@ -30,6 +30,10 @@ dsh-info-check 的做法是在流程中插入四个确认点，让用户在关�
 
 [![任务进度条](docs/screenshots/08-progress-bar.png)](docs/screenshots/08-progress-bar.png)
 
+**预算方案**
+
+[![预算方案](docs/screenshots/10-budget-plan.png)](docs/screenshots/10-budget-plan.png)
+
 **预算结算**
 
 [![预算结算](docs/screenshots/09-budget-settlement.png)](docs/screenshots/09-budget-settlement.png)

@@ -30,6 +30,10 @@ Hover a tablet to see the milestone title. Progress is saved per conversation an
 
 [![Task progress](docs/screenshots/08-progress-bar.png)](docs/screenshots/08-progress-bar.png)
 
+**Budget plan**
+
+[![Budget plan](docs/screenshots/10-budget-plan.png)](docs/screenshots/10-budget-plan.png)
+
 **Budget settlement**
 
 [![Budget settlement](docs/screenshots/09-budget-settlement.png)](docs/screenshots/09-budget-settlement.png)
