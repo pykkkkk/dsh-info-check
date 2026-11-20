@@ -3,6 +3,27 @@
 All notable user-facing changes are documented here. DSH compatibility is
 pinned by `engines.dsh`.
 
+## 0.3.0 — 2026-11-20
+
+### Added
+
+- Engineering-contract workflow: the user is the client and the agent is the
+  contractor.
+- Task book with goal, quality bar, scope boundaries, and milestones.
+- Budget sign-off: quote, breakdown, assumptions, risks, negotiation, and a
+  signed initial budget before execution.
+- Milestone budget review: cumulative spend, remaining budget, extra requests,
+  approval/denial, and pause.
+- Final budget settlement with a client rating.
+- Learned budget standard, injected into later task instructions.
+- Complete workflow flowchart in `docs/FLOW.md`.
+
+### Changed
+
+- Acceptance and budget review are separate gates: accept a milestone, then
+  review its budget before the next milestone.
+- Milestones and their budget are locked to the confirmed plan.
+
 ## 0.2.2 — 2026-11-18
 
 ### Added

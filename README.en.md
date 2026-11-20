@@ -1,6 +1,6 @@
 <h1><img src="icon.svg" alt="dsh-info-check icon" width="36" height="36" align="middle" /> dsh-info-check</h1>
 
-[![Version](https://img.shields.io/badge/version-0.2.2-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/pykkkkk/dsh-info-check/releases)
+[![Version](https://img.shields.io/badge/version-0.3.0-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/pykkkkk/dsh-info-check/releases)
 [![DSH](https://img.shields.io/badge/DSH-0.2.2--rc.3-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/deepseek-ai/deepseek-harness)
 [![License](https://img.shields.io/badge/license-MIT-4D6BFE?style=flat-square&labelColor=1F1F1F)](LICENSE)
 
@@ -45,7 +45,7 @@ dsh-info-check
 Or use npm:
 
 ```sh
-npm install dsh-info-check@0.2.2
+npm install dsh-info-check@0.3.0
 ```
 
 Refresh the page after installing. A small underlined **需求核对** switch will appear next to the agent preset.
@@ -65,6 +65,18 @@ It checks package.json, entry files, the bundle, and the client loader id in a f
 ```sh
 node scripts/self-check.mjs
 ```
+
+## Project workflow
+
+Each task is handled like a small engineering contract:
+
+1. **Task book**: the agent restates the goal, quality bar, out-of-scope items, and milestones; the user reviews and edits it.
+2. **Budget sign-off**: the agent quotes a budget and breakdown; the user reviews, negotiates, and signs.
+3. **Execution and acceptance**: finish one milestone, then accept that milestone.
+4. **Budget review**: see cumulative spend, remaining budget, and any extra request; decide whether to approve it before the next milestone.
+5. **Delivery and settlement**: confirm delivery, then rate the budget; the ledger feeds the quality and budget standards.
+
+See **[docs/FLOW.md](docs/FLOW.md)** for the full flowchart and stage table.
 
 ## What it adds
 
@@ -119,7 +131,7 @@ Click the underlined words to open settings, where you can change:
 - whether retrospectives run automatically;
 - supervision mode: strict checks or advisory;
 - quality standard: enter your own requirements, saved into `.dsh-info-check/quality-standard.md`;
-- file locations: open the ledger, retrospective, or quality standard directly.
+- file locations: open the ledger, retrospective, quality standard, or budget standard directly.
 
 Changes take effect immediately; no restart is needed.
 
@@ -141,6 +153,8 @@ After each confirmed delivery, the plugin summarizes the task's acceptance resul
 Retrospectives run automatically by default. If you turn off **Auto retrospective** in settings, the plugin asks whether to add the task to the retrospective when you confirm delivery.
 
 Every three completed tasks, the plugin updates `.dsh-info-check/quality-standard.md` from the accumulated retrospectives. That standard is included in later task instructions so the agent can follow your acceptance habits more closely. The manual section is preserved, and the standard is length-limited.
+
+Budget settlements also accumulate into `.dsh-info-check/budget-standard.md`, updated every three settlements for later quotes; the manual section is preserved.
 
 Retrospectives and the quality standard stay in the current workspace; nothing is uploaded or sent over the network.
 

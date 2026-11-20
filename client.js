@@ -18,6 +18,16 @@ window.__ModuleLoader__.load({
     const ACCEPT_LABEL = '验收通过'
     const REWORK_LABEL = '需要返工'
     const ACCEPT_PAUSE_LABEL = '暂停任务'
+    const BUDGET_PROPOSAL_ID = 'budget-proposal'
+    const BUDGET_REVIEW_ID = 'budget-review'
+    const BUDGET_SETTLEMENT_ID = 'budget-settlement'
+    const SIGN_BUDGET_LABEL = '签约并开始'
+    const ADJUST_BUDGET_LABEL = '要求调整'
+    const APPROVE_BUDGET_LABEL = '批准并继续'
+    const DENY_BUDGET_LABEL = '不追加，继续'
+    const SATISFIED_BUDGET_LABEL = '满意'
+    const NEUTRAL_BUDGET_LABEL = '一般'
+    const DISSATISFIED_BUDGET_LABEL = '不满意'
     const SKIP_LABEL = '__skip__'
     const DELIVER_LABEL = '确认并交付'
     const ADJUST_DELIVERY_LABEL = '需要调整'
@@ -222,6 +232,32 @@ window.__ModuleLoader__.load({
       'panel.acceptPause': '暂停任务',
       'panel.deliveryPrimary': '确认并交付',
       'panel.deliverySecondary': '需要调整',
+      'panel.budgetProposalTitle': '预算签约',
+      'panel.budgetProposalHint': '作为乙方提交报价与分解；甲方签约后才开始执行。',
+      'panel.budgetProposalCheck': '我已确认报价、范围与预算分解',
+      'panel.budgetProposalPrimary': '签约并开始',
+      'panel.budgetProposalSecondary': '要求调整',
+      'panel.budgetReviewTitle': '预算使用',
+      'panel.budgetReviewHint': '审核本阶段预算使用；批准追加后可继续下一里程碑。',
+      'panel.budgetReviewCheck': '我已核对本阶段预算使用',
+      'panel.budgetReviewPrimary': '批准并继续',
+      'panel.budgetReviewSecondary': '要求调整',
+      'panel.budgetReviewTertiary': '不追加，继续',
+      'panel.budgetSettlementTitle': '预算结算',
+      'panel.budgetSettlementHint': '审核实际使用与差额，并评价本次预算是否合理。',
+      'panel.budgetSettlementCheck': '我已确认本次预算结算',
+      'panel.budgetSettlementPrimary': '满意',
+      'panel.budgetSettlementSecondary': '一般',
+      'panel.budgetSettlementTertiary': '不满意',
+      'panel.budgetPause': '暂停任务',
+      'panel.budgetAdjustTitle': '预算调整说明',
+      'panel.budgetAdjustHint': '说明哪里需要调整、希望的目标金额或分解；乙方会按此重新报价。',
+      'panel.budgetAdjustSubmit': '提交预算调整',
+      'panel.budgetAdjustCancel': '取消',
+      'panel.budgetAdjustPlaceholder': '例如：实现部分压缩到 40 预算点，测试保留 10。',
+      'panel.budgetSettlementReasonTitle': '预算评价说明',
+      'panel.budgetSettlementReasonHint': '说明评价“一般”的原因；这会写入预算标准。',
+      'panel.budgetSettlementPlaceholder': '例如：报价偏高，实际只用了约一半；说明不够细。',
       'panel.reworkTitle': '返修说明',
       'panel.reworkHint': '请说明哪里不通过、希望怎么改；模型会以此为依据修改。',
       'panel.reworkSubmit': '提交返修说明',
@@ -300,6 +336,7 @@ window.__ModuleLoader__.load({
       'settings.fileLedger': '台账',
       'settings.fileRetrospective': '复盘分析',
       'settings.fileQuality': '质量标准',
+      'settings.fileBudget': '预算标准',
       'settings.openLocation': '打开所在位置',
       'settings.openFailed': '无法打开文件位置；文件可能尚未生成。',
       'settings.autoRetrospective': '自动复盘',
@@ -351,6 +388,32 @@ window.__ModuleLoader__.load({
       'panel.acceptPause': 'Pause task',
       'panel.deliveryPrimary': 'Confirm and deliver',
       'panel.deliverySecondary': 'Needs adjustment',
+      'panel.budgetProposalTitle': 'Budget sign-off',
+      'panel.budgetProposalHint': 'Quote and breakdown from the contractor; execution starts after the client signs.',
+      'panel.budgetProposalCheck': 'I confirm the quote, scope, and budget breakdown',
+      'panel.budgetProposalPrimary': 'Sign and start',
+      'panel.budgetProposalSecondary': 'Request changes',
+      'panel.budgetReviewTitle': 'Budget usage',
+      'panel.budgetReviewHint': 'Review this stage; approving an extra budget unlocks the next milestone.',
+      'panel.budgetReviewCheck': 'I have checked this stage budget',
+      'panel.budgetReviewPrimary': 'Approve and continue',
+      'panel.budgetReviewSecondary': 'Request changes',
+      'panel.budgetReviewTertiary': 'No extra, continue',
+      'panel.budgetSettlementTitle': 'Budget settlement',
+      'panel.budgetSettlementHint': 'Review actual usage and variance, then rate whether the budget was reasonable.',
+      'panel.budgetSettlementCheck': 'I confirm this budget settlement',
+      'panel.budgetSettlementPrimary': 'Satisfied',
+      'panel.budgetSettlementSecondary': 'Neutral',
+      'panel.budgetSettlementTertiary': 'Unsatisfied',
+      'panel.budgetPause': 'Pause task',
+      'panel.budgetAdjustTitle': 'Budget adjustment notes',
+      'panel.budgetAdjustHint': 'Say what should change and the target amount or breakdown; the contractor will re-quote.',
+      'panel.budgetAdjustSubmit': 'Submit budget changes',
+      'panel.budgetAdjustCancel': 'Cancel',
+      'panel.budgetAdjustPlaceholder': 'Example: reduce implementation to 40 points and keep 10 for tests.',
+      'panel.budgetSettlementReasonTitle': 'Budget rating notes',
+      'panel.budgetSettlementReasonHint': 'Explain a neutral rating; this feeds the budget standard.',
+      'panel.budgetSettlementPlaceholder': 'Example: the quote was high; actual usage was about half and the breakdown was vague.',
       'panel.reworkTitle': 'Rework notes',
       'panel.reworkHint': 'Say what failed and what should change; the model will use this to revise.',
       'panel.reworkSubmit': 'Submit rework notes',
@@ -429,6 +492,7 @@ window.__ModuleLoader__.load({
       'settings.fileLedger': 'Ledger',
       'settings.fileRetrospective': 'Retrospective',
       'settings.fileQuality': 'Quality standard',
+      'settings.fileBudget': 'Budget standard',
       'settings.openLocation': 'Open file location',
       'settings.openFailed': 'Could not open the file location; the file may not exist yet.',
       'settings.autoRetrospective': 'Auto retrospective',
@@ -1300,6 +1364,23 @@ window.__ModuleLoader__.load({
           })
         }
 
+        const submitTertiary = () => {
+          if (busy) return
+          if (typeof pending.takeTime === 'function') pending.takeTime()
+          setBusy(true)
+          setError('')
+          pending.answer({
+            answers: [{
+              id: config.id,
+              selected: [config.tertiaryLabel],
+              ...notes.trim() === '' ? {} : { custom: notes.trim() },
+            }],
+          }).catch(() => {
+            setError(t('panel.failed'))
+            setBusy(false)
+          })
+        }
+
         const report = React.createElement(ModalShell, null, PanelShell({
           t,
           title: t(config.titleKey),
@@ -1334,6 +1415,12 @@ window.__ModuleLoader__.load({
               disabled: busy,
               onClick: openReason,
             }, t(config.secondaryKey)),
+            config.tertiaryLabel === undefined ? null : React.createElement(RippleButton, {
+              key: 'tertiary',
+              className: 'ic-btn ic-btn-ghost',
+              disabled: busy,
+              onClick: submitTertiary,
+            }, t(config.tertiaryKey)),
             config.pauseLabel === undefined ? null : React.createElement(RippleButton, {
               key: 'pause',
               className: 'ic-btn ic-btn-ghost',
@@ -1425,11 +1512,67 @@ window.__ModuleLoader__.load({
         reasonCancelKey: 'panel.adjustCancel',
         reasonPlaceholderKey: 'panel.adjustPlaceholder',
       })
+      const BudgetProposalPanel = createReportPanel(ctx, {
+        id: BUDGET_PROPOSAL_ID,
+        titleKey: 'panel.budgetProposalTitle',
+        hintKey: 'panel.budgetProposalHint',
+        checkKey: 'panel.budgetProposalCheck',
+        primaryKey: 'panel.budgetProposalPrimary',
+        secondaryKey: 'panel.budgetProposalSecondary',
+        approveLabel: SIGN_BUDGET_LABEL,
+        secondaryLabel: ADJUST_BUDGET_LABEL,
+        pauseLabel: ACCEPT_PAUSE_LABEL,
+        pauseKey: 'panel.budgetPause',
+        reasonTitleKey: 'panel.budgetAdjustTitle',
+        reasonHintKey: 'panel.budgetAdjustHint',
+        reasonSubmitKey: 'panel.budgetAdjustSubmit',
+        reasonCancelKey: 'panel.budgetAdjustCancel',
+        reasonPlaceholderKey: 'panel.budgetAdjustPlaceholder',
+      })
+      const BudgetReviewPanel = createReportPanel(ctx, {
+        id: BUDGET_REVIEW_ID,
+        titleKey: 'panel.budgetReviewTitle',
+        hintKey: 'panel.budgetReviewHint',
+        checkKey: 'panel.budgetReviewCheck',
+        primaryKey: 'panel.budgetReviewPrimary',
+        secondaryKey: 'panel.budgetReviewSecondary',
+        tertiaryKey: 'panel.budgetReviewTertiary',
+        tertiaryLabel: DENY_BUDGET_LABEL,
+        approveLabel: APPROVE_BUDGET_LABEL,
+        secondaryLabel: ADJUST_BUDGET_LABEL,
+        pauseLabel: ACCEPT_PAUSE_LABEL,
+        pauseKey: 'panel.budgetPause',
+        reasonTitleKey: 'panel.budgetAdjustTitle',
+        reasonHintKey: 'panel.budgetAdjustHint',
+        reasonSubmitKey: 'panel.budgetAdjustSubmit',
+        reasonCancelKey: 'panel.budgetAdjustCancel',
+        reasonPlaceholderKey: 'panel.budgetAdjustPlaceholder',
+      })
+      const BudgetSettlementPanel = createReportPanel(ctx, {
+        id: BUDGET_SETTLEMENT_ID,
+        titleKey: 'panel.budgetSettlementTitle',
+        hintKey: 'panel.budgetSettlementHint',
+        checkKey: 'panel.budgetSettlementCheck',
+        primaryKey: 'panel.budgetSettlementPrimary',
+        secondaryKey: 'panel.budgetSettlementSecondary',
+        tertiaryKey: 'panel.budgetSettlementTertiary',
+        tertiaryLabel: DISSATISFIED_BUDGET_LABEL,
+        approveLabel: SATISFIED_BUDGET_LABEL,
+        secondaryLabel: NEUTRAL_BUDGET_LABEL,
+        reasonTitleKey: 'panel.budgetSettlementReasonTitle',
+        reasonHintKey: 'panel.budgetSettlementReasonHint',
+        reasonSubmitKey: 'panel.budgetAdjustSubmit',
+        reasonCancelKey: 'panel.budgetAdjustCancel',
+        reasonPlaceholderKey: 'panel.budgetSettlementPlaceholder',
+      })
       return function InfoCheckerPanel(props) {
         const matched = props.matched
         if (matched.kind === 'intent') return React.createElement(IntentPanel, { pending: matched.pending })
         if (matched.kind === 'milestone') return React.createElement(MilestonePanel, { pending: matched.pending })
+        if (matched.kind === 'budget-proposal') return React.createElement(BudgetProposalPanel, { pending: matched.pending, sessionId: props.sessionId })
         if (matched.kind === 'accept') return React.createElement(AcceptPanel, { pending: matched.pending, sessionId: props.sessionId })
+        if (matched.kind === 'budget-review') return React.createElement(BudgetReviewPanel, { pending: matched.pending, sessionId: props.sessionId })
+        if (matched.kind === 'budget-settlement') return React.createElement(BudgetSettlementPanel, { pending: matched.pending, sessionId: props.sessionId })
         return React.createElement(DeliveryPanel, { pending: matched.pending, sessionId: props.sessionId })
       }
     }
@@ -1672,6 +1815,7 @@ window.__ModuleLoader__.load({
           ['ledger', t('settings.fileLedger'), ledgerPath],
           ['retrospectives', t('settings.fileRetrospective'), `${assetBase}${separator}retrospectives.md`],
           ['quality', t('settings.fileQuality'), `${assetBase}${separator}quality-standard.md`],
+          ['budget', t('settings.fileBudget'), `${assetBase}${separator}budget-standard.md`],
         ]
         const openAsset = (kind) => {
           if (props.sessionId === undefined) {
@@ -2194,7 +2338,10 @@ window.__ModuleLoader__.load({
                   if (question === null || question === undefined) continue
                   if (question.id === BRIEF_ID) return { kind: 'intent', pending: pendingInteraction }
                   if (question.id === MILESTONE_ID) return { kind: 'milestone', pending: pendingInteraction }
+                  if (question.id === BUDGET_PROPOSAL_ID) return { kind: 'budget-proposal', pending: pendingInteraction }
                   if (question.id === ACCEPT_ID) return { kind: 'accept', pending: pendingInteraction }
+                  if (question.id === BUDGET_REVIEW_ID) return { kind: 'budget-review', pending: pendingInteraction }
+                  if (question.id === BUDGET_SETTLEMENT_ID) return { kind: 'budget-settlement', pending: pendingInteraction }
                   if (question.id === DELIVERY_ID) return { kind: 'delivery', pending: pendingInteraction }
                 }
                 return null

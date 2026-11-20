@@ -29,6 +29,10 @@ import { formatSelfCheck, runSelfCheck } from './lib/selfcheck.js'
 import { RetrospectiveStore } from './lib/retrospective-store.js'
 import { hasDeliverableNewer } from './lib/acceptance.js'
 import { applyProgressSafely, createProgressState, normalizeProgress, parseMilestonesFromBrief } from './lib/progress.js'
+import { BudgetStore } from './lib/budget-store.js'
+import {
+  createBudgetProposalTool, createBudgetReviewTool, createBudgetSettlementTool,
+} from './lib/budget-tools.js'
 
 export const inject = ['tools', 'systemPrompt', 'userQuestions', 'workingDirectory', 'sessionProjections', 'agents']
 
@@ -139,26 +143,30 @@ function defaultPolicy(settings) {
   const milestoneRule = milestoneCount === 1
     ? '1 个里程碑'
     : `1–${milestoneCount} 个里程碑（用户偏好 ${milestoneCount} 个）`
-  return `## 需求核对与里程碑确认（dsh-info-check）
+  return `## 工程项目流程（dsh-info-check）
 
-本会话启用了 dsh-info-check。对非平凡任务（会改文件、改 UI、多步骤、需求有歧义，或用户用了“好看 / 优化 / 差不多 / 全部 / 顺便”这类没有验收标准的词），必须遵守以下流程：
+本会话启用了 dsh-info-check。用户是**甲方**，agent 是**乙方**，任务按“任务书 → 预算签约 → 里程碑执行/验收/预算审核 → 交付 → 结算”推进。
 
 用户偏好：希望拆成 ${milestoneCount} 个里程碑；期望程度为 **${EXPECTATION_LABELS[normalizeExpectation(expectation)]}**。按这个标准设计方案、验收和交付确认。
 
-1. 先调用 \`info_check\`：用一段话复述目标；列出 ${minQuestions}–${maxQuestions} 条真正影响结果的**细节**核对问题（每题给选项，推荐项放第一并标注“（推荐）”）；给出可检查的完成标准（quality_bar）、明确的范围外（out_of_scope）、${milestoneRule}（milestones）。每个里程碑必须对应可交付的标志性文件或脚本，并在标题/内容中写清楚；里程碑必须按执行顺序排列，后一个里程碑的文件只能在前一个验收通过后开始修改。所有要点每点单独一行/一段，用 1. 2. 3. 编号，不要挤成一段。第一张卡是**可编辑的核对单**：用户会直接在你的版本上修改、补充，勾选确认后才进入细节选择；返回的 \`edited_brief\` 若与你的版本不同，以 \`edited_brief\` 为准。
+1. **任务书形成**：先调用 \`info_check\`，用一段话复述目标；列出 ${minQuestions}–${maxQuestions} 条真正影响结果的**细节**核对问题（每题给选项，推荐项放第一并标注“（推荐）”）；给出可检查的完成标准（quality_bar）、明确的范围外（out_of_scope）、${milestoneRule}（milestones）。每个里程碑必须对应可交付的标志性文件或脚本，并在标题/内容中写清楚；里程碑必须按执行顺序排列，后一个里程碑的文件只能在前一个验收通过后开始修改。所有要点每点单独一行/一段，用 1. 2. 3. 编号，不要挤成一段。第一张卡是**可编辑的核对单**：用户会直接在你的版本上修改、补充，勾选确认后才进入细节选择；返回的 \`edited_brief\` 若与你的版本不同，以 \`edited_brief\` 为准。
 2. 用户点卡片右上角的 X 表示**跳过**，不是取消任务：工具会返回 confirmed=true / decision=skipped，按 agent 原始版本自动进入下一阶段；不要重新发起确认，也不要停下来等待。
 3. \`confirmed=true\` 后再开工；\`confirmed=false\`（工具明确拒绝或真实失败）时不要执行；需要时按用户的最新说法重新发起核对。
-4. 需求核对确认后，**只调用一次** \`confirm_milestone\`，确认整体执行方案/第一个里程碑（做什么、改哪些文件、怎么验证）；后续里程碑**不再调用** \`confirm_milestone\`，直接执行。方案每一点单独一段并用 1. 2. 3. 编号。卡片顶部会标注 \`dsh-info-check · 里程碑确认\`，方案可编辑；返回的 \`edited_plan\` 若与你的版本不同，以它为准。
+4. **执行方案确认**：需求核对确认后，**只调用一次** \`confirm_milestone\`，确认整体执行方案/第一个里程碑（做什么、改哪些文件、怎么验证）；后续里程碑**不再调用** \`confirm_milestone\`，直接执行。方案每一点单独一段并用 1. 2. 3. 编号。卡片顶部会标注 \`dsh-info-check · 里程碑确认\`，方案可编辑；返回的 \`edited_plan\` 若与你的版本不同，以它为准。
 5. \`confirm_milestone\` 的结果：
    - \`approved\` / \`skipped\` / \`timeout\`：按方案执行（timeout 表示用户 ${timeoutSeconds} 秒未操作，已按约定跳过）。
    - 用户可以在倒计时处点“停止计时”，倒计时停止、浮窗不关闭；等用户修改完再按“按此方案执行”。不要在没有用户确认时继续。
-6. 每完成一个里程碑的文件/脚本后，立即调用 \`accept_milestone\` 验收**当前这一个**里程碑；验收通过后才能开始下一个里程碑。验收必须提交至少一个本里程碑实际新增或修改的文件/脚本（files），且这些文件必须在上一里程碑验收之后有更新；没有新文件变更会被拒绝。验收通过后可以继续在同一轮做下一个里程碑，不需要中断对话；但下一个里程碑的文件必须在这次验收之后才开始修改。里程碑计划确认后，数量在任务结束前锁定，不能增加或减少。
-6a. 如果 \`accept_milestone\` 返回 \`decision=paused\`，立即停止当前任务：整理已完成内容、当前进度、未完成/风险和相关文件路径，然后结束当前任务（不再等待继续）；不要进入下一里程碑，也不要调用 \`confirm_delivery\`。
-7. 任务明显简单且无歧义（单文件小改、用户已给出完整规格）时，说明假设后直接做，不必走流程。
-8. 不要手动修改 \`.dsh-info-check/ledger.md\`；插件会自动记录每次选择。需要补充执行说明时，写在最终答复里。
-9. 子代理不要调用 \`info_check\` / \`confirm_milestone\` / \`accept_milestone\` / \`confirm_delivery\`；把需要用户决定的问题写进最终结果。
-10. 验收返回 \`rework\` 时，按 feedback（用户在“返修说明”浮窗里填写的理由）修改，然后再次调用 \`accept_milestone\`；不要忽略理由，也不要直接进入下一个里程碑。
-11. 准备交付最终结果前，调用 \`confirm_delivery\`，写明完成程度、交付内容、未完成/限制和验证（每点单独一行，界面会编号）；用户确认或超时后再交付。返回 \`adjust\` 时，按 feedback（用户在“调整说明”浮窗里填写的理由）修改后再确认交付。
+6. **预算签约**：方案确认后、开始执行前，必须调用 \`confirm_budget\` 向甲方报价（整数预算点 + 预算分解 + 假设/风险）。甲方签约、要求调整或暂停；要求调整时按 feedback 修改后再次报价，直到签约。**预算未签约时不得开始执行、不得调用 \`accept_milestone\`。**
+7. **里程碑执行与验收**：每完成一个里程碑的文件/脚本后，立即调用 \`accept_milestone\` 验收**当前这一个**里程碑；验收必须提交至少一个本里程碑实际新增或修改的文件/脚本（files），且必须在上一里程碑验收之后更新。验收通过后可以继续同一轮，不需要中断对话；但下一个里程碑的文件必须在这之后修改。计划确认后里程碑数量锁定。
+8. **预算审核**：验收通过后、进入下一里程碑前，必须调用 \`review_budget\`，提交累计已用、本阶段使用、追加请求和超支说明。甲方批准追加、不追加、要求调整或暂停；审核完成前不能提交下一里程碑验收。
+9. 如果验收或预算审核返回 \`decision=paused\`，立即停止当前任务：整理进度、未完成项/风险和相关文件路径，结束任务；不进入下一里程碑，也不调用 \`confirm_delivery\`。
+10. 任务明显简单且无歧义（单文件小改、用户已给出完整规格）时，说明假设后直接做，不必走完整流程；但成本仍要报告。
+11. 不要手动修改 \`.dsh-info-check/ledger.md\`；插件会自动记录每次选择。子代理不要调用这些确认工具；把需要用户决定的问题写进最终结果。
+12. 验收返回 \`rework\` 时按 feedback 修改后再次验收；预算审核返回 \`adjust\` 时按 feedback 修改后再次审核。
+13. **交付确认**：准备交付最终结果前，调用 \`confirm_delivery\`，写明完成程度、交付内容、未完成/限制和验证；用户确认或超时后再交付。返回 \`adjust\` 时按 feedback 修改后再确认。
+14. **预算结算**：交付确认后调用 \`settle_budget\`，提交实际使用、说明和差额；甲方评价预算是否合理，结算结果写入台账和预算标准。
+
+质量管理看任务书和验收证据；成本管理看预算签约、每阶段使用和结算。报价要覆盖已承诺范围，不把未承诺工作算进去；追加必须经甲方批准。
 
 完成标准示例：不要写“好看”，要写“与现有按钮使用同一套间距与颜色 token；hover / disabled / loading 三态可辨；暗色模式不破版”。
 `
@@ -365,12 +373,12 @@ function infoCheckQuestion(detail) {
   }
 }
 
-function createInfoCheckTool({ ctx, enabledFor, getMaxQuestions, ledger }) {
+function createInfoCheckTool({ ctx, enabledFor, getMaxQuestions, ledger, budgetStore }) {
   return {
     name: 'info_check',
-    description: '在开始实质性执行前，向用户确认意图。提交目标理解、细节核对问题、可检查的完成标准、范围外和里程碑。'
+    description: '作为乙方形成任务书：在开始实质性执行前，向甲方复述目标理解，提出细节核对问题、完成标准、范围外和里程碑。'
       + '所有要点每点单独一行/一段，并用 1. 2. 3. 编号；不要挤成一段。'
-      + '第一张卡是可编辑的核对单：用户会直接在你的版本上修改、补充，勾选后才进入细节选择。'
+      + '第一张卡是可编辑的任务书：甲方会直接在你的版本上修改、补充，勾选后才进入细节选择。'
       + '返回 confirmed=true 时，若 edited_brief 与你的版本不同，以 edited_brief 为准；confirmed=false 时不要直接执行。',
     parameters: {
       type: 'object',
@@ -487,6 +495,7 @@ function createInfoCheckTool({ ctx, enabledFor, getMaxQuestions, ledger }) {
           answers: [],
         }))
         await ledger.startTask(agent.session)
+        await budgetStore.begin(agent.session)
         ledger.setPlan(agent.session, brief.milestones.map(item => item.id))
         return { confirmed: true, reason: 'skipped', edited_brief: detail, answers: [] }
       }
@@ -504,6 +513,7 @@ function createInfoCheckTool({ ctx, enabledFor, getMaxQuestions, ledger }) {
         answers: outcome.answers,
       }))
       await ledger.startTask(agent.session)
+      await budgetStore.begin(agent.session)
       const editedMilestones = parseMilestonesFromBrief(outcome.editedBrief)
       ledger.setPlan(agent.session, (editedMilestones.length > 0 ? editedMilestones : brief.milestones).map(item => item.id))
       return {
@@ -518,7 +528,7 @@ function createInfoCheckTool({ ctx, enabledFor, getMaxQuestions, ledger }) {
         const brief = validateInfoCheck(args, getMaxQuestions())
         return {
           card: 'generic',
-          title: 'dsh-info-check · 需求核对单',
+          title: 'dsh-info-check · 任务书',
           kind: 'other',
           content: [{ type: 'text', text: briefMarkdown(brief) }],
         }
@@ -527,7 +537,7 @@ function createInfoCheckTool({ ctx, enabledFor, getMaxQuestions, ledger }) {
       }
     },
     presentResult(_args, result) {
-      return { card: 'generic', title: 'dsh-info-check · 需求核对', content: result.content }
+      return { card: 'generic', title: 'dsh-info-check · 任务书', content: result.content }
     },
   }
 }
@@ -637,7 +647,7 @@ function createMilestoneTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
   }
 }
 
-function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger, getSupervisionMode }) {
+function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger, getSupervisionMode, budgetStore }) {
   return {
     name: 'accept_milestone',
     description: '在一个里程碑完成后，向用户验收：提交完成内容、验证证据、未完成或风险；用户验收通过（或倒计时结束）后再进入下一个里程碑。'
@@ -684,6 +694,13 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger, getSuper
       if (agent === undefined) throw new Error('accept_milestone requires a live agent')
       if (!enabledFor(agent.session)) throw new Error('dsh-info-check is disabled for this conversation')
       const acceptance = validateAcceptance(args)
+      const budget = await budgetStore.load(agent.session)
+      if (budget === undefined || !budget.state.signed) {
+        throw new Error('dsh-info-check: 尚未完成预算签约。先用 confirm_budget 提出初始预算，由甲方签约后再执行与验收。')
+      }
+      if (budget.state.pendingReview !== null) {
+        throw new Error(`dsh-info-check: 里程碑「${budget.state.pendingReview}」验收后还没有完成预算审核。先调用 review_budget，再进入下一阶段。`)
+      }
       const plan = ledger.planOf(agent.session)
       if (Array.isArray(plan) && !plan.includes(acceptance.milestone)) {
         throw new Error(`dsh-info-check: 里程碑「${acceptance.milestone}」不在已确认的计划中；任务结束前里程碑数量不能增减。`)
@@ -739,6 +756,7 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger, getSuper
           type: 'acceptance', decision: 'timeout', milestone: acceptance.milestone,
         })
         ledger.recordAcceptance(agent.session, turn, acceptance.milestone, Date.now())
+        await budgetStore.markPending(agent.session, acceptance.milestone)
         return { decision: 'timeout', proceed: true }
       }
       const outcome = acceptanceOutcome(result.answers[0])
@@ -754,6 +772,7 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger, getSuper
         ...(outcome.notes === undefined ? {} : { notes: outcome.notes }),
       })
       ledger.recordAcceptance(agent.session, turn, acceptance.milestone, Date.now())
+      if (outcome.proceed) await budgetStore.markPending(agent.session, acceptance.milestone)
       return {
         decision: outcome.decision,
         proceed: outcome.proceed,
@@ -931,6 +950,10 @@ export function apply(ctx, config = {}) {
     const settings = currentSettings()
     return { enabled: settings.ledgerEnabled, path: settings.ledgerPath }
   })
+  const budgetStore = new BudgetStore(ctx, () => {
+    const settings = currentSettings()
+    return { enabled: settings.ledgerEnabled, path: settings.ledgerPath }
+  })
 
   const reviewAfterDelivery = async (agent, exec) => {
     const settings = currentSettings()
@@ -1032,8 +1055,8 @@ export function apply(ctx, config = {}) {
     commandCtx.commands.register({
       definitionId: 'dsh-info-check',
       name: 'dsh-info-check',
-      description: 'Turn dsh-info-check on or off, report status, self-check, run a retrospective, show the quality standard, or open a result file location',
-      input: { hint: '[on|off|reset|status|selfcheck|retrospective|quality [rebuild]|open <absolute path>]' },
+      description: 'Turn dsh-info-check on or off, report status, self-check, run a retrospective, show the quality or budget standard, or open a result file location',
+      input: { hint: '[on|off|reset|status|selfcheck|retrospective|quality [rebuild]|budget|open <absolute path>]' },
       handler: async ({ agent, rawInput }) => {
         const raw = rawInput.trim()
         const value = raw.toLowerCase()
@@ -1077,7 +1100,13 @@ export function apply(ctx, config = {}) {
             ? { kind: 'success', text: '当前还没有用户工作质量标准；每完成 3 次任务后自动生成。' }
             : { kind: 'success', text: quality }
         }
-        if (value === 'open ledger' || value === 'open retrospectives' || value === 'open quality') {
+        if (value === 'budget') {
+          const budget = agent === undefined ? '' : budgetStore.standardFor(agent.session)
+          return budget === ''
+            ? { kind: 'success', text: '当前还没有用户预算标准；每完成 3 次预算结算后自动生成。' }
+            : { kind: 'success', text: budget }
+        }
+        if (value === 'open ledger' || value === 'open retrospectives' || value === 'open quality' || value === 'open budget') {
           if (agent === undefined) return { kind: 'error', text: '文件位置需要一个活跃对话。' }
           try {
             const settings = currentSettings()
@@ -1085,7 +1114,9 @@ export function apply(ctx, config = {}) {
             const ledgerFull = isAbsolute(settings.ledgerPath) ? resolve(settings.ledgerPath) : resolve(cwd, settings.ledgerPath)
             const target = value === 'open ledger'
               ? ledgerFull
-              : join(dirname(ledgerFull), value === 'open retrospectives' ? 'retrospectives.md' : 'quality-standard.md')
+              : join(dirname(ledgerFull), value === 'open retrospectives'
+                ? 'retrospectives.md'
+                : value === 'open quality' ? 'quality-standard.md' : 'budget-standard.md')
             if (!existsSync(target)) {
               return { kind: 'error', text: `文件尚未生成：${target}` }
             }
@@ -1162,24 +1193,32 @@ export function apply(ctx, config = {}) {
       if (agent === undefined) return defaultPolicy(currentSettings())
       if (!enabledFor(agent.session)) return ''
       const quality = retrospective.standardFor(agent.session)
+      const budget = budgetStore.standardFor(agent.session)
       const policy = defaultPolicy(currentSettings())
-      return quality === ''
-        ? policy
-        : `${policy}\n\n## 用户工作质量标准（来自本地台账复盘）\n\n${quality}`
+      const qualitySection = quality === ''
+        ? ''
+        : `\n\n## 用户工作质量标准（来自本地台账复盘）\n\n${quality}`
+      const budgetSection = budget === ''
+        ? ''
+        : `\n\n## 用户预算标准（来自本地预算结算）\n\n${budget}`
+      return `${policy}${qualitySection}${budgetSection}`
     },
   }), 'dsh-info-check: policy')
 
   const definitions = [
-    createInfoCheckTool({ ctx, enabledFor, getMaxQuestions: () => currentSettings().maxQuestions, ledger }),
+    createInfoCheckTool({ ctx, enabledFor, getMaxQuestions: () => currentSettings().maxQuestions, ledger, budgetStore }),
     createMilestoneTool({ ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger }),
+    createBudgetProposalTool({ ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger, budgetStore }),
     createAcceptTool({
       ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger,
-      getSupervisionMode: () => currentSettings().supervisionMode,
+      getSupervisionMode: () => currentSettings().supervisionMode, budgetStore,
     }),
+    createBudgetReviewTool({ ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger, budgetStore }),
     createDeliveryTool({
       ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger,
       onDeliveryConfirmed: reviewAfterDelivery,
     }),
+    createBudgetSettlementTool({ ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger, budgetStore }),
   ]
   for (const definition of definitions) {
     ctx.effect(

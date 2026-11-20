@@ -1,6 +1,6 @@
 <h1><img src="icon.svg" alt="dsh-info-check 图标" width="36" height="36" align="middle" /> dsh-info-check</h1>
 
-[![版本](https://img.shields.io/badge/%E7%89%88%E6%9C%AC-0.2.2-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/pykkkkk/dsh-info-check/releases)
+[![版本](https://img.shields.io/badge/%E7%89%88%E6%9C%AC-0.3.0-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/pykkkkk/dsh-info-check/releases)
 [![DSH 版本](https://img.shields.io/badge/DSH%E7%89%88%E6%9C%AC-0.2.2--rc.3-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/deepseek-ai/deepseek-harness)
 [![许可证](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF%E8%AF%81-MIT-4D6BFE?style=flat-square&labelColor=1F1F1F)](LICENSE)
 
@@ -45,7 +45,7 @@ dsh-info-check
 也可以使用 npm：
 
 ```sh
-npm install dsh-info-check@0.2.2
+npm install dsh-info-check@0.3.0
 ```
 
 安装后刷新页面。标题旁会出现一个带下划线的 **需求核对** 开关。
@@ -65,6 +65,18 @@ node scripts/minimal-test.mjs
 ```sh
 node scripts/self-check.mjs
 ```
+
+## 工程项目流程
+
+把一次任务当成一份小型工程合同：
+
+1. **任务书**：agent 复述目标、质量要求、范围外和里程碑，用户审核修改。
+2. **预算签约**：agent 报价并拆分预算，用户审核、还价、签约。
+3. **执行与验收**：完成一个里程碑，验收当前阶段。
+4. **预算审核**：查看累计使用、剩余和追加请求，决定是否追加，然后进入下一阶段。
+5. **交付与结算**：确认交付，再评价预算使用；台账沉淀质量标准和预算标准。
+
+完整流程图和阶段说明见 **[docs/FLOW.md](docs/FLOW.md)**。
 
 ## 它会在什么时候出现
 
@@ -119,7 +131,7 @@ node scripts/self-check.mjs
 - 是否自动复盘；
 - 监督方式：严格门禁 / 仅提醒；
 - 质量标准：自己填写质量要求，保存后写入 `.dsh-info-check/quality-standard.md`；
-- 文件位置：直接打开台账、复盘分析和质量标准的所在位置。
+- 文件位置：直接打开台账、复盘分析、质量标准和预算标准的所在位置。
 
 改动会立即生效，不需要重启。
 
@@ -141,6 +153,8 @@ node scripts/self-check.mjs
 默认自动复盘。在设置里关闭“自动复盘”后，交付时会询问你是否将本次工作加入复盘。
 
 每完成 3 次任务，插件会根据累计复盘更新 `.dsh-info-check/quality-standard.md`。这份标准会进入后续任务的提示中，让 agent 更贴近你的验收习惯；标准里的“手工补充”区域会保留你的修改，并限制整体长度。
+
+预算结算也会累计到 `.dsh-info-check/budget-standard.md`，每 3 次结算更新一次，用于后续报价参考；手工补充区域同样保留。
 
 复盘和质量标准都只保存在当前工作区，不会联网或上传。
 
