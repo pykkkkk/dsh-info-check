@@ -8,6 +8,10 @@
 
 [English](README.en.md) | 中文
 
+## 工作路径
+
+[![一次任务，一份工程合同：说清需求、确认任务书、锁定预算、逐个验收、交付结算](docs/screenshots/flow-poster-simple.png)](docs/screenshots/flow-poster-simple.png)
+
 Agent 接到任务后直接进入执行，理解偏差往往到交付时才暴露，返工成本随流程推进上升。
 
 <strong style="color:#4D6BFE">dsh-info-check</strong>将 User 定位为“甲方”、Agent 定位为“乙方”，引入工程项目管理的思想，从质量和预算两方面管理 Agent 的任务执行情况。
