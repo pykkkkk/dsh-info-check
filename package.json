@@ -6,7 +6,7 @@
   },
   "type": "module",
   "main": "./lib/index.js",
-  "description": "DSH confirmation gate: intent check, one plan confirmation, per-milestone acceptance, delivery sign-off, and a workspace ledger.",
+  "description": "DSH engineering-contract workflow: task book, CNY budget sign-off, per-milestone acceptance and budget review, delivery, and settlement.",
   "license": "MIT",
   "author": "pykkkkk (Wenhao Liu)",
   "repository": {
@@ -50,6 +50,7 @@
     "scripts",
     "README.md",
     "README.en.md",
+    "screenshots.json",
     "LICENSE",
     "CHANGELOG.md",
     "icon.svg"
