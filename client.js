@@ -252,6 +252,7 @@ window.__ModuleLoader__.load({
       'panel.budgetReviewHint': '审核本阶段预算使用；选择是否追加预算，批准后可继续下一里程碑。',
       'panel.budgetReviewText': '预算使用说明',
       'panel.budgetReviewSpent': '累计已用',
+      'panel.budgetReviewInitial': '初始预算',
       'panel.budgetReviewChoice': '是否追加预算？',
       'panel.budgetReviewNoExtra': '不追加预算',
       'panel.budgetReviewExtra': '追加预算',
@@ -436,6 +437,7 @@ window.__ModuleLoader__.load({
       'panel.budgetReviewHint': 'Review this stage and choose whether to add budget; approval unlocks the next milestone.',
       'panel.budgetReviewText': 'Budget usage notes',
       'panel.budgetReviewSpent': 'Used so far',
+      'panel.budgetReviewInitial': 'Initial budget',
       'panel.budgetReviewChoice': 'Add budget?',
       'panel.budgetReviewNoExtra': 'No extra budget',
       'panel.budgetReviewExtra': 'Add budget',
@@ -1762,13 +1764,33 @@ window.__ModuleLoader__.load({
         }
 
         const children = React.createElement(React.Fragment, null,
-          React.createElement('textarea', {
-            readOnly: true,
-            className: 'ic-readbox',
-            style: { minHeight: '120px', width: '100%', resize: 'vertical', marginBottom: '12px' },
-            value: question?.detail ?? '',
-            'aria-label': t('panel.budgetReviewText'),
-          }),
+          React.createElement('div', {
+            style: { border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', marginBottom: '12px' },
+          },
+          (Array.isArray(data.rows) && data.rows.length > 0
+            ? data.rows
+            : String(question?.detail ?? '').split('\n').filter(line => line.trim() !== '').map(line => {
+              const match = /^([^：:]{1,40})[：:]\s*(.*)$/.exec(line.trim())
+              return match === null ? { label: line.trim(), value: '' } : { label: match[1], value: match[2] }
+            })).map((row, index) => React.createElement('div', {
+            key: `${row.label}-${index}`,
+            style: { display: 'grid', gridTemplateColumns: 'minmax(120px, 38%) 1fr', borderBottom: index === (data.rows?.length ?? 0) - 1 ? 'none' : '1px solid #f1f5f9' },
+          },
+          React.createElement('div', {
+            style: { padding: '7px 10px', background: '#f8fafc', color: '#64748b', fontSize: '11px', borderRight: '1px solid #f1f5f9' },
+          }, row.label),
+          React.createElement('div', {
+            style: { padding: '7px 10px', color: '#334155', fontSize: '12px', fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontWeight: 600 },
+          }, row.value)))),
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' } },
+            React.createElement('span', { style: { fontSize: '12px', fontWeight: 700, color: '#334155' } }, t('panel.budgetReviewInitial')),
+            React.createElement('span', { style: { fontSize: '12px', color: '#64748b' } }, '¥'),
+            React.createElement('input', {
+              type: 'number', min: 0, step: 0.01, className: 'ic-input',
+              style: { width: '130px', height: '30px', padding: '0 8px', textAlign: 'right', background: '#f8fafc', color: '#64748b' },
+              value: data.initialBudget ?? 0, disabled: true, readOnly: true,
+            }),
+            React.createElement('span', { style: { fontSize: '11px', color: '#94a3b8' } }, 'CNY')),
           React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' } },
             React.createElement('span', { style: { fontSize: '12px', fontWeight: 700, color: '#334155' } }, t('panel.budgetReviewSpent')),
             React.createElement('span', { style: { fontSize: '12px', color: '#64748b' } }, '¥'),

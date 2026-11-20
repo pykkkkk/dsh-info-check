@@ -15,8 +15,9 @@ pinned by `engines.dsh`.
   content-only milestone inputs, direct numeric editing, and inline validation
   that the milestone sum cannot exceed the total. The remainder is shown as
   reserve budget.
-- Budget usage uses a text display and a numeric CNY display; adding budget is
-  a choice inside the card, with the amount input shown only when selected.
+- Budget usage uses a line-by-line text/data grid and shows the milestone's
+  initial budget directly above cumulative spend; adding budget is a choice
+  inside the card, with the amount input shown only when selected.
 - Budget settlement is a financial-report table.
 - Budget amounts are CNY; actual usage comes from
   `@kenz1117/dsh-ui-usage-billing` when installed, otherwise from a token-usage
