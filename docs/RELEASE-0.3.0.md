@@ -25,4 +25,4 @@
 npm install dsh-info-check@0.3.0
 ```
 
-适用于 DSH `0.2.x`，验证版本 `0.2.2-rc.3`。
+适用于 DSH `0.2.x`，验证版本 `0.2.2-rc.5`。

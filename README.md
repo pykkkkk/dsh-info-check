@@ -1,7 +1,7 @@
 <h1><img src="icon.svg" alt="dsh-info-check 图标" width="36" height="36" align="middle" /> dsh-info-check</h1>
 
 [![版本](https://img.shields.io/badge/%E7%89%88%E6%9C%AC-0.3.0-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/pykkkkk/dsh-info-check/releases)
-[![DSH 版本](https://img.shields.io/badge/DSH%E7%89%88%E6%9C%AC-0.2.2--rc.3-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/deepseek-ai/deepseek-harness)
+[![DSH 版本](https://img.shields.io/badge/DSH%E7%89%88%E6%9C%AC-0.2.2--rc.5-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/deepseek-ai/deepseek-harness)
 [![许可证](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF%E8%AF%81-MIT-4D6BFE?style=flat-square&labelColor=1F1F1F)](LICENSE)
 
 ![dsh-info-check](docs/social-preview.png)
@@ -50,7 +50,7 @@ npm install dsh-info-check@0.3.0
 
 安装后刷新页面。标题旁会出现一个带下划线的 **需求核对** 开关。
 
-适用于 DSH `0.2.x`，当前验证版本为 `0.2.2-rc.3`。
+适用于 DSH `0.2.x`，当前验证版本为 `0.2.2-rc.5`。
 
 ## 安装后检查
 
