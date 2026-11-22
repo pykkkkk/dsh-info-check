@@ -1215,10 +1215,9 @@ export function apply(ctx, config = {}) {
           res.end()
           return
         }
-        let body = { empty: true }
+        let body = { contracts: [] }
         try {
-          const latest = await budgetStore.latest()
-          if (latest !== undefined) body = latest
+          body = { contracts: await budgetStore.contracts() }
         } catch (error) {
           ctx.logger?.warn?.('[dsh-info-check] contract page state failed: %o', error)
         }

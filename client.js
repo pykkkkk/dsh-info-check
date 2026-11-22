@@ -380,6 +380,7 @@ window.__ModuleLoader__.load({
       'contract.loading': '正在读取任务合同…',
       'contract.error': '读取任务合同失败，请稍后重试。',
       'contract.empty': '还没有任务合同。完成一次任务书和预算方案后，这里会显示合同内容。',
+      'contract.unnamed': '未命名任务',
       'contract.taskBook': '任务书',
       'contract.milestone': '里程碑内容',
       'contract.budget': '预算方案',
@@ -587,6 +588,7 @@ window.__ModuleLoader__.load({
       'contract.loading': 'Loading task contract…',
       'contract.error': 'Could not load the task contract. Try again.',
       'contract.empty': 'No task contract yet. Complete a task book and budget plan and it will appear here.',
+      'contract.unnamed': 'Untitled task',
       'contract.taskBook': 'Task book',
       'contract.milestone': 'Milestone content',
       'contract.budget': 'Budget plan',
@@ -2540,6 +2542,18 @@ window.__ModuleLoader__.load({
         .ic-contract-status{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;background:#f0fdf4;color:#0f766e;font-size:11px;font-weight:700;margin-bottom:16px}
         .ic-contract-status.pending{background:#fff7ed;color:#b45309}
         .ic-contract-card{border:1px solid var(--dsw-alias-line,#e2e8f0);border-radius:12px;background:#fff;padding:18px 20px;margin-bottom:16px;box-shadow:0 4px 16px rgba(15,23,42,.04)}
+        .ic-contract-list{display:flex;flex-direction:column;gap:10px}
+        .ic-contract-entry{border:1px solid var(--dsw-alias-line,#e2e8f0);border-radius:12px;background:#fff;box-shadow:0 4px 16px rgba(15,23,42,.04);overflow:hidden}
+        .ic-contract-entry summary{display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;list-style:none;font-size:12px;color:#475569}
+        .ic-contract-entry summary::-webkit-details-marker{display:none}
+        .ic-contract-entry[open] summary{border-bottom:1px solid #f1f5f9;background:#fafbff}
+        .ic-contract-entry-arrow{color:#94a3b8;font-size:16px;transition:transform .15s}
+        .ic-contract-entry[open] .ic-contract-entry-arrow{transform:rotate(90deg)}
+        .ic-contract-entry-title{flex:1 1 auto;min-width:0;font-weight:700;color:#1f2937;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .ic-contract-entry-status{flex:0 0 auto;padding:3px 7px;border-radius:999px;background:#f0fdf4;color:#0f766e;font-size:10px;font-weight:700}
+        .ic-contract-entry-status.pending{background:#fff7ed;color:#b45309}
+        .ic-contract-entry-budget,.ic-contract-entry-date{flex:0 0 auto;color:#64748b;font-variant-numeric:tabular-nums}
+        .ic-contract-entry-body{padding:16px 18px 4px}
         .ic-contract-card h2{font-size:13px;margin:0 0 12px;color:#334155}
         .ic-contract-book{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.75 "Segoe UI","Microsoft YaHei",system-ui,sans-serif;color:#475569}
         .ic-contract-meta{display:flex;gap:18px;color:#64748b;font-size:11px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #f1f5f9}
@@ -2580,13 +2594,11 @@ window.__ModuleLoader__.load({
             window.clearInterval(timer)
           }
         }, [load])
-        const data = state.data !== null && typeof state.data === 'object' && state.data.empty !== true ? state.data : undefined
-        const initial = data?.initial ?? {}
-        const milestones = Array.isArray(initial.milestones) ? initial.milestones : []
-        const total = Number(initial.amount) || 0
-        const extra = Number(data?.extra) || 0
-        const allocated = milestones.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
-        const updated = Number(data?.updatedAt) || 0
+        const contracts = Array.isArray(state.data?.contracts)
+          ? state.data.contracts
+          : state.data !== null && typeof state.data === 'object' && typeof state.data.taskBook === 'string'
+            ? [state.data]
+            : []
         const sectionMap = {
           '我的理解': '项目目标',
           '项目目标': '项目目标',
@@ -2595,14 +2607,80 @@ window.__ModuleLoader__.load({
           '范围外': '范围边界',
           '范围边界': '范围边界',
         }
-        const sections = []
-        const source = typeof data?.taskBook === 'string' ? data.taskBook : ''
-        const matches = [...source.matchAll(/【([^】]+)】([\s\S]*?)(?=【[^】]+】|$)/g)]
-        for (const match of matches) {
-          const label = sectionMap[match[1].trim()]
-          const body = match[2].trim()
-          if (label === undefined || body === '' || match[1].trim() === '里程碑') continue
-          sections.push({ label, body })
+        const parseSections = (taskBook) => {
+          const sections = []
+          const source = typeof taskBook === 'string' ? taskBook : ''
+          const matches = [...source.matchAll(/【([^】]+)】([\s\S]*?)(?=【[^】]+】|$)/g)]
+          for (const match of matches) {
+            const label = sectionMap[match[1].trim()]
+            const body = match[2].trim()
+            if (label === undefined || body === '' || match[1].trim() === '里程碑') continue
+            sections.push({ label, body })
+          }
+          return sections
+        }
+        const titleFor = (contract) => {
+          const sections = parseSections(contract?.taskBook)
+          const goal = sections.find(section => section.label === '项目目标')
+          const firstLine = goal?.body.split('\n').map(line => line.trim()).find(line => line !== '')
+          return firstLine ?? contract?.initial?.milestones?.[0]?.title ?? t('contract.unnamed')
+        }
+        const buildEntry = (contract, index) => {
+          const initial = contract?.initial ?? {}
+          const milestones = Array.isArray(initial.milestones) ? initial.milestones : []
+          const total = Number(initial.amount) || 0
+          const extra = Number(contract?.extra) || 0
+          const allocated = milestones.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+          const updated = Number(contract?.updatedAt) || 0
+          const sections = parseSections(contract?.taskBook)
+          const taskBookCard = React.createElement('section', { className: 'ic-contract-card' },
+            React.createElement('div', { className: 'ic-contract-meta' },
+              React.createElement('span', null, t('contract.client')),
+              React.createElement('span', null, t('contract.contractor'))),
+            sections.length > 0
+              ? sections.map(section => React.createElement('div', { key: section.label, className: 'ic-contract-section' },
+                React.createElement('h3', null, section.label),
+                React.createElement('pre', { className: 'ic-contract-book' }, section.body)))
+              : React.createElement('pre', { className: 'ic-contract-book' }, contract?.taskBook ?? ''),
+            React.createElement('div', { className: 'ic-contract-terms' },
+              React.createElement('h3', null, t('contract.terms')),
+              React.createElement('p', null, `1. ${t('contract.term1')}`),
+              React.createElement('p', null, `2. ${t('contract.term2')}`)))
+          const allocatedRow = React.createElement('tr', null,
+            React.createElement('td', { colSpan: 2 }, t('contract.allocated')),
+            React.createElement('td', null, `¥${allocated.toFixed(2)}`))
+          const budgetTable = React.createElement('table', { className: 'ic-contract-table' },
+            React.createElement('thead', null, React.createElement('tr', null,
+              React.createElement('th', null, 'mNum'),
+              React.createElement('th', null, t('contract.milestone')),
+              React.createElement('th', null, 'CNY'))),
+            React.createElement('tbody', null,
+              milestones.map(item => React.createElement('tr', { key: item.id },
+                React.createElement('td', null, item.id),
+                React.createElement('td', null, item.title),
+                React.createElement('td', null, `¥${(Number(item.amount) || 0).toFixed(2)}`))),
+              allocatedRow))
+          const budgetCard = React.createElement('section', { className: 'ic-contract-card' },
+            React.createElement('h2', null, t('contract.budget')),
+            budgetTable,
+            React.createElement('div', { className: 'ic-contract-summary' },
+              React.createElement('span', null, `${t('contract.total')} ¥${total.toFixed(2)}`),
+              React.createElement('span', null, `${t('contract.reserve')} ¥${(total - allocated).toFixed(2)}`),
+              React.createElement('span', null, `${t('contract.extra')} ¥${extra.toFixed(2)}`)),
+            updated === 0 ? null : React.createElement('div', { style: { marginTop: '10px', fontSize: '11px', color: '#94a3b8' } },
+              `${t('contract.updated')} ${new Date(updated).toLocaleString()}`))
+          return React.createElement('details', {
+            key: contract?.contractId ?? `${contract?.sessionId ?? 'contract'}-${index}`,
+            className: 'ic-contract-entry',
+          },
+          React.createElement('summary', { className: 'ic-contract-entry-summary' },
+            React.createElement('span', { className: 'ic-contract-entry-arrow' }, '›'),
+            React.createElement('span', { className: 'ic-contract-entry-title' }, titleFor(contract)),
+            React.createElement('span', { className: `ic-contract-entry-status${contract?.signed ? '' : ' pending'}` },
+              contract?.signed ? t('contract.signed') : t('contract.unsigned')),
+            React.createElement('span', { className: 'ic-contract-entry-budget' }, `¥${(total + extra).toFixed(2)}`),
+            updated === 0 ? null : React.createElement('span', { className: 'ic-contract-entry-date' }, new Date(updated).toLocaleDateString())),
+          React.createElement('div', { className: 'ic-contract-entry-body' }, taskBookCard, budgetCard))
         }
         const head = React.createElement('div', { className: 'ic-contract-head' },
           React.createElement('div', { className: 'ic-contract-mark' },
@@ -2613,51 +2691,11 @@ window.__ModuleLoader__.load({
             React.createElement('h1', null, t('contract.title')),
             React.createElement('p', null, t('contract.subtitle'))),
           React.createElement('button', { type: 'button', onClick: load }, t('contract.refresh')))
-        const taskBookCard = React.createElement('section', { className: 'ic-contract-card' },
-          React.createElement('div', { className: 'ic-contract-meta' },
-            React.createElement('span', null, t('contract.client')),
-            React.createElement('span', null, t('contract.contractor'))),
-          sections.length > 0
-            ? sections.map(section => React.createElement('div', { key: section.label, className: 'ic-contract-section' },
-              React.createElement('h3', null, section.label),
-              React.createElement('pre', { className: 'ic-contract-book' }, section.body)))
-            : React.createElement('pre', { className: 'ic-contract-book' }, data?.taskBook ?? ''),
-          React.createElement('div', { className: 'ic-contract-terms' },
-            React.createElement('h3', null, t('contract.terms')),
-            React.createElement('p', null, `1. ${t('contract.term1')}`),
-            React.createElement('p', null, `2. ${t('contract.term2')}`)))
-        const allocatedRow = React.createElement('tr', null,
-          React.createElement('td', { colSpan: 2 }, t('contract.allocated')),
-          React.createElement('td', null, `¥${allocated.toFixed(2)}`))
-        const budgetTable = React.createElement('table', { className: 'ic-contract-table' },
-          React.createElement('thead', null, React.createElement('tr', null,
-            React.createElement('th', null, 'mNum'),
-            React.createElement('th', null, t('contract.milestone')),
-            React.createElement('th', null, 'CNY'))),
-          React.createElement('tbody', null,
-            milestones.map(item => React.createElement('tr', { key: item.id },
-              React.createElement('td', null, item.id),
-              React.createElement('td', null, item.title),
-              React.createElement('td', null, `¥${(Number(item.amount) || 0).toFixed(2)}`))),
-            allocatedRow))
-        const budgetCard = React.createElement('section', { className: 'ic-contract-card' },
-          React.createElement('h2', null, t('contract.budget')),
-          budgetTable,
-          React.createElement('div', { className: 'ic-contract-summary' },
-            React.createElement('span', null, `${t('contract.total')} ¥${total.toFixed(2)}`),
-            React.createElement('span', null, `${t('contract.reserve')} ¥${(total - allocated).toFixed(2)}`),
-            React.createElement('span', null, `${t('contract.extra')} ¥${extra.toFixed(2)}`)),
-          updated === 0 ? null : React.createElement('div', { style: { marginTop: '10px', fontSize: '11px', color: '#94a3b8' } },
-            `${t('contract.updated')} ${new Date(updated).toLocaleString()}`))
-        const body = state.loading && data === undefined
+        const body = state.loading && contracts.length === 0
           ? React.createElement('div', { className: 'ic-contract-empty' }, t('contract.loading'))
-          : data === undefined
+          : contracts.length === 0
             ? React.createElement('div', { className: 'ic-contract-empty' }, t('contract.empty'))
-            : React.createElement(React.Fragment, null,
-              React.createElement('div', { className: `ic-contract-status${data.signed ? '' : ' pending'}` },
-                data.signed ? t('contract.signed') : t('contract.unsigned')),
-              taskBookCard,
-              budgetCard)
+            : React.createElement('div', { className: 'ic-contract-list' }, contracts.map(buildEntry))
         return React.createElement('div', { className: 'ic-contract-page' },
           React.createElement('style', null, CSS),
           React.createElement('div', { className: 'ic-contract-inner' },

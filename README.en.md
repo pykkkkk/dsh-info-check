@@ -14,7 +14,7 @@ dsh-info-check adds four confirmation points to the workflow, so you can review 
 
 ## Project contract page
 
-After the budget plan is confirmed, the sidebar gains a **Task contract** entry. The page presents a simplified project contract:
+After the budget plan is confirmed, the sidebar gains a **Task contract** entry. Each task appears as a collapsible item; click it to expand:
 
 - project objective;
 - quality requirements;
@@ -23,7 +23,7 @@ After the budget plan is confirmed, the sidebar gains a **Task contract** entry.
 - acceptance and change terms;
 - whether the budget is signed and the last update time.
 
-It reads the current workspace contract snapshot and refreshes every four seconds.
+Items are sorted by latest update; each task is stored separately and does not overwrite older tasks. The page refreshes every four seconds.
 
 ## Task progress
 
