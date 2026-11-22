@@ -376,6 +376,18 @@ window.__ModuleLoader__.load({
       'contract.title': '任务档案',
       'contract.subtitle': '任务台账详细记录',
       'contract.taskNumber': '任务编号',
+      'archive.tabLedger': '台账',
+      'archive.tabQuality': '质量标准',
+      'archive.tabBudget': '预算标准',
+      'archive.standardHint': '内容直接来自本地 .dsh-info-check 下的 Markdown 文件；保存会写回本地，重新加载会读取本地改动。',
+      'archive.standardReload': '重新加载',
+      'archive.standardSave': '保存到本地',
+      'archive.standardSaving': '保存中…',
+      'archive.standardSaved': '已保存',
+      'archive.standardEmpty': '文件为空。',
+      'archive.standardAutoNote': '自动生成的统计部分可能在复盘/结算后更新；手工补充区会保留。',
+      'archive.qualityTitle': '质量标准',
+      'archive.budgetTitle': '预算标准',
       'contract.search': '搜索任务档案',
       'contract.noMatch': '没有匹配的任务档案。',
       'contract.statsTasks': '任务',
@@ -636,6 +648,18 @@ window.__ModuleLoader__.load({
       'contract.title': 'Task archive',
       'contract.subtitle': 'Detailed task ledger records',
       'contract.taskNumber': 'Task number',
+      'archive.tabLedger': 'Ledger',
+      'archive.tabQuality': 'Quality standard',
+      'archive.tabBudget': 'Budget standard',
+      'archive.standardHint': 'Content comes from the local Markdown file under .dsh-info-check. Save writes it back; Reload reads local edits.',
+      'archive.standardReload': 'Reload',
+      'archive.standardSave': 'Save locally',
+      'archive.standardSaving': 'Saving…',
+      'archive.standardSaved': 'Saved',
+      'archive.standardEmpty': 'The file is empty.',
+      'archive.standardAutoNote': 'Generated statistics may refresh after retrospective/settlement; the manual section is preserved.',
+      'archive.qualityTitle': 'Quality standard',
+      'archive.budgetTitle': 'Budget standard',
       'contract.search': 'Search task archive',
       'contract.noMatch': 'No matching task archive entries.',
       'contract.statsTasks': 'Tasks',
@@ -2651,6 +2675,19 @@ window.__ModuleLoader__.load({
         .ic-contract-head h1{font-size:20px;margin:0 0 3px;letter-spacing:.1px}
         .ic-contract-head p{margin:0;color:var(--dsw-alias-label-secondary,#64748b);font-size:12px}
         .ic-contract-head button{margin-left:auto;height:30px;padding:0 12px;border:1px solid var(--dsw-alias-line,#dfe5ed);border-radius:7px;background:#fff;color:#475569;font:inherit;font-size:12px;cursor:pointer}
+        .ic-archive-tabs{display:flex;gap:6px;margin:0 0 16px;border-bottom:1px solid #e2e8f0}
+        .ic-archive-tab{appearance:none;border:none;background:transparent;padding:9px 13px;color:#64748b;font:inherit;font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+        .ic-archive-tab.active{color:#4D6BFE;border-bottom-color:#4D6BFE}
+        .ic-standard-bar{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+        .ic-standard-bar h2{font-size:14px;margin:0}
+        .ic-standard-file{font-size:10px;color:#94a3b8;font-family:ui-monospace,Consolas,monospace}
+        .ic-standard-bar button{height:28px;padding:0 10px;border:1px solid #dfe5ed;border-radius:7px;background:#fff;color:#475569;font:inherit;font-size:11px;cursor:pointer}
+        .ic-standard-bar button.primary{background:#4D6BFE;border-color:#4D6BFE;color:#fff}
+        .ic-standard-hint{font-size:11px;line-height:1.6;color:#64748b;margin:0 0 10px}
+        .ic-standard-editor{width:100%;min-height:480px;box-sizing:border-box;resize:vertical;border:1px solid #dfe5ed;border-radius:10px;padding:14px 16px;background:#fff;color:#334155;font:12px/1.75 ui-monospace,Consolas,"Microsoft YaHei",monospace;outline:none}
+        .ic-standard-editor:focus{border-color:#9db0ff;box-shadow:0 0 0 3px rgba(77,107,254,.1)}
+        .ic-standard-status{font-size:11px;color:#0f766e;margin-top:8px;min-height:16px}
+        .ic-standard-status.error{color:#dc2626}
         .ic-contract-status{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;background:#f0fdf4;color:#0f766e;font-size:11px;font-weight:700;margin-bottom:16px}
         .ic-contract-status.pending{background:#fff7ed;color:#b45309}
         .ic-contract-card{border:1px solid var(--dsw-alias-line,#e2e8f0);border-radius:12px;background:#fff;padding:18px 20px;margin-bottom:16px;box-shadow:0 4px 16px rgba(15,23,42,.04)}
@@ -2705,6 +2742,49 @@ window.__ModuleLoader__.load({
         const t = ctx.locale.bind(NS)
         const [state, setState] = React.useState({ loading: true, data: undefined, error: '' })
         const [query, setQuery] = React.useState('')
+        const [tab, setTab] = React.useState('ledger')
+        const [standards, setStandards] = React.useState({ loading: true, error: '', quality: undefined, budget: undefined })
+        const [drafts, setDrafts] = React.useState({ quality: '', budget: '' })
+        const [standardStatus, setStandardStatus] = React.useState({ text: '', error: false })
+        const [savingStandard, setSavingStandard] = React.useState('')
+        const standardsLoaded = React.useRef(false)
+        const loadStandards = React.useCallback(async () => {
+          setStandards(previous => ({ ...previous, loading: true, error: '' }))
+          try {
+            const response = await fetch('/dsh-info-check/standards', { cache: 'no-store' })
+            if (!response.ok) throw new Error(`HTTP ${response.status}`)
+            const data = await response.json()
+            standardsLoaded.current = true
+            setStandards({ loading: false, error: '', quality: data.quality, budget: data.budget })
+            setDrafts({ quality: data.quality?.content ?? '', budget: data.budget?.content ?? '' })
+            setStandardStatus({ text: '', error: false })
+          } catch {
+            setStandards(previous => ({ ...previous, loading: false, error: t('contract.error') }))
+          }
+        }, [])
+        React.useEffect(() => {
+          if (tab !== 'ledger' && !standardsLoaded.current) loadStandards()
+        }, [tab, loadStandards])
+        const saveStandard = async (kind) => {
+          setSavingStandard(kind)
+          setStandardStatus({ text: t('archive.standardSaving'), error: false })
+          try {
+            const response = await fetch('/dsh-info-check/standards', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ kind, content: drafts[kind] }),
+            })
+            if (!response.ok) throw new Error(`HTTP ${response.status}`)
+            const data = await response.json()
+            setStandards(previous => ({ ...previous, [kind]: data }))
+            setDrafts(previous => ({ ...previous, [kind]: data.content }))
+            setStandardStatus({ text: `${t('archive.standardSaved')} · ${new Date().toLocaleTimeString()}`, error: false })
+          } catch {
+            setStandardStatus({ text: t('contract.error'), error: true })
+          } finally {
+            setSavingStandard('')
+          }
+        }
         const load = React.useCallback(async () => {
           try {
             const response = await fetch('/dsh-info-check/contract-page', { cache: 'no-store' })
@@ -2963,7 +3043,42 @@ window.__ModuleLoader__.load({
           React.createElement('div', null,
             React.createElement('h1', null, t('contract.title')),
             React.createElement('p', null, t('contract.subtitle'))),
-          React.createElement('button', { type: 'button', onClick: load }, t('contract.refresh')))
+          React.createElement('button', { type: 'button', onClick: tab === 'ledger' ? load : loadStandards }, t('contract.refresh')))
+        const tabs = React.createElement('div', { className: 'ic-archive-tabs' },
+          ...[['ledger', 'archive.tabLedger'], ['quality', 'archive.tabQuality'], ['budget', 'archive.tabBudget']]
+            .map(([id, key]) => React.createElement('button', {
+              key: id,
+              type: 'button',
+              className: `ic-archive-tab${tab === id ? ' active' : ''}`,
+              onClick: () => setTab(id),
+            }, t(key))))
+        const kind = tab === 'quality' ? 'quality' : 'budget'
+        const standard = standards[kind]
+        const standardNode = React.createElement(React.Fragment, null,
+          React.createElement('div', { className: 'ic-standard-bar' },
+            React.createElement('h2', null, t(tab === 'quality' ? 'archive.qualityTitle' : 'archive.budgetTitle')),
+            React.createElement('span', { className: 'ic-standard-file' }, standard?.file ?? (tab === 'quality' ? 'quality-standard.md' : 'budget-standard.md')),
+            standard?.updatedAt ? React.createElement('span', { className: 'ic-standard-file' }, new Date(standard.updatedAt).toLocaleString()) : null,
+            React.createElement('button', { type: 'button', onClick: loadStandards }, t('archive.standardReload')),
+            React.createElement('button', {
+              type: 'button',
+              className: 'primary',
+              disabled: savingStandard !== '' || standards.loading,
+              onClick: () => saveStandard(kind),
+            }, savingStandard === kind ? t('archive.standardSaving') : t('archive.standardSave'))),
+          React.createElement('p', { className: 'ic-standard-hint' }, t('archive.standardHint')),
+          React.createElement('p', { className: 'ic-standard-hint' }, t('archive.standardAutoNote')),
+          standards.error === '' ? null : React.createElement('div', { className: 'ic-contract-error' }, standards.error),
+          standards.loading
+            ? React.createElement('div', { className: 'ic-contract-empty' }, t('contract.loading'))
+            : React.createElement('textarea', {
+              className: 'ic-standard-editor',
+              value: drafts[kind],
+              spellCheck: false,
+              onChange: event => setDrafts(previous => ({ ...previous, [kind]: event.target.value })),
+              placeholder: t('archive.standardEmpty'),
+            }),
+          React.createElement('div', { className: `ic-standard-status${standardStatus.error ? ' error' : ''}` }, standardStatus.text))
         const body = state.loading && contracts.length === 0
           ? React.createElement('div', { className: 'ic-contract-empty' }, t('contract.loading'))
           : contracts.length === 0
@@ -2971,14 +3086,17 @@ window.__ModuleLoader__.load({
             : visibleContracts.length === 0
               ? React.createElement('div', { className: 'ic-contract-empty' }, t('contract.noMatch'))
               : React.createElement('div', { className: 'ic-contract-list' }, visibleContracts.map(buildEntry))
+        const ledgerNode = React.createElement(React.Fragment, null,
+          stats,
+          tools,
+          state.error === '' ? null : React.createElement('div', { className: 'ic-contract-error' }, state.error),
+          body)
         return React.createElement('div', { className: 'ic-contract-page' },
           React.createElement('style', null, CSS),
           React.createElement('div', { className: 'ic-contract-inner' },
             head,
-            stats,
-            tools,
-            state.error === '' ? null : React.createElement('div', { className: 'ic-contract-error' }, state.error),
-            body))
+            tabs,
+            tab === 'ledger' ? ledgerNode : standardNode))
       }
     }
 

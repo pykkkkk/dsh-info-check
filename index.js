@@ -13,9 +13,10 @@
  */
 import { createRequire } from 'node:module'
 import { spawn } from 'node:child_process'
-import { existsSync, statSync } from 'node:fs'
-import { dirname, isAbsolute, join, resolve, sep } from 'node:path'
-import { appendFile, mkdir, readFile } from 'node:fs/promises'
+import { existsSync, readdirSync, statSync } from 'node:fs'
+import { basename, dirname, isAbsolute, join, resolve, sep } from 'node:path'
+import { homedir } from 'node:os'
+import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import {
   ACCEPT_LABEL, ACCEPT_MILESTONE_ID, ADJUST_DELIVERY_LABEL, APPROVE_MILESTONE_LABEL, DELIVER_LABEL,
@@ -1290,6 +1291,118 @@ export function apply(ctx, config = {}) {
         res.end(req.method === 'HEAD' ? undefined : text)
       },
     }), 'dsh-info-check: contract page route')
+
+    webCtx.effect(() => webCtx.webServer.register({
+      kind: 'exact',
+      path: '/dsh-info-check/standards',
+      handler: async (req, res) => {
+        const send = (status, body) => {
+          const text = JSON.stringify(body)
+          res.writeHead(status, {
+            'content-type': 'application/json; charset=utf-8',
+            'cache-control': 'no-store',
+            'content-length': Buffer.byteLength(text),
+          })
+          res.end(req.method === 'HEAD' ? undefined : text)
+        }
+        try {
+          const contract = await budgetStore.latest()
+          const candidates = []
+          const sessionCwd = (() => {
+            const root = join(process.env.DSH_HOME ?? join(homedir(), '.dsh'), 'sessions')
+            if (root === undefined || !existsSync(root) || contract?.sessionId === undefined) return undefined
+            const target = String(contract.sessionId)
+            const stack = [root]
+            while (stack.length > 0) {
+              const current = stack.pop()
+              let entries = []
+              try {
+                entries = readdirSync(current, { withFileTypes: true })
+              } catch {
+                continue
+              }
+              for (const entry of entries) {
+                if (entry.isDirectory()) {
+                  if (entry.name === target) {
+                    const encoded = basename(current).replace(/^--|--$/g, '').replaceAll('~0020', ' ')
+                    const match = /^([A-Za-z])-(.*)$/.exec(encoded)
+                    if (match !== null) return `${match[1]}:\\${match[2].replaceAll('-', '\\')}`
+                  }
+                  stack.push(join(current, entry.name))
+                }
+              }
+            }
+            return undefined
+          })()
+          if (typeof contract?.cwd === 'string' && contract.cwd !== '') candidates.push(join(contract.cwd, '.dsh-info-check'))
+          if (sessionCwd !== undefined) candidates.push(join(sessionCwd, '.dsh-info-check'))
+          for (const directory of ledgerDirs) candidates.push(directory)
+          if (typeof ctx.workingDirectory?.defaultDirectory === 'string' && ctx.workingDirectory.defaultDirectory !== '') {
+            candidates.push(join(ctx.workingDirectory.defaultDirectory, '.dsh-info-check'))
+          }
+          const unique = [...new Set(candidates)]
+          const existing = unique.filter(directory => existsSync(join(directory, 'quality-standard.md'))
+            || existsSync(join(directory, 'budget-standard.md')))
+          const dir = existing.sort((a, b) => {
+            const at = (() => { try { return statSync(join(a, 'quality-standard.md')).mtimeMs } catch { return 0 } })()
+            const bt = (() => { try { return statSync(join(b, 'quality-standard.md')).mtimeMs } catch { return 0 } })()
+            return bt - at
+          })[0] ?? unique[0] ?? join(process.cwd(), '.dsh-info-check')
+          const files = { quality: 'quality-standard.md', budget: 'budget-standard.md' }
+          const readOne = async (kind) => {
+            const path = join(dir, files[kind])
+            let content = ''
+            let updatedAt = 0
+            try {
+              content = await readFile(path, 'utf8')
+              updatedAt = statSync(path).mtimeMs
+            } catch {
+              // A standard may not exist until the first review/settlement.
+            }
+            return { file: files[kind], path, content, updatedAt }
+          }
+          if (req.method === 'GET' || req.method === 'HEAD') {
+            send(200, { directory: dir, quality: await readOne('quality'), budget: await readOne('budget') })
+            return
+          }
+          if (req.method !== 'POST') {
+            res.writeHead(405, { allow: 'GET, HEAD, POST' })
+            res.end()
+            return
+          }
+          const chunks = []
+          let size = 0
+          for await (const chunk of req) {
+            size += chunk.length
+            if (size > 200_000) {
+              send(413, { error: 'standard content is too large' })
+              return
+            }
+            chunks.push(chunk)
+          }
+          let payload
+          try {
+            payload = JSON.parse(Buffer.concat(chunks).toString('utf8'))
+          } catch {
+            send(400, { error: 'invalid JSON' })
+            return
+          }
+          if (payload?.kind !== 'quality' && payload?.kind !== 'budget') {
+            send(400, { error: 'kind must be quality or budget' })
+            return
+          }
+          if (typeof payload.content !== 'string' || payload.content.length > 120_000) {
+            send(400, { error: 'content must be a string under 120000 characters' })
+            return
+          }
+          await mkdir(dir, { recursive: true })
+          await writeFile(join(dir, files[payload.kind]), payload.content, 'utf8')
+          send(200, { ok: true, ...(await readOne(payload.kind)) })
+        } catch (error) {
+          send(500, { error: String(error?.message ?? error) })
+        }
+      },
+    }), 'dsh-info-check: standards route')
   })
 
   const definitions = [

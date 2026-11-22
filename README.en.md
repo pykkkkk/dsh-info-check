@@ -29,6 +29,14 @@ After the budget plan is confirmed, the sidebar gains a **Task archive** entry. 
 
 The header shows total tasks, signed, settled, and total budget, with search by task title, task number, or task-book content. Items are sorted by latest update; each task is stored separately and does not overwrite older tasks. The page refreshes every four seconds.
 
+The task archive has three tabs:
+
+- **Ledger**: the task list, contracts, acceptance records, and settlements above;
+- **Quality standard**: reads and edits `.dsh-info-check/quality-standard.md`;
+- **Budget standard**: reads and edits `.dsh-info-check/budget-standard.md`.
+
+Reload reads the local file; Save locally writes it back to the same Markdown file. Generated statistics may refresh after retrospective/settlement; the manual section is preserved.
+
 ## Budget forecast and live chart
 
 After the task book is confirmed, call `forecast_budget` to estimate tokens with the current model's CNY token prices, then pass the returned forecast to `confirm_budget`. Round 1 without a forecast is rejected. The budget card shows the model, input/output tokens, estimated CNY, confidence band, and assumptions.
