@@ -494,6 +494,7 @@ function createInfoCheckTool({ ctx, enabledFor, getMaxQuestions, ledger, budgetS
         }))
         await ledger.startTask(agent.session)
         await budgetStore.begin(agent.session)
+        await budgetStore.saveTaskBook(agent.session, detail)
         ledger.setPlan(agent.session, brief.milestones.map(item => item.id))
         return { confirmed: true, reason: 'skipped', edited_brief: detail, answers: [] }
       }
@@ -512,6 +513,7 @@ function createInfoCheckTool({ ctx, enabledFor, getMaxQuestions, ledger, budgetS
       }))
       await ledger.startTask(agent.session)
       await budgetStore.begin(agent.session)
+      await budgetStore.saveTaskBook(agent.session, outcome.editedBrief)
       const editedMilestones = parseMilestonesFromBrief(outcome.editedBrief)
       ledger.setPlan(agent.session, (editedMilestones.length > 0 ? editedMilestones : brief.milestones).map(item => item.id))
       return {
@@ -1202,6 +1204,34 @@ export function apply(ctx, config = {}) {
       return `${policy}${qualitySection}${budgetSection}`
     },
   }), 'dsh-info-check: policy')
+
+  ctx.inject(['webServer'], (webCtx) => {
+    webCtx.effect(() => webCtx.webServer.register({
+      kind: 'exact',
+      path: '/dsh-info-check/contract-page',
+      handler: async (req, res) => {
+        if (req.method !== 'GET' && req.method !== 'HEAD') {
+          res.writeHead(405, { allow: 'GET, HEAD' })
+          res.end()
+          return
+        }
+        let body = { empty: true }
+        try {
+          const latest = await budgetStore.latest()
+          if (latest !== undefined) body = latest
+        } catch (error) {
+          ctx.logger?.warn?.('[dsh-info-check] contract page state failed: %o', error)
+        }
+        const text = JSON.stringify(body)
+        res.writeHead(200, {
+          'content-type': 'application/json; charset=utf-8',
+          'cache-control': 'no-store',
+          'content-length': Buffer.byteLength(text),
+        })
+        res.end(req.method === 'HEAD' ? undefined : text)
+      },
+    }), 'dsh-info-check: contract page route')
+  })
 
   const definitions = [
     createInfoCheckTool({ ctx, enabledFor, getMaxQuestions: () => currentSettings().maxQuestions, ledger, budgetStore }),

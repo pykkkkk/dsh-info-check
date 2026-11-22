@@ -12,6 +12,18 @@ Agents often start executing immediately. Misunderstandings then surface only at
 
 dsh-info-check adds four confirmation points to the workflow, so you can review the report at each key step before deciding whether to continue.
 
+## Task contract page
+
+After the budget plan is confirmed, the sidebar gains a **Task contract** entry. Open it at any time to review:
+
+- the confirmed task book and milestones;
+- total budget, per-milestone budgets, and reserve;
+- approved extra budget;
+- whether the budget is signed;
+- the last update time.
+
+It reads the current workspace contract snapshot and refreshes every four seconds.
+
 ## Task progress
 
 A progress bar appears just above the message box. Each milestone is a line-drawn stone tablet: progress moves forward faster, stops near the next tablet while it waits for acceptance, reaches the tablet when you accept, and finishes at the end after delivery, then hides. It reappears when the next task confirms its plan.

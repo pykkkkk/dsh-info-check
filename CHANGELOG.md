@@ -3,6 +3,10 @@
 All notable user-facing changes are documented here. DSH compatibility is
 pinned by `engines.dsh`.
 
+## Unreleased
+
+- Added a global **Task contract** sidebar page that persists the confirmed task book and budget snapshot for review at any time.
+
 ## 0.3.0 — 2026-11-20
 
 ### Added

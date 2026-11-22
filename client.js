@@ -21,6 +21,7 @@ window.__ModuleLoader__.load({
     const BUDGET_PROPOSAL_ID = 'budget-proposal'
     const BUDGET_REVIEW_ID = 'budget-review'
     const BUDGET_SETTLEMENT_ID = 'budget-settlement'
+    const CONTRACT_PANEL_ID = 'dsh-info-check-contract'
     const SIGN_BUDGET_LABEL = '签约并开始'
     const BUDGET_PLAN_CONFIRM_LABEL = '确认预算方案'
     const ADJUST_BUDGET_LABEL = '要求调整'
@@ -367,6 +368,23 @@ window.__ModuleLoader__.load({
       'settings.fileRetrospective': '复盘分析',
       'settings.fileQuality': '质量标准',
       'settings.fileBudget': '预算标准',
+      'contract.nav': '任务合同',
+      'contract.title': '任务合同',
+      'contract.subtitle': '任务书与预算方案',
+      'contract.refresh': '刷新',
+      'contract.loading': '正在读取任务合同…',
+      'contract.error': '读取任务合同失败，请稍后重试。',
+      'contract.empty': '还没有任务合同。完成一次任务书和预算方案后，这里会显示合同内容。',
+      'contract.taskBook': '任务书',
+      'contract.milestone': '里程碑内容',
+      'contract.budget': '预算方案',
+      'contract.total': '总预算',
+      'contract.allocated': '已分配',
+      'contract.reserve': '备用预算',
+      'contract.extra': '已批准追加',
+      'contract.signed': '预算已签约',
+      'contract.unsigned': '预算待签约',
+      'contract.updated': '更新时间',
       'settings.openLocation': '打开所在位置',
       'settings.openFailed': '无法打开文件位置；文件可能尚未生成。',
       'settings.autoRetrospective': '自动复盘',
@@ -552,6 +570,23 @@ window.__ModuleLoader__.load({
       'settings.fileRetrospective': 'Retrospective',
       'settings.fileQuality': 'Quality standard',
       'settings.fileBudget': 'Budget standard',
+      'contract.nav': 'Task contract',
+      'contract.title': 'Task contract',
+      'contract.subtitle': 'Task book and budget plan',
+      'contract.refresh': 'Refresh',
+      'contract.loading': 'Loading task contract…',
+      'contract.error': 'Could not load the task contract. Try again.',
+      'contract.empty': 'No task contract yet. Complete a task book and budget plan and it will appear here.',
+      'contract.taskBook': 'Task book',
+      'contract.milestone': 'Milestone content',
+      'contract.budget': 'Budget plan',
+      'contract.total': 'Total budget',
+      'contract.allocated': 'Allocated',
+      'contract.reserve': 'Reserve',
+      'contract.extra': 'Approved extra',
+      'contract.signed': 'Budget signed',
+      'contract.unsigned': 'Budget unsigned',
+      'contract.updated': 'Updated',
       'settings.openLocation': 'Open file location',
       'settings.openFailed': 'Could not open the file location; the file may not exist yet.',
       'settings.autoRetrospective': 'Auto retrospective',
@@ -2483,6 +2518,113 @@ window.__ModuleLoader__.load({
       }
     }
 
+    function createContractPage(ctx) {
+      const CSS = `
+        .ic-contract-page{height:100%;overflow:auto;padding:30px 34px 60px;background:var(--dsw-alias-bg-base,#f7f9fc);color:var(--dsw-alias-label-primary,#1f2937)}
+        .ic-contract-inner{max-width:980px;margin:0 auto}
+        .ic-contract-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:18px}
+        .ic-contract-mark{width:34px;height:34px;border-radius:10px;background:#4D6BFE;color:#fff;display:grid;place-items:center;flex:0 0 auto}
+        .ic-contract-head h1{font-size:20px;margin:0 0 3px;letter-spacing:.1px}
+        .ic-contract-head p{margin:0;color:var(--dsw-alias-label-secondary,#64748b);font-size:12px}
+        .ic-contract-head button{margin-left:auto;height:30px;padding:0 12px;border:1px solid var(--dsw-alias-line,#dfe5ed);border-radius:7px;background:#fff;color:#475569;font:inherit;font-size:12px;cursor:pointer}
+        .ic-contract-status{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;background:#f0fdf4;color:#0f766e;font-size:11px;font-weight:700;margin-bottom:16px}
+        .ic-contract-status.pending{background:#fff7ed;color:#b45309}
+        .ic-contract-card{border:1px solid var(--dsw-alias-line,#e2e8f0);border-radius:12px;background:#fff;padding:18px 20px;margin-bottom:16px;box-shadow:0 4px 16px rgba(15,23,42,.04)}
+        .ic-contract-card h2{font-size:13px;margin:0 0 12px;color:#334155}
+        .ic-contract-book{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.75 "Segoe UI","Microsoft YaHei",system-ui,sans-serif;color:#475569}
+        .ic-contract-table{width:100%;border-collapse:collapse;font-size:12px}
+        .ic-contract-table th{text-align:left;padding:8px 10px;color:#64748b;font-size:11px;border-bottom:1px solid #dbe2ea;background:#f8fafc}
+        .ic-contract-table th:last-child{text-align:right}
+        .ic-contract-table td{padding:9px 10px;border-bottom:1px solid #f1f5f9;color:#475569}
+        .ic-contract-table td:last-child{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+        .ic-contract-summary{display:flex;justify-content:space-between;gap:16px;padding-top:12px;font-size:12px;color:#64748b}
+        .ic-contract-summary b{color:#1f2937}
+        .ic-contract-empty{padding:48px 24px;text-align:center;color:#64748b;font-size:13px;line-height:1.8}
+        .ic-contract-error{color:#dc2626;font-size:12px;margin-bottom:12px}
+      `
+      return function ContractPage() {
+        const t = ctx.locale.bind(NS)
+        const [state, setState] = React.useState({ loading: true, data: undefined, error: '' })
+        const load = React.useCallback(async () => {
+          try {
+            const response = await fetch('/dsh-info-check/contract-page', { cache: 'no-store' })
+            if (!response.ok) throw new Error(`HTTP ${response.status}`)
+            const data = await response.json()
+            setState({ loading: false, data, error: '' })
+          } catch {
+            setState(previous => ({ ...previous, loading: false, error: t('contract.error') }))
+          }
+        }, [])
+        React.useEffect(() => {
+          let alive = true
+          const run = () => { if (alive) load() }
+          run()
+          const timer = window.setInterval(run, 4000)
+          return () => {
+            alive = false
+            window.clearInterval(timer)
+          }
+        }, [load])
+        const data = state.data !== null && typeof state.data === 'object' && state.data.empty !== true ? state.data : undefined
+        const initial = data?.initial ?? {}
+        const milestones = Array.isArray(initial.milestones) ? initial.milestones : []
+        const total = Number(initial.amount) || 0
+        const extra = Number(data?.extra) || 0
+        const allocated = milestones.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+        const updated = Number(data?.updatedAt) || 0
+        const head = React.createElement('div', { className: 'ic-contract-head' },
+          React.createElement('div', { className: 'ic-contract-mark' },
+            React.createElement('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' },
+              React.createElement('path', { d: 'M6 3h9l3 3v15H6z' }),
+              React.createElement('path', { d: 'M9 9h6M9 13h6M9 17h3' }))),
+          React.createElement('div', null,
+            React.createElement('h1', null, t('contract.title')),
+            React.createElement('p', null, t('contract.subtitle'))),
+          React.createElement('button', { type: 'button', onClick: load }, t('contract.refresh')))
+        const taskBookCard = React.createElement('section', { className: 'ic-contract-card' },
+          React.createElement('h2', null, t('contract.taskBook')),
+          React.createElement('pre', { className: 'ic-contract-book' }, data?.taskBook ?? ''))
+        const allocatedRow = React.createElement('tr', null,
+          React.createElement('td', { colSpan: 2 }, t('contract.allocated')),
+          React.createElement('td', null, `¥${allocated.toFixed(2)}`))
+        const budgetTable = React.createElement('table', { className: 'ic-contract-table' },
+          React.createElement('thead', null, React.createElement('tr', null,
+            React.createElement('th', null, 'mNum'),
+            React.createElement('th', null, t('contract.milestone')),
+            React.createElement('th', null, 'CNY'))),
+          React.createElement('tbody', null,
+            milestones.map(item => React.createElement('tr', { key: item.id },
+              React.createElement('td', null, item.id),
+              React.createElement('td', null, item.title),
+              React.createElement('td', null, `¥${(Number(item.amount) || 0).toFixed(2)}`))),
+            allocatedRow))
+        const budgetCard = React.createElement('section', { className: 'ic-contract-card' },
+          React.createElement('h2', null, t('contract.budget')),
+          budgetTable,
+          React.createElement('div', { className: 'ic-contract-summary' },
+            React.createElement('span', null, `${t('contract.total')} ¥${total.toFixed(2)}`),
+            React.createElement('span', null, `${t('contract.reserve')} ¥${(total - allocated).toFixed(2)}`),
+            React.createElement('span', null, `${t('contract.extra')} ¥${extra.toFixed(2)}`)),
+          updated === 0 ? null : React.createElement('div', { style: { marginTop: '10px', fontSize: '11px', color: '#94a3b8' } },
+            `${t('contract.updated')} ${new Date(updated).toLocaleString()}`))
+        const body = state.loading && data === undefined
+          ? React.createElement('div', { className: 'ic-contract-empty' }, t('contract.loading'))
+          : data === undefined
+            ? React.createElement('div', { className: 'ic-contract-empty' }, t('contract.empty'))
+            : React.createElement(React.Fragment, null,
+              React.createElement('div', { className: `ic-contract-status${data.signed ? '' : ' pending'}` },
+                data.signed ? t('contract.signed') : t('contract.unsigned')),
+              taskBookCard,
+              budgetCard)
+        return React.createElement('div', { className: 'ic-contract-page' },
+          React.createElement('style', null, CSS),
+          React.createElement('div', { className: 'ic-contract-inner' },
+            head,
+            state.error === '' ? null : React.createElement('div', { className: 'ic-contract-error' }, state.error),
+            body))
+      }
+    }
+
     function createToggle(ctx) {
       const SettingsPanel = createSettingsPanel(ctx)
       return function Toggle(props) {
@@ -2776,6 +2918,33 @@ window.__ModuleLoader__.load({
           id: 'dsh-info-check-progress',
           order: -10,
         }, createProgress(ctx))), 'dsh-info-check: progress bar')
+
+        const ContractPage = createContractPage(ctx)
+        const ContractGlyph = (owner = {}) => React.createElement('svg', {
+          width: owner.size ?? 16,
+          height: owner.size ?? 16,
+          viewBox: '0 0 24 24',
+          fill: 'none',
+          stroke: 'currentColor',
+          strokeWidth: 1.7,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+          'aria-hidden': 'true',
+        },
+        React.createElement('path', { d: 'M6 3h9l3 3v15H6z' }),
+        React.createElement('path', { d: 'M9 9h6M9 13h6M9 17h3' }))
+
+        ctx.effect(() => ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
+          name: 'sidebar.panellist',
+          id: CONTRACT_PANEL_ID,
+          order: 30,
+          label: () => ctx.locale.bind(NS)('contract.nav'),
+        }, ContractGlyph)), 'dsh-info-check: contract sidebar entry')
+
+        ctx.effect(() => ctx.slots.inject('main', () => ctx.slots.register({
+          name: 'main',
+          key: CONTRACT_PANEL_ID,
+        }, ContractPage)), 'dsh-info-check: contract page')
       },
     }
   },
