@@ -29,6 +29,19 @@ After the budget plan is confirmed, the sidebar gains a **Task archive** entry. 
 
 The header shows total tasks, signed, settled, and total budget, with search by task title, task number, or task-book content. Items are sorted by latest update; each task is stored separately and does not overwrite older tasks. The page refreshes every four seconds.
 
+## Budget forecast and live chart
+
+After the task book is confirmed, call `forecast_budget` to estimate tokens with the current model's CNY token prices, then pass the returned forecast to `confirm_budget`. Round 1 without a forecast is rejected. The budget card shows the model, input/output tokens, estimated CNY, confidence band, and assumptions.
+
+The rule, coefficients, and references are in [docs/PREDICTION.md](docs/PREDICTION.md). Actual spending still comes from usage-billing.
+
+After sign-off, a floating right-side budget panel appears:
+
+- the line shows cumulative actual usage after the task starts;
+- the Y axis is CNY;
+- each milestone's cumulative budget is a red dashed threshold;
+- it refreshes every three seconds from billing, falling back to token estimation.
+
 ## Task progress
 
 A progress bar appears just above the message box. Each milestone is a line-drawn stone tablet: progress moves forward faster, stops near the next tablet while it waits for acceptance, reaches the tablet when you accept, and finishes at the end after delivery, then hides. It reappears when the next task confirms its plan.

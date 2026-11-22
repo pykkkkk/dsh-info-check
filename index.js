@@ -30,9 +30,11 @@ import { RetrospectiveStore } from './lib/retrospective-store.js'
 import { hasDeliverableNewer } from './lib/acceptance.js'
 import { applyProgressSafely, createProgressState, normalizeProgress, parseMilestonesFromBrief } from './lib/progress.js'
 import { BudgetStore } from './lib/budget-store.js'
+import { readCost } from './lib/cost.js'
 import {
   createBudgetProposalTool, createBudgetReviewTool, createBudgetSettlementTool,
 } from './lib/budget-tools.js'
+import { createForecastBudgetTool } from './lib/forecast-tool.js'
 
 export const inject = ['tools', 'systemPrompt', 'userQuestions', 'workingDirectory', 'sessionProjections', 'agents']
 
@@ -152,7 +154,7 @@ function defaultPolicy(settings) {
 1. **任务书形成**：先调用 \`info_check\`，用一段话复述目标；列出 ${minQuestions}–${maxQuestions} 条真正影响结果的**细节**核对问题（每题给选项，推荐项放第一并标注“（推荐）”）；给出可检查的完成标准（quality_bar）、明确的范围外（out_of_scope）、${milestoneRule}（milestones）。每个里程碑必须对应可交付的标志性文件或脚本，并在标题/内容中写清楚；里程碑必须按执行顺序排列，后一个里程碑的文件只能在前一个验收通过后开始修改。所有要点每点单独一行/一段，用 1. 2. 3. 编号，不要挤成一段。第一张卡是**可编辑的核对单**：用户会直接在你的版本上修改、补充，勾选确认后才进入细节选择；返回的 \`edited_brief\` 若与你的版本不同，以 \`edited_brief\` 为准。
 2. 用户点卡片右上角的 X 表示**跳过**，不是取消任务：工具会返回 confirmed=true / decision=skipped，按 agent 原始版本自动进入下一阶段；不要重新发起确认，也不要停下来等待。
 3. \`confirmed=true\` 后再开工；\`confirmed=false\`（工具明确拒绝或真实失败）时不要执行；需要时按用户的最新说法重新发起核对。
-4. **预算方案卡**：任务书确认后，**不再调用 \`confirm_milestone\`**。立即调用 \`confirm_budget\` 的 \`round=1\`，把任务书的里程碑和每个里程碑预算放进同一张预算方案卡；总预算输入框和每个里程碑的步进输入框由甲方直接修改，所有里程碑预算之和不得超过总预算。
+4. **预算方案卡**：任务书确认后，先调用 \`forecast_budget\`，根据每个里程碑的复杂度、文件数、测试数和质量要求，用当前模型的人民币 token 单价预测 input/output token、CNY 成本和备用金；再把返回的 \`forecast\` 原样传给 \`confirm_budget\` 的 \`round=1\`。把任务书的里程碑和每个里程碑预算放进同一张预算方案卡；总预算输入框和每个里程碑的步进输入框由甲方直接修改，所有里程碑预算之和不得超过总预算。**不再调用 \`confirm_milestone\`。**
 5. **两轮确认**：用户确认第 1 轮方案后，先思考并给出调整意见，用 \`round=2\` 再次调用 \`confirm_budget\`，在调整说明中写清楚改了什么、为什么改；用户再次确认后预算才签约，里程碑计划同时锁定。
 6. **预算签约**：只有第 2 轮用户确认后才算签约。**预算未签约时不得开始执行、不得调用 \`accept_milestone\`。** 卡片的倒计时结束或点击 X 均不视为签约。
 7. **里程碑执行与验收**：每完成一个里程碑的文件/脚本后，立即调用 \`accept_milestone\` 验收**当前这一个**里程碑；验收必须提交至少一个本里程碑实际新增或修改的文件/脚本（files），且必须在上一里程碑验收之后更新。验收通过后可以继续同一轮，不需要中断对话；但下一个里程碑的文件必须在这之后修改。计划确认后里程碑数量锁定。
@@ -1226,6 +1228,39 @@ export function apply(ctx, config = {}) {
   ctx.inject(['webServer'], (webCtx) => {
     webCtx.effect(() => webCtx.webServer.register({
       kind: 'exact',
+      path: '/dsh-info-check/budget-live',
+      handler: async (req, res) => {
+        if (req.method !== 'GET' && req.method !== 'HEAD') {
+          res.writeHead(405, { allow: 'GET, HEAD' })
+          res.end()
+          return
+        }
+        let body = { empty: true }
+        try {
+          const contract = await budgetStore.latest()
+          if (contract !== undefined) {
+            const cost = await readCost(contract.sessionId)
+            body = {
+              contract,
+              cost: cost?.cny ?? 0,
+              source: cost?.source ?? 'unavailable',
+              at: Date.now(),
+            }
+          }
+        } catch (error) {
+          ctx.logger?.warn?.('[dsh-info-check] budget chart state failed: %o', error)
+        }
+        const text = JSON.stringify(body)
+        res.writeHead(200, {
+          'content-type': 'application/json; charset=utf-8',
+          'cache-control': 'no-store',
+          'content-length': Buffer.byteLength(text),
+        })
+        res.end(req.method === 'HEAD' ? undefined : text)
+      },
+    }), 'dsh-info-check: budget chart route')
+    webCtx.effect(() => webCtx.webServer.register({
+      kind: 'exact',
       path: '/dsh-info-check/contract-page',
       handler: async (req, res) => {
         if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -1252,6 +1287,7 @@ export function apply(ctx, config = {}) {
 
   const definitions = [
     createInfoCheckTool({ ctx, enabledFor, getMaxQuestions: () => currentSettings().maxQuestions, ledger, budgetStore }),
+    createForecastBudgetTool({ enabledFor }),
     createBudgetProposalTool({ ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger, budgetStore }),
     createAcceptTool({
       ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger,

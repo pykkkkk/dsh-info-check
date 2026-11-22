@@ -242,6 +242,10 @@ window.__ModuleLoader__.load({
       'panel.budgetPlanAllocated': '已分配',
       'panel.budgetPlanRemaining': '备用预算',
       'panel.budgetPlanInvalid': '里程碑预算之和不能超过总预算，且每项必须是非负整数。',
+      'panel.budgetForecast': 'AI 预算预测',
+      'panel.budgetEstimate': '预估',
+      'panel.budgetTokens': '输入 / 输出 tokens',
+      'panel.budgetConfidence': '置信区间',
       'panel.budgetPlanAdjustment': '乙方调整说明',
       'panel.budgetPlanConfirm': '确认预算方案',
       'panel.budgetPlanSkip': '取消',
@@ -433,6 +437,12 @@ window.__ModuleLoader__.load({
       'contract.unsatisfied': '不满意',
       'contract.delivery': '交付',
       'contract.noReports': '尚无验收或结算记录。',
+      'chart.title': '预算执行',
+      'chart.cost': '累计使用',
+      'chart.budget': '预算',
+      'chart.source': '计量来源',
+      'chart.close': '收起预算图',
+      'chart.waiting': '等待预算签约',
       'settings.openLocation': '打开所在位置',
       'settings.openFailed': '无法打开文件位置；文件可能尚未生成。',
       'settings.autoRetrospective': '自动复盘',
@@ -492,6 +502,10 @@ window.__ModuleLoader__.load({
       'panel.budgetPlanAllocated': 'Allocated',
       'panel.budgetPlanRemaining': 'Reserve',
       'panel.budgetPlanInvalid': 'Milestone budgets must be non-negative integers and cannot exceed the total.',
+      'panel.budgetForecast': 'AI budget forecast',
+      'panel.budgetEstimate': 'Estimate',
+      'panel.budgetTokens': 'Input / output tokens',
+      'panel.budgetConfidence': 'Confidence',
       'panel.budgetPlanAdjustment': 'Contractor adjustment',
       'panel.budgetPlanConfirm': 'Confirm budget plan',
       'panel.budgetPlanSkip': 'Cancel',
@@ -683,6 +697,12 @@ window.__ModuleLoader__.load({
       'contract.unsatisfied': 'Unsatisfied',
       'contract.delivery': 'Delivery',
       'contract.noReports': 'No acceptance or settlement records yet.',
+      'chart.title': 'Budget execution',
+      'chart.cost': 'Cumulative cost',
+      'chart.budget': 'Budget',
+      'chart.source': 'Source',
+      'chart.close': 'Hide budget chart',
+      'chart.waiting': 'Waiting for budget sign-off',
       'settings.openLocation': 'Open file location',
       'settings.openFailed': 'Could not open the file location; the file may not exist yet.',
       'settings.autoRetrospective': 'Auto retrospective',
@@ -1796,6 +1816,14 @@ window.__ModuleLoader__.load({
               onChange: event => setTotal(event.target.value),
             }),
             React.createElement('span', { style: { fontSize: '11px', color: '#94a3b8' } }, 'CNY')),
+          plan.forecast
+            ? React.createElement('div', { style: { margin: '4px 0 10px', padding: '9px 11px', borderRadius: '8px', background: '#f6f8ff', color: '#475569', fontSize: '11px', lineHeight: 1.7 } },
+              React.createElement('b', null, `${t('panel.budgetForecast')} · `),
+              `${plan.forecast.modelName ?? plan.forecast.model ?? '—'} · `,
+              `${t('panel.budgetTokens')} ${Number(plan.forecast.inputTokens || 0).toLocaleString()} / ${Number(plan.forecast.outputTokens || 0).toLocaleString()} · `,
+              `${t('panel.budgetEstimate')} ¥${Number(plan.forecast.totalCny || 0).toFixed(2)} · `,
+              `${t('panel.budgetConfidence')} ±${Math.round((Number(plan.forecast.confidence) || 0) * 100)}%`)
+            : null,
           React.createElement('div', { style: { fontSize: '11px', fontWeight: 700, color: '#64748b', padding: '4px 0 2px' } }, t('panel.budgetPlanMilestones')),
           milestoneRows,
           React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', paddingTop: '10px', fontSize: '11px', color: '#64748b' } },
@@ -2802,6 +2830,10 @@ window.__ModuleLoader__.load({
               React.createElement('span', null, `${t('contract.total')} ¥${total.toFixed(2)}`),
               React.createElement('span', null, `${t('contract.reserve')} ¥${(total - allocated).toFixed(2)}`),
               React.createElement('span', null, `${t('contract.extra')} ¥${extra.toFixed(2)}`)),
+            initial.forecast
+              ? React.createElement('div', { className: 'ic-contract-report-label' },
+                `AI ${Number(initial.forecast.inputTokens || 0).toLocaleString()} / ${Number(initial.forecast.outputTokens || 0).toLocaleString()} tokens · ¥${Number(initial.forecast.totalCny || 0).toFixed(2)} · ±${Math.round((Number(initial.forecast.confidence) || 0) * 100)}%`)
+              : null,
             updated === 0 ? null : React.createElement('div', { style: { marginTop: '10px', fontSize: '11px', color: '#94a3b8' } },
               `${t('contract.updated')} ${new Date(updated).toLocaleString()}`))
           const decisionText = (decision) => decision === 'accepted'
@@ -2947,6 +2979,134 @@ window.__ModuleLoader__.load({
             tools,
             state.error === '' ? null : React.createElement('div', { className: 'ic-contract-error' }, state.error),
             body))
+      }
+    }
+
+    function createBudgetChart(ctx) {
+      return function BudgetChart() {
+        const t = ctx.locale.bind(NS)
+        const [data, setData] = React.useState(undefined)
+        const [points, setPoints] = React.useState([])
+        const [closed, setClosed] = React.useState(false)
+        const baselineRef = React.useRef(null)
+        const contractRef = React.useRef('')
+
+        React.useEffect(() => {
+          let alive = true
+          const load = async () => {
+            try {
+              const response = await fetch('/dsh-info-check/budget-live', { cache: 'no-store' })
+              if (!response.ok) return
+              const body = await response.json()
+              if (!alive) return
+              setData(body)
+              if (!body?.contract?.signed) return
+              const id = String(body.contract.contractId ?? '')
+              if (contractRef.current !== id) {
+                contractRef.current = id
+                baselineRef.current = null
+                setPoints([])
+                setClosed(false)
+              }
+              if (baselineRef.current === null) baselineRef.current = Number(body.cost) || 0
+              const value = Math.max(0, (Number(body.cost) || 0) - baselineRef.current)
+              setPoints(previous => {
+                if (previous.length > 0 && Math.abs(previous[previous.length - 1].cny - value) < 0.005) return previous
+                return [...previous, { at: Number(body.at) || Date.now(), cny: value }].slice(-80)
+              })
+            } catch {
+              // Keep the last chart data while the local endpoint is unavailable.
+            }
+          }
+          load()
+          const timer = window.setInterval(load, 3000)
+          return () => {
+            alive = false
+            window.clearInterval(timer)
+          }
+        }, [])
+
+        const contract = data?.contract
+        if (closed || typeof document === 'undefined') return null
+        const portal = node => createPortal === undefined ? node : createPortal(node, document.body)
+        if (contract === undefined || contract?.signed !== true) return null
+
+        const width = 310
+        const height = 210
+        const left = 38
+        const right = 300
+        const top = 14
+        const bottom = 180
+        const milestones = Array.isArray(contract?.initial?.milestones) ? contract.initial.milestones : []
+        const budgetTotal = Number(contract?.initial?.amount) || 0
+        const thresholds = []
+        let cumulative = 0
+        for (const item of milestones) {
+          cumulative += Number(item.amount) || 0
+          thresholds.push({ id: item.id, value: cumulative })
+        }
+        const current = points.length === 0 ? 0 : points[points.length - 1].cny
+        const maxY = Math.max(1, budgetTotal, current, ...thresholds.map(item => item.value)) * 1.15
+        const x = index => points.length <= 1 ? left : left + (index / (points.length - 1)) * (right - left)
+        const y = value => bottom - (Math.max(0, value) / maxY) * (bottom - top)
+        const line = points.map((item, index) => `${x(index)},${y(item.cny)}`).join(' ')
+        const last = points.length > 0 ? points[points.length - 1] : undefined
+
+        return portal(React.createElement('aside', {
+          style: {
+            position: 'fixed',
+            right: '16px',
+            top: '76px',
+            width: '332px',
+            zIndex: 4500,
+            borderRadius: '12px',
+            border: '1px solid #dfe5ed',
+            background: 'rgba(255,255,255,.97)',
+            boxShadow: '0 14px 40px rgba(15,23,42,.16)',
+            color: '#1f2937',
+            fontFamily: 'inherit',
+            pointerEvents: 'auto',
+            overflow: 'hidden',
+          },
+          'aria-label': t('chart.title'),
+        },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderBottom: '1px solid #f1f5f9' } },
+          React.createElement('span', { style: { width: '8px', height: '8px', borderRadius: '50%', background: '#4D6BFE' } }),
+          React.createElement('b', { style: { fontSize: '12px' } }, t('chart.title')),
+          React.createElement('button', {
+            type: 'button',
+            onClick: () => setClosed(true),
+            title: t('chart.close'),
+            style: { marginLeft: 'auto', border: 'none', background: 'transparent', color: '#94a3b8', fontSize: '16px', cursor: 'pointer' },
+          }, '×')),
+        React.createElement('div', { style: { padding: '8px 12px 4px' } },
+          React.createElement('svg', { viewBox: `0 0 ${width} ${height}`, width: '100%', height: '210', role: 'img' },
+            React.createElement('line', { x1: left, x2: right, y1: bottom, y2: bottom, stroke: '#e2e8f0' }),
+            React.createElement('line', { x1: left, x2: left, y1: top, y2: bottom, stroke: '#e2e8f0' }),
+            React.createElement('text', { x: left - 4, y: top + 4, textAnchor: 'end', fontSize: 8, fill: '#94a3b8' }, `¥${maxY.toFixed(1)}`),
+            React.createElement('text', { x: left - 4, y: bottom + 3, textAnchor: 'end', fontSize: 8, fill: '#94a3b8' }, '0'),
+            ...thresholds.map(item => React.createElement('g', { key: item.id },
+              React.createElement('line', {
+                x1: left, x2: right, y1: y(item.value), y2: y(item.value),
+                stroke: '#dc2626', strokeWidth: 1, strokeDasharray: '4 4', opacity: .65,
+              }),
+              React.createElement('text', { x: left + 3, y: y(item.value) - 3, fontSize: 8, fill: '#dc2626' }, `${item.id} ¥${item.value.toFixed(1)}`))),
+            points.length > 0 ? React.createElement('polyline', {
+              points: line, fill: 'none', stroke: '#4D6BFE', strokeWidth: 2,
+              strokeLinecap: 'round', strokeLinejoin: 'round',
+            }) : null,
+            points.length === 1 ? React.createElement('circle', {
+              cx: x(0), cy: y(points[0].cny), r: 2.5, fill: '#4D6BFE',
+            }) : null,
+            points.length > 0 ? React.createElement('circle', {
+              cx: x(points.length - 1), cy: y(current), r: 3, fill: '#4D6BFE',
+            }) : null),
+          React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#64748b', marginTop: '2px' } },
+            React.createElement('span', null, t('chart.cost')),
+            React.createElement('strong', { style: { color: '#1f2937' } }, `¥${current.toFixed(2)}`),
+            React.createElement('span', null, `${t('chart.budget')} ¥${budgetTotal.toFixed(2)}`)),
+          React.createElement('div', { style: { marginTop: '2px', fontSize: '9px', color: '#94a3b8' } },
+            `${t('chart.source')}: ${data?.source ?? 'unavailable'}${last === undefined ? '' : ` · ${new Date(last.at).toLocaleTimeString()}`}`))))
       }
     }
 
@@ -3270,6 +3430,11 @@ window.__ModuleLoader__.load({
           name: 'main',
           key: CONTRACT_PANEL_ID,
         }, ContractPage)), 'dsh-info-check: contract page')
+
+        ctx.effect(() => ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+          name: 'shell.overlay',
+          id: 'dsh-info-check-budget-chart',
+        }, createBudgetChart(ctx))), 'dsh-info-check: budget chart overlay')
       },
     }
   },
