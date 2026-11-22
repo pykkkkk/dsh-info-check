@@ -5,7 +5,7 @@ pinned by `engines.dsh`.
 
 ## Unreleased
 
-- Added a global **Task contract** sidebar page that stores every confirmed task separately; each task is a collapsible entry showing the simplified project contract, milestone budget, acceptance reports (result/evidence/risks), budget reviews, delivery, and final settlement.
+- Added a global **Task archive** sidebar page that stores every confirmed task separately; each task is a collapsible archive entry showing the simplified project contract, milestone budget, acceptance reports, budget reviews, delivery, ledger timeline, and final settlement. The archive has totals and search.
 
 ## 0.3.0 — 2026-11-20
 

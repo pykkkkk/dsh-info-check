@@ -368,9 +368,20 @@ window.__ModuleLoader__.load({
       'settings.fileRetrospective': '复盘分析',
       'settings.fileQuality': '质量标准',
       'settings.fileBudget': '预算标准',
-      'contract.nav': '任务合同',
-      'contract.title': '项目合同',
-      'contract.subtitle': '任务书与预算方案',
+      'contract.nav': '任务档案',
+      'contract.title': '任务档案',
+      'contract.subtitle': '任务台账详细记录',
+      'contract.search': '搜索任务档案',
+      'contract.noMatch': '没有匹配的任务档案。',
+      'contract.statsTasks': '任务',
+      'contract.statsSigned': '已签约',
+      'contract.statsSettled': '已结算',
+      'contract.statsBudget': '预算合计',
+      'contract.timeline': '台账时间线',
+      'contract.taskBookConfirmed': '任务书确认',
+      'contract.budgetSigned': '预算签约',
+      'contract.deliveryConfirmed': '交付确认',
+      'contract.settlementDone': '预算结算',
       'contract.client': '甲方：用户',
       'contract.contractor': '乙方：Agent',
       'contract.terms': '验收与变更条款',
@@ -391,7 +402,7 @@ window.__ModuleLoader__.load({
       'contract.signed': '预算已签约',
       'contract.unsigned': '预算待签约',
       'contract.updated': '更新时间',
-      'contract.report': '验收报告',
+      'contract.report': '验收与结算记录',
       'contract.accepted': '通过',
       'contract.rework': '返工',
       'contract.paused': '暂停',
@@ -595,9 +606,20 @@ window.__ModuleLoader__.load({
       'settings.fileRetrospective': 'Retrospective',
       'settings.fileQuality': 'Quality standard',
       'settings.fileBudget': 'Budget standard',
-      'contract.nav': 'Task contract',
-      'contract.title': 'Project contract',
-      'contract.subtitle': 'Task book and budget plan',
+      'contract.nav': 'Task archive',
+      'contract.title': 'Task archive',
+      'contract.subtitle': 'Detailed task ledger records',
+      'contract.search': 'Search task archive',
+      'contract.noMatch': 'No matching task archive entries.',
+      'contract.statsTasks': 'Tasks',
+      'contract.statsSigned': 'Signed',
+      'contract.statsSettled': 'Settled',
+      'contract.statsBudget': 'Total budget',
+      'contract.timeline': 'Ledger timeline',
+      'contract.taskBookConfirmed': 'Task book confirmed',
+      'contract.budgetSigned': 'Budget signed',
+      'contract.deliveryConfirmed': 'Delivery confirmed',
+      'contract.settlementDone': 'Budget settled',
       'contract.client': 'Client: User',
       'contract.contractor': 'Contractor: Agent',
       'contract.terms': 'Acceptance and change terms',
@@ -618,7 +640,7 @@ window.__ModuleLoader__.load({
       'contract.signed': 'Budget signed',
       'contract.unsigned': 'Budget unsigned',
       'contract.updated': 'Updated',
-      'contract.report': 'Acceptance report',
+      'contract.report': 'Acceptance and settlement records',
       'contract.accepted': 'Accepted',
       'contract.rework': 'Rework',
       'contract.paused': 'Paused',
@@ -2581,6 +2603,19 @@ window.__ModuleLoader__.load({
         .ic-contract-status.pending{background:#fff7ed;color:#b45309}
         .ic-contract-card{border:1px solid var(--dsw-alias-line,#e2e8f0);border-radius:12px;background:#fff;padding:18px 20px;margin-bottom:16px;box-shadow:0 4px 16px rgba(15,23,42,.04)}
         .ic-contract-list{display:flex;flex-direction:column;gap:10px}
+        .ic-contract-tools{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+        .ic-contract-search{flex:1 1 auto;height:32px;padding:0 11px;border:1px solid #dfe5ed;border-radius:8px;font:inherit;font-size:12px;color:#475569;background:#fff}
+        .ic-contract-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:18px}
+        .ic-contract-stat{padding:11px 13px;border:1px solid #e2e8f0;border-radius:10px;background:#fff}
+        .ic-contract-stat span{display:block;color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+        .ic-contract-stat b{display:block;margin-top:4px;color:#1f2937;font-size:16px;font-variant-numeric:tabular-nums}
+        .ic-contract-timeline{position:relative;padding-left:16px}
+        .ic-contract-timeline:before{content:"";position:absolute;left:4px;top:5px;bottom:5px;width:1px;background:#e2e8f0}
+        .ic-contract-time{position:relative;padding:0 0 13px 8px}
+        .ic-contract-time:before{content:"";position:absolute;left:-16px;top:5px;width:7px;height:7px;border-radius:50%;background:#4D6BFE;box-shadow:0 0 0 3px #eef1ff}
+        .ic-contract-time-head{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#334155}
+        .ic-contract-time-head time{color:#94a3b8;font-size:10px}
+        .ic-contract-time-detail{margin-top:3px;color:#64748b;font-size:11px;line-height:1.6;white-space:pre-wrap}
         .ic-contract-entry{border:1px solid var(--dsw-alias-line,#e2e8f0);border-radius:12px;background:#fff;box-shadow:0 4px 16px rgba(15,23,42,.04);overflow:hidden}
         .ic-contract-entry summary{display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;list-style:none;font-size:12px;color:#475569}
         .ic-contract-entry summary::-webkit-details-marker{display:none}
@@ -2616,6 +2651,7 @@ window.__ModuleLoader__.load({
       return function ContractPage() {
         const t = ctx.locale.bind(NS)
         const [state, setState] = React.useState({ loading: true, data: undefined, error: '' })
+        const [query, setQuery] = React.useState('')
         const load = React.useCallback(async () => {
           try {
             const response = await fetch('/dsh-info-check/contract-page', { cache: 'no-store' })
@@ -2667,6 +2703,29 @@ window.__ModuleLoader__.load({
           const firstLine = goal?.body.split('\n').map(line => line.trim()).find(line => line !== '')
           return firstLine ?? contract?.initial?.milestones?.[0]?.title ?? t('contract.unnamed')
         }
+        const normalizedQuery = query.trim().toLowerCase()
+        const visibleContracts = normalizedQuery === ''
+          ? contracts
+          : contracts.filter(contract => `${titleFor(contract)} ${contract?.taskBook ?? ''} ${contract?.contractId ?? ''}`.toLowerCase().includes(normalizedQuery))
+        const settledCount = contracts.filter(contract => contract?.settlement !== null && contract?.settlement !== undefined).length
+        const signedCount = contracts.filter(contract => contract?.signed === true).length
+        const budgetTotal = contracts.reduce((sum, contract) => sum + (Number(contract?.initial?.amount) || 0) + (Number(contract?.extra) || 0), 0)
+        const stats = React.createElement('div', { className: 'ic-contract-stats' },
+          React.createElement('div', { className: 'ic-contract-stat' },
+            React.createElement('span', null, t('contract.statsTasks')), React.createElement('b', null, String(contracts.length))),
+          React.createElement('div', { className: 'ic-contract-stat' },
+            React.createElement('span', null, t('contract.statsSigned')), React.createElement('b', null, String(signedCount))),
+          React.createElement('div', { className: 'ic-contract-stat' },
+            React.createElement('span', null, t('contract.statsSettled')), React.createElement('b', null, String(settledCount))),
+          React.createElement('div', { className: 'ic-contract-stat' },
+            React.createElement('span', null, t('contract.statsBudget')), React.createElement('b', null, `¥${budgetTotal.toFixed(2)}`)))
+        const tools = React.createElement('div', { className: 'ic-contract-tools' },
+          React.createElement('input', {
+            className: 'ic-contract-search',
+            value: query,
+            placeholder: t('contract.search'),
+            onChange: event => setQuery(event.target.value),
+          }))
         const buildEntry = (contract, index) => {
           const initial = contract?.initial ?? {}
           const milestones = Array.isArray(initial.milestones) ? initial.milestones : []
@@ -2766,6 +2825,29 @@ window.__ModuleLoader__.load({
             reportItems.length === 0
               ? React.createElement('div', { className: 'ic-contract-report-label' }, t('contract.noReports'))
               : reportItems)
+          const timeline = []
+          const addTimeline = (at, label, detail) => {
+            const value = typeof at === 'number' ? at : Date.parse(at)
+            if (!Number.isFinite(value) || value <= 0) return
+            timeline.push({ at: value, label, detail: detail ?? '' })
+          }
+          addTimeline(contract?.taskBookAt || contract?.startedAt, t('contract.taskBookConfirmed'), '')
+          if (contract?.signed) addTimeline(contract?.signedAt || contract?.updatedAt, t('contract.budgetSigned'), `¥${(total + extra).toFixed(2)}`)
+          acceptances.forEach(item => addTimeline(item.at, `${t('contract.report')} · ${item.milestone}`, `${decisionText(item.decision)}${item.summary ? ` · ${item.summary}` : ''}`))
+          budgetReviews.forEach(item => addTimeline(item.at, `${t('contract.budgetReview')} · ${item.milestone}`, `¥${Number(item.spent || 0).toFixed(2)}${Number(item.requestedExtra || 0) > 0 ? ` · +¥${Number(item.requestedExtra).toFixed(2)}` : ''}`))
+          if (delivery) addTimeline(delivery.at, t('contract.deliveryConfirmed'), delivery.delivered ?? '')
+          if (settlement) addTimeline(settlement.at, t('contract.settlementDone'), `${t('contract.finalSpent')} ¥${Number(settlement.finalSpent || 0).toFixed(2)}`)
+          timeline.sort((a, b) => a.at - b.at)
+          const timelineCard = React.createElement('section', { className: 'ic-contract-card' },
+            React.createElement('h2', null, t('contract.timeline')),
+            timeline.length === 0
+              ? React.createElement('div', { className: 'ic-contract-report-label' }, t('contract.noReports'))
+              : React.createElement('div', { className: 'ic-contract-timeline' },
+                timeline.map((item, at) => React.createElement('div', { key: `time-${at}`, className: 'ic-contract-time' },
+                  React.createElement('div', { className: 'ic-contract-time-head' },
+                    React.createElement('b', null, item.label),
+                    React.createElement('time', null, new Date(item.at).toLocaleString())),
+                  item.detail === '' ? null : React.createElement('div', { className: 'ic-contract-time-detail' }, item.detail)))))
           return React.createElement('details', {
             key: contract?.contractId ?? `${contract?.sessionId ?? 'contract'}-${index}`,
             className: 'ic-contract-entry',
@@ -2777,7 +2859,7 @@ window.__ModuleLoader__.load({
               contract?.signed ? t('contract.signed') : t('contract.unsigned')),
             React.createElement('span', { className: 'ic-contract-entry-budget' }, `¥${(total + extra).toFixed(2)}`),
             updated === 0 ? null : React.createElement('span', { className: 'ic-contract-entry-date' }, new Date(updated).toLocaleDateString())),
-          React.createElement('div', { className: 'ic-contract-entry-body' }, taskBookCard, budgetCard, reportsCard))
+          React.createElement('div', { className: 'ic-contract-entry-body' }, taskBookCard, budgetCard, timelineCard, reportsCard))
         }
         const head = React.createElement('div', { className: 'ic-contract-head' },
           React.createElement('div', { className: 'ic-contract-mark' },
@@ -2792,11 +2874,15 @@ window.__ModuleLoader__.load({
           ? React.createElement('div', { className: 'ic-contract-empty' }, t('contract.loading'))
           : contracts.length === 0
             ? React.createElement('div', { className: 'ic-contract-empty' }, t('contract.empty'))
-            : React.createElement('div', { className: 'ic-contract-list' }, contracts.map(buildEntry))
+            : visibleContracts.length === 0
+              ? React.createElement('div', { className: 'ic-contract-empty' }, t('contract.noMatch'))
+              : React.createElement('div', { className: 'ic-contract-list' }, visibleContracts.map(buildEntry))
         return React.createElement('div', { className: 'ic-contract-page' },
           React.createElement('style', null, CSS),
           React.createElement('div', { className: 'ic-contract-inner' },
             head,
+            stats,
+            tools,
             state.error === '' ? null : React.createElement('div', { className: 'ic-contract-error' }, state.error),
             body))
       }

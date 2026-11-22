@@ -12,9 +12,9 @@ Agents often start executing immediately. Misunderstandings then surface only at
 
 dsh-info-check adds four confirmation points to the workflow, so you can review the report at each key step before deciding whether to continue.
 
-## Project contract page
+## Task archive page
 
-After the budget plan is confirmed, the sidebar gains a **Task contract** entry. Each task appears as a collapsible item; click it to expand:
+After the budget plan is confirmed, the sidebar gains a **Task archive** entry. Each task appears as a collapsible item; click it to expand:
 
 - project objective;
 - quality requirements;
@@ -23,9 +23,10 @@ After the budget plan is confirmed, the sidebar gains a **Task contract** entry.
 - acceptance and change terms;
 - acceptance reports with each milestone's result, evidence, and gaps/risks;
 - budget review records and final budget settlement;
+- ledger timeline;
 - whether the budget is signed and the last update time.
 
-Items are sorted by latest update; each task is stored separately and does not overwrite older tasks. The page refreshes every four seconds.
+The header shows total tasks, signed, settled, and total budget, with search by task title or task-book content. Items are sorted by latest update; each task is stored separately and does not overwrite older tasks. The page refreshes every four seconds.
 
 ## Task progress
 
