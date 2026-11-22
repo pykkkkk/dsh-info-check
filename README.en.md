@@ -24,9 +24,10 @@ After the budget plan is confirmed, the sidebar gains a **Task archive** entry. 
 - acceptance reports with each milestone's completion, delivered files, evidence, and gaps/risks;
 - budget review records and a final settlement financial table (initial budget, extra, total, actual usage, variance, rating);
 - ledger timeline;
-- whether the budget is signed and the last update time.
+- whether the budget is signed and the last update time;
+- task number in `YYMMDDHHmm` (10 digits), e.g. `2601010100` means 2026-01-01 01:00.
 
-The header shows total tasks, signed, settled, and total budget, with search by task title or task-book content. Items are sorted by latest update; each task is stored separately and does not overwrite older tasks. The page refreshes every four seconds.
+The header shows total tasks, signed, settled, and total budget, with search by task title, task number, or task-book content. Items are sorted by latest update; each task is stored separately and does not overwrite older tasks. The page refreshes every four seconds.
 
 ## Task progress
 

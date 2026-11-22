@@ -371,6 +371,7 @@ window.__ModuleLoader__.load({
       'contract.nav': '任务档案',
       'contract.title': '任务档案',
       'contract.subtitle': '任务台账详细记录',
+      'contract.taskNumber': '任务编号',
       'contract.search': '搜索任务档案',
       'contract.noMatch': '没有匹配的任务档案。',
       'contract.statsTasks': '任务',
@@ -620,6 +621,7 @@ window.__ModuleLoader__.load({
       'contract.nav': 'Task archive',
       'contract.title': 'Task archive',
       'contract.subtitle': 'Detailed task ledger records',
+      'contract.taskNumber': 'Task number',
       'contract.search': 'Search task archive',
       'contract.noMatch': 'No matching task archive entries.',
       'contract.statsTasks': 'Tasks',
@@ -2643,6 +2645,7 @@ window.__ModuleLoader__.load({
         .ic-contract-entry summary::-webkit-details-marker{display:none}
         .ic-contract-entry[open] summary{border-bottom:1px solid #f1f5f9;background:#fafbff}
         .ic-contract-entry-arrow{color:#94a3b8;font-size:16px;transition:transform .15s}
+        .ic-contract-entry-no{flex:0 0 auto;font-size:10px;color:#94a3b8;font-variant-numeric:tabular-nums}
         .ic-contract-entry[open] .ic-contract-entry-arrow{transform:rotate(90deg)}
         .ic-contract-entry-title{flex:1 1 auto;min-width:0;font-weight:700;color:#1f2937;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .ic-contract-entry-status{flex:0 0 auto;padding:3px 7px;border-radius:999px;background:#f0fdf4;color:#0f766e;font-size:10px;font-weight:700}
@@ -2725,10 +2728,18 @@ window.__ModuleLoader__.load({
           const firstLine = goal?.body.split('\n').map(line => line.trim()).find(line => line !== '')
           return firstLine ?? contract?.initial?.milestones?.[0]?.title ?? t('contract.unnamed')
         }
+        const taskNumberFor = (contract) => {
+          if (typeof contract?.taskNumber === 'string' && contract.taskNumber !== '') return contract.taskNumber
+          const at = Number(contract?.startedAt) || Number(contract?.updatedAt)
+          if (!Number.isFinite(at) || at <= 0) return ''
+          const date = new Date(at)
+          const two = value => String(value).padStart(2, '0')
+          return `${two(date.getFullYear() % 100)}${two(date.getMonth() + 1)}${two(date.getDate())}${two(date.getHours())}${two(date.getMinutes())}`
+        }
         const normalizedQuery = query.trim().toLowerCase()
         const visibleContracts = normalizedQuery === ''
           ? contracts
-          : contracts.filter(contract => `${titleFor(contract)} ${contract?.taskBook ?? ''} ${contract?.contractId ?? ''}`.toLowerCase().includes(normalizedQuery))
+          : contracts.filter(contract => `${titleFor(contract)} ${taskNumberFor(contract)} ${contract?.taskBook ?? ''} ${contract?.contractId ?? ''}`.toLowerCase().includes(normalizedQuery))
         const settledCount = contracts.filter(contract => contract?.settlement !== null && contract?.settlement !== undefined).length
         const signedCount = contracts.filter(contract => contract?.signed === true).length
         const budgetTotal = contracts.reduce((sum, contract) => sum + (Number(contract?.initial?.amount) || 0) + (Number(contract?.extra) || 0), 0)
@@ -2758,6 +2769,7 @@ window.__ModuleLoader__.load({
           const sections = parseSections(contract?.taskBook)
           const taskBookCard = React.createElement('section', { className: 'ic-contract-card' },
             React.createElement('div', { className: 'ic-contract-meta' },
+              taskNumberFor(contract) === '' ? null : React.createElement('span', null, `${t('contract.taskNumber')} #${taskNumberFor(contract)}`),
               React.createElement('span', null, t('contract.client')),
               React.createElement('span', null, t('contract.contractor'))),
             sections.length > 0
@@ -2903,6 +2915,7 @@ window.__ModuleLoader__.load({
           },
           React.createElement('summary', { className: 'ic-contract-entry-summary' },
             React.createElement('span', { className: 'ic-contract-entry-arrow' }, '›'),
+            taskNumberFor(contract) === '' ? null : React.createElement('span', { className: 'ic-contract-entry-no' }, `#${taskNumberFor(contract)}`),
             React.createElement('span', { className: 'ic-contract-entry-title' }, titleFor(contract)),
             React.createElement('span', { className: `ic-contract-entry-status${contract?.signed ? '' : ' pending'}` },
               contract?.signed ? t('contract.signed') : t('contract.unsigned')),
