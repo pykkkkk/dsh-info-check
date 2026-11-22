@@ -21,8 +21,8 @@ After the budget plan is confirmed, the sidebar gains a **Task archive** entry. 
 - scope boundaries;
 - milestone budget table;
 - acceptance and change terms;
-- acceptance reports with each milestone's result, evidence, and gaps/risks;
-- budget review records and final budget settlement;
+- acceptance reports with each milestone's completion, delivered files, evidence, and gaps/risks;
+- budget review records and a final settlement financial table (initial budget, extra, total, actual usage, variance, rating);
 - ledger timeline;
 - whether the budget is signed and the last update time.
 

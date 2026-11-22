@@ -410,6 +410,17 @@ window.__ModuleLoader__.load({
       'contract.approved': '批准',
       'contract.denied': '不追加',
       'contract.result': '结果',
+      'contract.files': '交付文件',
+      'contract.completion': '完成内容',
+      'contract.delivered': '交付内容',
+      'contract.initialBudget': '初始预算',
+      'contract.approvedExtra': '批准追加',
+      'contract.financialTotal': '预算合计',
+      'contract.variance': '差额',
+      'contract.over': '超支',
+      'contract.under': '结余',
+      'contract.balanced': '持平',
+      'contract.settlementNotes': '结算说明',
       'contract.evidence': '验证证据',
       'contract.gaps': '未完成/风险',
       'contract.budgetReview': '预算审核',
@@ -648,6 +659,17 @@ window.__ModuleLoader__.load({
       'contract.approved': 'Approved',
       'contract.denied': 'No extra',
       'contract.result': 'Result',
+      'contract.files': 'Delivered files',
+      'contract.completion': 'Completion',
+      'contract.delivered': 'Delivered content',
+      'contract.initialBudget': 'Initial budget',
+      'contract.approvedExtra': 'Approved extra',
+      'contract.financialTotal': 'Total budget',
+      'contract.variance': 'Variance',
+      'contract.over': 'Over',
+      'contract.under': 'Under',
+      'contract.balanced': 'Balanced',
+      'contract.settlementNotes': 'Settlement notes',
       'contract.evidence': 'Evidence',
       'contract.gaps': 'Gaps / risks',
       'contract.budgetReview': 'Budget review',
@@ -2789,6 +2811,11 @@ window.__ModuleLoader__.load({
                 React.createElement('span', { className: `ic-contract-entry-status${item.decision === 'accepted' ? '' : ' pending'}` }, decisionText(item.decision))),
               React.createElement('div', { className: 'ic-contract-report-label' }, t('contract.result')),
               React.createElement('pre', { className: 'ic-contract-book' }, item.summary ?? ''),
+              Array.isArray(item.files) && item.files.length > 0
+                ? React.createElement(React.Fragment, null,
+                  React.createElement('div', { className: 'ic-contract-report-label' }, t('contract.files')),
+                  React.createElement('pre', { className: 'ic-contract-book' }, item.files.join('\n')))
+                : null,
               React.createElement('div', { className: 'ic-contract-report-label' }, t('contract.evidence')),
               React.createElement('pre', { className: 'ic-contract-book' }, item.evidence ?? ''),
               item.gaps === undefined || item.gaps === '' ? null : React.createElement(React.Fragment, null,
@@ -2807,16 +2834,38 @@ window.__ModuleLoader__.load({
               React.createElement('b', null, t('contract.settlement')),
               React.createElement('span', { className: 'ic-contract-entry-status' },
                 settlement.rating === 3 ? t('contract.satisfied') : settlement.rating === 2 ? t('contract.neutral') : t('contract.unsatisfied')))
-            const settlementUsage = React.createElement('div', { className: 'ic-contract-book' },
-              `${t('contract.finalSpent')} ¥${Number(settlement.finalSpent || 0).toFixed(2)}`)
-            const settlementSummary = React.createElement('pre', { className: 'ic-contract-book' }, settlement.summary ?? '')
+            const settlementTotal = total + extra
+            const variance = Number(settlement.finalSpent || 0) - settlementTotal
+            const settlementRows = [
+              [t('contract.initialBudget'), `¥${total.toFixed(2)}`],
+              [t('contract.approvedExtra'), `¥${extra.toFixed(2)}`],
+              [t('contract.financialTotal'), `¥${settlementTotal.toFixed(2)}`],
+              [t('contract.finalSpent'), `¥${Number(settlement.finalSpent || 0).toFixed(2)}`],
+              [t('contract.variance'), `${variance > 0 ? t('contract.over') : variance < 0 ? t('contract.under') : t('contract.balanced')} ¥${Math.abs(variance).toFixed(2)}`],
+            ]
+            const settlementTable = React.createElement('table', { className: 'ic-contract-table' },
+              React.createElement('tbody', null,
+                settlementRows.map(([label, value]) => React.createElement('tr', { key: label },
+                  React.createElement('td', null, label),
+                  React.createElement('td', null, value)))))
+            const settlementSummary = React.createElement('pre', { className: 'ic-contract-book', style: { marginTop: '8px' } }, settlement.summary ?? '')
             reportItems.push(React.createElement('div', { key: 'settlement', className: 'ic-contract-report-item' },
-              settlementHead, settlementUsage, settlementSummary))
+              settlementHead, settlementTable, settlementSummary))
           }
           if (delivery) {
             const deliveryHead = React.createElement('div', { className: 'ic-contract-report-head' },
               React.createElement('b', null, t('contract.delivery')))
-            const deliveryBody = React.createElement('pre', { className: 'ic-contract-book' }, delivery.delivered ?? '')
+            const deliveryBody = React.createElement(React.Fragment, null,
+              React.createElement('div', { className: 'ic-contract-report-label' }, t('contract.completion')),
+              React.createElement('pre', { className: 'ic-contract-book' }, delivery.completion ?? ''),
+              React.createElement('div', { className: 'ic-contract-report-label' }, t('contract.delivered')),
+              React.createElement('pre', { className: 'ic-contract-book' }, delivery.delivered ?? ''),
+              delivery.gaps === undefined || delivery.gaps === '' ? null : React.createElement(React.Fragment, null,
+                React.createElement('div', { className: 'ic-contract-report-label' }, t('contract.gaps')),
+                React.createElement('pre', { className: 'ic-contract-book' }, delivery.gaps)),
+              delivery.evidence === undefined || delivery.evidence === '' ? null : React.createElement(React.Fragment, null,
+                React.createElement('div', { className: 'ic-contract-report-label' }, t('contract.evidence')),
+                React.createElement('pre', { className: 'ic-contract-book' }, delivery.evidence)))
             reportItems.push(React.createElement('div', { key: 'delivery', className: 'ic-contract-report-item' },
               deliveryHead, deliveryBody))
           }
