@@ -37,7 +37,7 @@ The rule, coefficients, and references are in [docs/PREDICTION.md](docs/PREDICTI
 
 After sign-off, a floating right-side budget panel appears:
 
-- the line shows cumulative actual usage after the task starts;
+- the line shows cumulative actual usage after the task starts, measured from the whole-session cost baseline captured at budget sign-off;
 - the Y axis is CNY;
 - each milestone's cumulative budget is a red dashed threshold;
 - it refreshes every three seconds from billing, falling back to token estimation.

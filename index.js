@@ -1239,11 +1239,18 @@ export function apply(ctx, config = {}) {
         try {
           const contract = await budgetStore.latest()
           if (contract !== undefined) {
-            const cost = await readCost(contract.sessionId)
+            const origin = webCtx.webServer.getOrigin()
+            const measured = await readCost(contract.sessionId, origin)
+            const baseline = Number(contract.costBaseline) || 0
             body = {
               contract,
-              cost: cost?.cny ?? 0,
-              source: cost?.source ?? 'unavailable',
+              cost: measured === undefined || baseline <= 0
+                ? 0
+                : Math.max(0, Math.round((measured.cny - baseline) * 100) / 100),
+              source: measured === undefined || baseline <= 0
+                ? 'unavailable'
+                : `${measured.source}:task-delta`,
+              since: contract.signedAt || contract.startedAt,
               at: Date.now(),
             }
           }
@@ -1287,8 +1294,26 @@ export function apply(ctx, config = {}) {
 
   const definitions = [
     createInfoCheckTool({ ctx, enabledFor, getMaxQuestions: () => currentSettings().maxQuestions, ledger, budgetStore }),
-    createForecastBudgetTool({ enabledFor }),
-    createBudgetProposalTool({ ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger, budgetStore }),
+    createForecastBudgetTool({
+      enabledFor,
+      getOrigin: () => {
+        try {
+          return ctx.get('webServer')?.getOrigin?.()
+        } catch {
+          return undefined
+        }
+      },
+    }),
+    createBudgetProposalTool({
+      ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger, budgetStore,
+      getOrigin: () => {
+        try {
+          return ctx.get('webServer')?.getOrigin?.()
+        } catch {
+          return undefined
+        }
+      },
+    }),
     createAcceptTool({
       ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger,
       getSupervisionMode: () => currentSettings().supervisionMode, budgetStore,

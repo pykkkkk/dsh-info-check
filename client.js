@@ -2988,7 +2988,6 @@ window.__ModuleLoader__.load({
         const [data, setData] = React.useState(undefined)
         const [points, setPoints] = React.useState([])
         const [closed, setClosed] = React.useState(false)
-        const baselineRef = React.useRef(null)
         const contractRef = React.useRef('')
 
         React.useEffect(() => {
@@ -3004,12 +3003,10 @@ window.__ModuleLoader__.load({
               const id = String(body.contract.contractId ?? '')
               if (contractRef.current !== id) {
                 contractRef.current = id
-                baselineRef.current = null
                 setPoints([])
                 setClosed(false)
               }
-              if (baselineRef.current === null) baselineRef.current = Number(body.cost) || 0
-              const value = Math.max(0, (Number(body.cost) || 0) - baselineRef.current)
+              const value = Math.max(0, Number(body.cost) || 0)
               setPoints(previous => {
                 if (previous.length > 0 && Math.abs(previous[previous.length - 1].cny - value) < 0.005) return previous
                 return [...previous, { at: Number(body.at) || Date.now(), cny: value }].slice(-80)
