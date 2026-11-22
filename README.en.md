@@ -21,6 +21,8 @@ After the budget plan is confirmed, the sidebar gains a **Task contract** entry.
 - scope boundaries;
 - milestone budget table;
 - acceptance and change terms;
+- acceptance reports with each milestone's result, evidence, and gaps/risks;
+- budget review records and final budget settlement;
 - whether the budget is signed and the last update time.
 
 Items are sorted by latest update; each task is stored separately and does not overwrite older tasks. The page refreshes every four seconds.

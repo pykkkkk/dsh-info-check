@@ -755,9 +755,17 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger, getSuper
         await ledger.append(agent.session, acceptanceLedger(acceptance, { decision: 'timeout' }), {
           type: 'acceptance', decision: 'timeout', milestone: acceptance.milestone,
         })
-        ledger.recordAcceptance(agent.session, turn, acceptance.milestone, Date.now())
-        await budgetStore.markPending(agent.session, acceptance.milestone)
-        return { decision: 'timeout', proceed: true }
+          ledger.recordAcceptance(agent.session, turn, acceptance.milestone, Date.now())
+          await budgetStore.recordAcceptance(agent.session, {
+            milestone: acceptance.milestone,
+            summary: acceptance.summary,
+            evidence: acceptance.evidence,
+            gaps: acceptance.gaps,
+            files: acceptance.files,
+            decision: 'timeout',
+          })
+          await budgetStore.markPending(agent.session, acceptance.milestone)
+          return { decision: 'timeout', proceed: true }
       }
       const outcome = acceptanceOutcome(result.answers[0])
       await ledger.append(agent.session, acceptanceLedger(acceptance, {
@@ -772,6 +780,14 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger, getSuper
         ...(outcome.notes === undefined ? {} : { notes: outcome.notes }),
       })
       ledger.recordAcceptance(agent.session, turn, acceptance.milestone, Date.now())
+      await budgetStore.recordAcceptance(agent.session, {
+        milestone: acceptance.milestone,
+        summary: acceptance.summary,
+        evidence: acceptance.evidence,
+        gaps: acceptance.gaps,
+        files: acceptance.files,
+        decision: outcome.decision,
+      })
       if (outcome.proceed) await budgetStore.markPending(agent.session, acceptance.milestone)
       return {
         decision: outcome.decision,
@@ -799,7 +815,7 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger, getSuper
   }
 }
 
-function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger, onDeliveryConfirmed }) {
+function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger, onDeliveryConfirmed, budgetStore }) {
   return {
     name: 'confirm_delivery',
     description: '在呈现最终结果前，向用户确认完成程度：提交完成程度、交付内容、未完成或限制、验证；用户确认（或倒计时结束）后才交付最终结果。'
@@ -867,6 +883,7 @@ function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger, onDeli
       }
       if (result.pending === true) {
         await ledger.append(agent.session, deliveryLedger(delivery, { decision: 'timeout' }))
+        await budgetStore.recordDelivery(agent.session, { ...delivery, decision: 'timeout' })
         return { decision: 'timeout', proceed: true }
       }
       const outcome = deliveryOutcome(result.answers[0])
@@ -883,6 +900,7 @@ function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger, onDeli
       const review = outcome.decision === 'confirmed' && onDeliveryConfirmed !== undefined
         ? await onDeliveryConfirmed(agent, exec)
         : undefined
+      await budgetStore.recordDelivery(agent.session, { ...delivery, decision: outcome.decision })
       return {
         decision: outcome.decision,
         proceed: outcome.proceed,
@@ -1242,7 +1260,7 @@ export function apply(ctx, config = {}) {
     createBudgetReviewTool({ ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger, budgetStore }),
     createDeliveryTool({
       ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger,
-      onDeliveryConfirmed: reviewAfterDelivery,
+      onDeliveryConfirmed: reviewAfterDelivery, budgetStore,
     }),
     createBudgetSettlementTool({ ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger, budgetStore }),
   ]
