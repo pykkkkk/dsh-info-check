@@ -5,7 +5,7 @@ pinned by `engines.dsh`.
 
 ## Unreleased
 
-- Added a global **Task contract** sidebar page that persists the confirmed task book and budget snapshot for review at any time.
+- Added a global **Task contract** sidebar page that persists the confirmed task book and budget snapshot, presented in a simplified project-contract format: objective, quality requirements, scope, milestone budget table, and acceptance/change terms.
 
 ## 0.3.0 — 2026-11-20
 

@@ -369,8 +369,13 @@ window.__ModuleLoader__.load({
       'settings.fileQuality': '质量标准',
       'settings.fileBudget': '预算标准',
       'contract.nav': '任务合同',
-      'contract.title': '任务合同',
+      'contract.title': '项目合同',
       'contract.subtitle': '任务书与预算方案',
+      'contract.client': '甲方：用户',
+      'contract.contractor': '乙方：Agent',
+      'contract.terms': '验收与变更条款',
+      'contract.term1': '每个里程碑完成后由甲方验收；未通过则返工。',
+      'contract.term2': '范围或预算变更须经甲方确认；追加预算须单独批准。',
       'contract.refresh': '刷新',
       'contract.loading': '正在读取任务合同…',
       'contract.error': '读取任务合同失败，请稍后重试。',
@@ -571,8 +576,13 @@ window.__ModuleLoader__.load({
       'settings.fileQuality': 'Quality standard',
       'settings.fileBudget': 'Budget standard',
       'contract.nav': 'Task contract',
-      'contract.title': 'Task contract',
+      'contract.title': 'Project contract',
       'contract.subtitle': 'Task book and budget plan',
+      'contract.client': 'Client: User',
+      'contract.contractor': 'Contractor: Agent',
+      'contract.terms': 'Acceptance and change terms',
+      'contract.term1': 'The client accepts each completed milestone; failed acceptance means rework.',
+      'contract.term2': 'Scope or budget changes need client confirmation; extra budget needs separate approval.',
       'contract.refresh': 'Refresh',
       'contract.loading': 'Loading task contract…',
       'contract.error': 'Could not load the task contract. Try again.',
@@ -2532,6 +2542,11 @@ window.__ModuleLoader__.load({
         .ic-contract-card{border:1px solid var(--dsw-alias-line,#e2e8f0);border-radius:12px;background:#fff;padding:18px 20px;margin-bottom:16px;box-shadow:0 4px 16px rgba(15,23,42,.04)}
         .ic-contract-card h2{font-size:13px;margin:0 0 12px;color:#334155}
         .ic-contract-book{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.75 "Segoe UI","Microsoft YaHei",system-ui,sans-serif;color:#475569}
+        .ic-contract-meta{display:flex;gap:18px;color:#64748b;font-size:11px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #f1f5f9}
+        .ic-contract-section{margin-bottom:14px}
+        .ic-contract-section h3,.ic-contract-terms h3{font-size:12px;margin:0 0 6px;color:#334155}
+        .ic-contract-terms{margin-top:16px;padding-top:12px;border-top:1px solid #f1f5f9;font-size:12px;color:#64748b}
+        .ic-contract-terms p{margin:4px 0;line-height:1.6}
         .ic-contract-table{width:100%;border-collapse:collapse;font-size:12px}
         .ic-contract-table th{text-align:left;padding:8px 10px;color:#64748b;font-size:11px;border-bottom:1px solid #dbe2ea;background:#f8fafc}
         .ic-contract-table th:last-child{text-align:right}
@@ -2572,6 +2587,23 @@ window.__ModuleLoader__.load({
         const extra = Number(data?.extra) || 0
         const allocated = milestones.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
         const updated = Number(data?.updatedAt) || 0
+        const sectionMap = {
+          '我的理解': '项目目标',
+          '项目目标': '项目目标',
+          '完成标准': '质量要求',
+          '质量要求': '质量要求',
+          '范围外': '范围边界',
+          '范围边界': '范围边界',
+        }
+        const sections = []
+        const source = typeof data?.taskBook === 'string' ? data.taskBook : ''
+        const matches = [...source.matchAll(/【([^】]+)】([\s\S]*?)(?=【[^】]+】|$)/g)]
+        for (const match of matches) {
+          const label = sectionMap[match[1].trim()]
+          const body = match[2].trim()
+          if (label === undefined || body === '' || match[1].trim() === '里程碑') continue
+          sections.push({ label, body })
+        }
         const head = React.createElement('div', { className: 'ic-contract-head' },
           React.createElement('div', { className: 'ic-contract-mark' },
             React.createElement('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' },
@@ -2582,8 +2614,18 @@ window.__ModuleLoader__.load({
             React.createElement('p', null, t('contract.subtitle'))),
           React.createElement('button', { type: 'button', onClick: load }, t('contract.refresh')))
         const taskBookCard = React.createElement('section', { className: 'ic-contract-card' },
-          React.createElement('h2', null, t('contract.taskBook')),
-          React.createElement('pre', { className: 'ic-contract-book' }, data?.taskBook ?? ''))
+          React.createElement('div', { className: 'ic-contract-meta' },
+            React.createElement('span', null, t('contract.client')),
+            React.createElement('span', null, t('contract.contractor'))),
+          sections.length > 0
+            ? sections.map(section => React.createElement('div', { key: section.label, className: 'ic-contract-section' },
+              React.createElement('h3', null, section.label),
+              React.createElement('pre', { className: 'ic-contract-book' }, section.body)))
+            : React.createElement('pre', { className: 'ic-contract-book' }, data?.taskBook ?? ''),
+          React.createElement('div', { className: 'ic-contract-terms' },
+            React.createElement('h3', null, t('contract.terms')),
+            React.createElement('p', null, `1. ${t('contract.term1')}`),
+            React.createElement('p', null, `2. ${t('contract.term2')}`)))
         const allocatedRow = React.createElement('tr', null,
           React.createElement('td', { colSpan: 2 }, t('contract.allocated')),
           React.createElement('td', null, `¥${allocated.toFixed(2)}`))

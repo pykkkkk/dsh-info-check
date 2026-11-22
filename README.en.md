@@ -12,15 +12,16 @@ Agents often start executing immediately. Misunderstandings then surface only at
 
 dsh-info-check adds four confirmation points to the workflow, so you can review the report at each key step before deciding whether to continue.
 
-## Task contract page
+## Project contract page
 
-After the budget plan is confirmed, the sidebar gains a **Task contract** entry. Open it at any time to review:
+After the budget plan is confirmed, the sidebar gains a **Task contract** entry. The page presents a simplified project contract:
 
-- the confirmed task book and milestones;
-- total budget, per-milestone budgets, and reserve;
-- approved extra budget;
-- whether the budget is signed;
-- the last update time.
+- project objective;
+- quality requirements;
+- scope boundaries;
+- milestone budget table;
+- acceptance and change terms;
+- whether the budget is signed and the last update time.
 
 It reads the current workspace contract snapshot and refreshes every four seconds.
 
