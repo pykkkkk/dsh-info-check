@@ -52,7 +52,7 @@ After sign-off, a floating right-side budget panel appears:
 
 ## Desktop reminders
 
-On Windows, a tray balloon appears in the bottom-right corner before each plugin confirmation card:
+On Windows, a system notification appears in the bottom-right corner when a plugin confirmation card opens:
 
 - task book confirmation;
 - budget plan confirmation/sign-off;
@@ -62,7 +62,9 @@ On Windows, a tray balloon appears in the bottom-right corner before each plugin
 - budget settlement rating;
 - optional retrospective prompt.
 
-It uses Windows PowerShell `NotifyIcon`, so no BurntToast module or extra install is needed. If system notifications are off or Focus Assist is on, Windows may suppress the balloon.
+It follows the same approach as `dsh-ui-usage-billing`: the Host records dialog events, the Client polls them, and calls the browser `Notification` API. The first time, click **Enable desktop notifications** in the bottom-right corner and allow notifications for the site. No BurntToast or PowerShell tray process is needed.
+
+If the site permission is denied, system notifications are off, or Focus Assist is on, Windows may suppress the notification.
 
 ## Task progress
 

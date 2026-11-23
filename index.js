@@ -36,7 +36,7 @@ import {
   createBudgetProposalTool, createBudgetReviewTool, createBudgetSettlementTool,
 } from './lib/budget-tools.js'
 import { createForecastBudgetTool } from './lib/forecast-tool.js'
-import { notifyDialog } from './lib/notify.js'
+import { notifyDialog, listNotifications } from './lib/notify.js'
 
 export const inject = ['tools', 'systemPrompt', 'userQuestions', 'workingDirectory', 'sessionProjections', 'agents']
 
@@ -1409,6 +1409,25 @@ export function apply(ctx, config = {}) {
         }
       },
     }), 'dsh-info-check: standards route')
+
+    webCtx.effect(() => webCtx.webServer.register({
+      kind: 'exact',
+      path: '/dsh-info-check/notifications',
+      handler: async (req, res) => {
+        if (req.method !== 'GET' && req.method !== 'HEAD') {
+          res.writeHead(405, { allow: 'GET, HEAD' })
+          res.end()
+          return
+        }
+        const text = JSON.stringify({ items: listNotifications() })
+        res.writeHead(200, {
+          'content-type': 'application/json; charset=utf-8',
+          'cache-control': 'no-store',
+          'content-length': Buffer.byteLength(text),
+        })
+        res.end(req.method === 'HEAD' ? undefined : text)
+      },
+    }), 'dsh-info-check: notifications route')
   })
 
   const definitions = [

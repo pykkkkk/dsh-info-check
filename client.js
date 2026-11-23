@@ -388,6 +388,10 @@ window.__ModuleLoader__.load({
       'archive.standardAutoNote': '自动生成的统计部分可能在复盘/结算后更新；手工补充区会保留。',
       'archive.qualityTitle': '质量标准',
       'archive.budgetTitle': '预算标准',
+      'notify.enable': '开启桌面提醒',
+      'notify.enabled': '桌面提醒已开启',
+      'notify.denied': '桌面提醒被浏览器拒绝，请在站点设置中允许通知',
+      'notify.hint': '点击开启后，插件弹窗会在桌面右下角提醒。',
       'contract.search': '搜索任务档案',
       'contract.noMatch': '没有匹配的任务档案。',
       'contract.statsTasks': '任务',
@@ -660,6 +664,10 @@ window.__ModuleLoader__.load({
       'archive.standardAutoNote': 'Generated statistics may refresh after retrospective/settlement; the manual section is preserved.',
       'archive.qualityTitle': 'Quality standard',
       'archive.budgetTitle': 'Budget standard',
+      'notify.enable': 'Enable desktop notifications',
+      'notify.enabled': 'Desktop notifications enabled',
+      'notify.denied': 'Notifications are blocked; allow them in site settings',
+      'notify.hint': 'Once enabled, plugin cards raise a desktop notification in the bottom-right corner.',
       'contract.search': 'Search task archive',
       'contract.noMatch': 'No matching task archive entries.',
       'contract.statsTasks': 'Tasks',
@@ -3100,6 +3108,83 @@ window.__ModuleLoader__.load({
       }
     }
 
+    function createDialogNotifier(ctx) {
+      return function DialogNotifier() {
+        const t = ctx.locale.bind(NS)
+        const supported = typeof Notification !== 'undefined'
+        const [permission, setPermission] = React.useState(supported ? Notification.permission : 'unsupported')
+        const [dismissed, setDismissed] = React.useState(false)
+        const lastId = React.useRef(Number(sessionStorage.getItem('dsh-info-check-notify-last') ?? 0) || 0)
+        const firstPoll = React.useRef(true)
+
+        React.useEffect(() => {
+          if (!supported) return undefined
+          let alive = true
+          const poll = async () => {
+            try {
+              const response = await fetch('/dsh-info-check/notifications', { cache: 'no-store' })
+              if (!response.ok) return
+              const data = await response.json()
+              const items = Array.isArray(data?.items) ? data.items : []
+              if (items.length === 0) {
+                firstPoll.current = false
+                return
+              }
+              if (firstPoll.current) {
+                firstPoll.current = false
+                lastId.current = items[items.length - 1].id
+                sessionStorage.setItem('dsh-info-check-notify-last', String(lastId.current))
+                return
+              }
+              for (const item of items) {
+                if (item.id <= lastId.current) continue
+                lastId.current = item.id
+                if (permission === 'granted') {
+                  try {
+                    new Notification(item.title, { body: item.body, tag: `dsh-info-check-${item.id}` })
+                  } catch {
+                    // Notification constructor may be unavailable in a webview.
+                  }
+                }
+              }
+              sessionStorage.setItem('dsh-info-check-notify-last', String(lastId.current))
+            } catch {
+              // Keep polling; a temporary route failure must not break the page.
+            }
+          }
+          poll()
+          const timer = window.setInterval(poll, 2000)
+          return () => {
+            alive = false
+            window.clearInterval(timer)
+          }
+        }, [permission, supported])
+
+        if (!supported || dismissed || permission === 'granted') return null
+        const request = async () => {
+          try {
+            const result = await Notification.requestPermission()
+            setPermission(result)
+            if (result !== 'granted') setDismissed(true)
+          } catch {
+            setDismissed(true)
+          }
+        }
+        return React.createElement('button', {
+          type: 'button',
+          onClick: request,
+          title: permission === 'denied' ? t('notify.denied') : t('notify.hint'),
+          style: {
+            position: 'fixed', right: '16px', bottom: '16px', zIndex: 4600,
+            border: '1px solid #dfe5ed', borderRadius: '999px', background: '#fff',
+            boxShadow: '0 8px 24px rgba(15,23,42,.14)', padding: '7px 12px',
+            color: '#475569', font: 'inherit', fontSize: '11px', cursor: 'pointer',
+            pointerEvents: 'auto',
+          },
+        }, permission === 'denied' ? t('notify.denied') : t('notify.enable'))
+      }
+    }
+
     function createBudgetChart(ctx) {
       return function BudgetChart() {
         const t = ctx.locale.bind(NS)
@@ -3550,6 +3635,11 @@ window.__ModuleLoader__.load({
           name: 'shell.overlay',
           id: 'dsh-info-check-budget-chart',
         }, createBudgetChart(ctx))), 'dsh-info-check: budget chart overlay')
+
+        ctx.effect(() => ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+          name: 'shell.overlay',
+          id: 'dsh-info-check-notifier',
+        }, createDialogNotifier(ctx))), 'dsh-info-check: desktop notifications')
       },
     }
   },
