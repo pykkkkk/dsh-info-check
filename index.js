@@ -102,6 +102,7 @@ export const Config = z === undefined
       ledgerPath: z.string().default('.dsh-info-check/ledger.md').volatile(),
       autoRetrospective: z.boolean().default(true).volatile(),
       auditAgent: z.boolean().default(false).volatile(),
+      language: z.string().default('auto').volatile(),
       supervisionMode: z.string().default('strict').volatile(),
       qualityStandard: z.string().default('').volatile(),
     })
@@ -978,11 +979,14 @@ export function apply(ctx, config = {}) {
       : '.dsh-info-check/ledger.md'
     const autoRetrospective = readConfig(config.autoRetrospective, true) !== false
     const auditAgent = readConfig(config.auditAgent, false) === true
+    const rawLanguage = readConfig(config.language, 'auto')
+    const language = rawLanguage === 'zh' || rawLanguage === 'en' ? rawLanguage : 'auto'
     const supervisionMode = readConfig(config.supervisionMode, 'strict') === 'advisory' ? 'advisory' : 'strict'
     return {
       milestoneCount, expectation, timeoutSeconds, maxQuestions, defaultEnabled,
       ledgerEnabled, ledgerPath, autoRetrospective, supervisionMode,
       auditAgent,
+      language,
     }
   }
 
@@ -1446,6 +1450,20 @@ export function apply(ctx, config = {}) {
         res.end(req.method === 'HEAD' ? undefined : text)
       },
     }), 'dsh-info-check: notifications route')
+
+    webCtx.effect(() => webCtx.webServer.register({
+      kind: 'exact',
+      path: '/dsh-info-check/language',
+      handler: async (req, res) => {
+        const text = JSON.stringify({ language: currentSettings().language })
+        res.writeHead(200, {
+          'content-type': 'application/json; charset=utf-8',
+          'cache-control': 'no-store',
+          'content-length': Buffer.byteLength(text),
+        })
+        res.end(text)
+      },
+    }), 'dsh-info-check: language route')
   })
 
   function createSituationTool({ ctx, enabledFor, budgetStore, ledger, getTimeoutSeconds }) {

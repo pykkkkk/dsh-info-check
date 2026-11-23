@@ -279,6 +279,7 @@ window.__ModuleLoader__.load({
       'panel.budgetSettlementActual': '实际使用',
       'panel.budgetSettlementVariance': '差额',
       'panel.budgetSettlementSource': '数据来源',
+      'panel.budgetSettlementManual': '手动/估算',
       'panel.auditTitle': '审计 agent',
       'panel.auditPassed': '通过',
       'panel.auditIssues': '发现问题',
@@ -510,6 +511,11 @@ window.__ModuleLoader__.load({
       'settings.globalSection': '全局上线设置',
       'settings.currentOnlyHint': '这里只控制当前对话；全局默认值请到“全局上线”。',
       'settings.globalOnlyHint': '这些值会写入全局配置，对之后的新会话生效。',
+      'settings.language': '语言 Language',
+      'settings.languageHint': '选择插件界面语言；“自动”跟随 DSH 当前语言。',
+      'settings.languageAuto': '自动',
+      'settings.languageZh': '中文',
+      'settings.languageEn': 'English',
       'settings.save': '保存设置',
       'settings.saving': '保存中…',
       'settings.saved': '设置已保存',
@@ -585,6 +591,7 @@ window.__ModuleLoader__.load({
       'panel.budgetSettlementActual': 'Actual usage',
       'panel.budgetSettlementVariance': 'Variance',
       'panel.budgetSettlementSource': 'Source',
+      'panel.budgetSettlementManual': 'Manual/estimate',
       'panel.auditTitle': 'Audit agent',
       'panel.auditPassed': 'Passed',
       'panel.auditIssues': 'Issues found',
@@ -817,6 +824,11 @@ window.__ModuleLoader__.load({
       'settings.globalSection': 'Global settings',
       'settings.currentOnlyHint': 'This only controls the current conversation; change defaults under “Global”.',
       'settings.globalOnlyHint': 'These values are written to global config and apply to new conversations.',
+      'settings.language': 'Language',
+      'settings.languageHint': 'Choose the plugin UI language; Auto follows the current DSH language.',
+      'settings.languageAuto': 'Auto',
+      'settings.languageZh': '中文',
+      'settings.languageEn': 'English',
       'settings.save': 'Save settings',
       'settings.saving': 'Saving…',
       'settings.saved': 'Settings saved',
@@ -830,6 +842,49 @@ window.__ModuleLoader__.load({
       'settings.noEntry': 'No dsh-info-check settings namespace was found; reload the plugin.',
       'settings.invalid': 'Check the value ranges.',
       'settings.ledgerRequired': 'The ledger path cannot be empty.',
+    }
+
+    const languageState = {
+      value: 'auto',
+      listeners: new Set(),
+    }
+
+    function effectiveLanguage(ctx) {
+      if (languageState.value === 'zh' || languageState.value === 'en') return languageState.value
+      try {
+        const active = ctx.locale.getLocale().active
+        return String(active).toLowerCase().startsWith('zh') ? 'zh' : 'en'
+      } catch {
+        return 'zh'
+      }
+    }
+
+    function translateFor(ctx, key) {
+      const language = effectiveLanguage(ctx)
+      const dictionary = language === 'zh' ? zh : en
+      return dictionary[key] ?? en[key] ?? key
+    }
+
+    function translateNow(ctx, key) {
+      return translateFor(ctx, key)
+    }
+
+    function setLanguage(value) {
+      const next = value === 'zh' || value === 'en' ? value : 'auto'
+      if (languageState.value === next) return
+      languageState.value = next
+      for (const listener of languageState.listeners) listener()
+    }
+
+    function useTranslate(ctx) {
+      const [, force] = React.useState(0)
+      useSnapshot(ctx.locale)
+      React.useEffect(() => {
+        const listener = () => force(value => value + 1)
+        languageState.listeners.add(listener)
+        return () => languageState.listeners.delete(listener)
+      }, [])
+      return React.useCallback(key => translateFor(ctx, key), [ctx])
     }
 
     function useSnapshot(store) {
@@ -1255,7 +1310,7 @@ window.__ModuleLoader__.load({
       return function IntentPanel({ pending }) {
         const snapshot = usePending(pending)
         const base = useCountdownBase(snapshot)
-        const t = ctx.locale.bind(NS)
+        const t = useTranslate(ctx)
         const briefQuestion = pending.questions.find(question => question !== null && question.id === BRIEF_ID)
         const details = pending.questions.filter(question => question !== null && question.id !== BRIEF_ID)
         const original = typeof briefQuestion?.detail === 'string' ? briefQuestion.detail : ''
@@ -1480,7 +1535,7 @@ window.__ModuleLoader__.load({
       return function MilestonePanel({ pending }) {
         const snapshot = usePending(pending)
         const base = useCountdownBase(snapshot)
-        const t = ctx.locale.bind(NS)
+        const t = useTranslate(ctx)
         const question = pending.questions.find(item => item !== null && item.id === MILESTONE_ID)
         const original = typeof question?.detail === 'string' ? question.detail : ''
 
@@ -1580,7 +1635,7 @@ window.__ModuleLoader__.load({
       return function ReportPanel({ pending, sessionId }) {
         const snapshot = usePending(pending)
         const base = useCountdownBase(snapshot)
-        const t = ctx.locale.bind(NS)
+        const t = useTranslate(ctx)
         const question = pending.questions.find(item => item !== null && item.id === config.id)
         const original = typeof question?.detail === 'string' ? question.detail : ''
 
@@ -1792,7 +1847,7 @@ window.__ModuleLoader__.load({
       return function BudgetPlanPanel({ pending, sessionId }) {
         const snapshot = usePending(pending)
         const base = useCountdownBase(snapshot)
-        const t = ctx.locale.bind(NS)
+        const t = useTranslate(ctx)
         const question = pending.questions.find(item => item !== null && item.id === BUDGET_PROPOSAL_ID)
         let plan = question?.budgetPlan
         if (plan === undefined && typeof question?.detail === 'string') {
@@ -1973,7 +2028,7 @@ window.__ModuleLoader__.load({
       return function BudgetReviewPanel({ pending }) {
         const snapshot = usePending(pending)
         const base = useCountdownBase(snapshot)
-        const t = ctx.locale.bind(NS)
+        const t = useTranslate(ctx)
         const question = pending.questions.find(item => item !== null && item.id === BUDGET_REVIEW_ID)
         const data = question?.budgetReview ?? { spent: 0, requestedExtra: 0 }
         const [spent, setSpent] = React.useState(data.spent ?? 0)
@@ -2111,7 +2166,7 @@ window.__ModuleLoader__.load({
       return function BudgetSettlementPanel({ pending }) {
         const snapshot = usePending(pending)
         const base = useCountdownBase(snapshot)
-        const t = ctx.locale.bind(NS)
+        const t = useTranslate(ctx)
         const question = pending.questions.find(item => item !== null && item.id === BUDGET_SETTLEMENT_ID)
         const data = question?.budgetSettlement ?? { initial: 0, extra: 0, finalSpent: 0 }
         const [rating, setRating] = React.useState(SATISFIED_BUDGET_LABEL)
@@ -2148,8 +2203,8 @@ window.__ModuleLoader__.load({
         const rows = [
           [t('panel.budgetSettlementTotal'), `¥${total.toFixed(2)}`],
           [t('panel.budgetSettlementActual'), `¥${Number(data.finalSpent).toFixed(2)}`],
-          [t('panel.budgetSettlementVariance'), `${variant > 0 ? '超支' : variant < 0 ? '结余' : '持平'} ¥${Math.abs(variant).toFixed(2)}`],
-          [t('panel.budgetSettlementSource'), data.source === 'dsh-ui-usage-billing' ? 'dsh-ui-usage-billing' : '手动/估算'],
+          [t('panel.budgetSettlementVariance'), `${variant > 0 ? t('contract.over') : variant < 0 ? t('contract.under') : t('contract.balanced')} ¥${Math.abs(variant).toFixed(2)}`],
+          [t('panel.budgetSettlementSource'), data.source === 'dsh-ui-usage-billing' ? 'dsh-ui-usage-billing' : t('panel.budgetSettlementManual')],
         ]
         const table = React.createElement('table', {
           style: { width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginBottom: '12px' },
@@ -2196,7 +2251,7 @@ window.__ModuleLoader__.load({
       return function SituationPanel({ pending }) {
         const snapshot = usePending(pending)
         const base = useCountdownBase(snapshot)
-        const t = ctx.locale.bind(NS)
+        const t = useTranslate(ctx)
         const question = pending.questions.find(item => item !== null && item.id === SITUATION_ID)
         const suggestions = Array.isArray(question?.situation?.suggestions)
           ? question.situation.suggestions
@@ -2367,6 +2422,7 @@ window.__ModuleLoader__.load({
         ledgerEnabled: source.ledgerEnabled !== false,
         autoRetrospective: source.autoRetrospective !== false,
         auditAgent: source.auditAgent === true,
+        language: source.language === 'zh' || source.language === 'en' ? source.language : 'auto',
         supervisionMode: source.supervisionMode === 'advisory' ? 'advisory' : 'strict',
         qualityStandard: typeof source.qualityStandard === 'string' ? source.qualityStandard : '',
         ledgerPath: typeof source.ledgerPath === 'string' && source.ledgerPath.trim() !== ''
@@ -2414,7 +2470,7 @@ window.__ModuleLoader__.load({
 
     function createSettingsPanel(ctx) {
       return function SettingsPanel({ onClose, enabled, busy, sessionId, onToggle }) {
-        const t = ctx.locale.bind(NS)
+        const t = useTranslate(ctx)
         let remote
         try {
           remote = ctx.remote?.settings
@@ -2430,6 +2486,7 @@ window.__ModuleLoader__.load({
           ledgerEnabled: true,
           autoRetrospective: true,
           auditAgent: false,
+          language: 'auto',
           supervisionMode: 'strict',
           qualityStandard: '',
           ledgerPath: '.dsh-info-check/ledger.md',
@@ -2485,6 +2542,7 @@ window.__ModuleLoader__.load({
             setNs(entry.ns)
             setRevision(entry.revision)
             setValues(normalizeSettings(value))
+            setLanguage(normalizeSettings(value).language)
             setLoading(false)
           }).catch(() => {
             if (!alive) return
@@ -2563,6 +2621,7 @@ window.__ModuleLoader__.load({
             if (result !== undefined && result !== null && typeof result.revision === 'number') {
               setRevision(result.revision)
             }
+            setLanguage(next.language)
             // Settings are already committed at this point. An empty manual
             // quality standard has nothing to sync; syncing must never turn a
             // successful settings write into a generic "save failed".
@@ -2669,6 +2728,21 @@ window.__ModuleLoader__.load({
                       disabled: busy === true || sessionId === undefined || onToggle === undefined,
                       onClick: onToggle,
                     }, React.createElement('i'))))),
+              React.createElement('div', { className: 'ic-set-section' },
+                React.createElement('div', { className: 'ic-set-head' }, t('settings.language')),
+                React.createElement('div', { className: 'ic-set-row' },
+                  React.createElement('div', { className: 'ic-set-copy' },
+                    React.createElement('span', { className: 'ic-set-label' }, t('settings.language')),
+                    React.createElement('span', { className: 'ic-set-hint' }, t('settings.languageHint'))),
+                  React.createElement('div', { className: 'ic-seg' },
+                    [['auto', 'settings.languageAuto'], ['zh', 'settings.languageZh'], ['en', 'settings.languageEn']].map(([value, key]) =>
+                      React.createElement('button', {
+                        key: value,
+                        type: 'button',
+                        className: values.language === value ? 'on' : '',
+                        disabled: saving,
+                        onClick: () => { update('language', value); setLanguage(value) },
+                      }, t(key)))))),
               React.createElement('div', { className: 'ic-set-section' },
                 React.createElement('div', { className: 'ic-set-head' }, t('settings.preferences')),
                 React.createElement('div', { className: 'ic-set-row' },
@@ -3133,7 +3207,7 @@ window.__ModuleLoader__.load({
         }
       `
       return function ContractPage() {
-        const t = ctx.locale.bind(NS)
+        const t = useTranslate(ctx)
         const [state, setState] = React.useState({ loading: true, data: undefined, error: '' })
         const [query, setQuery] = React.useState('')
         const [tab, setTab] = React.useState('ledger')
@@ -3663,7 +3737,7 @@ window.__ModuleLoader__.load({
 
     function createDialogNotifier(ctx) {
       return function DialogNotifier() {
-        const t = ctx.locale.bind(NS)
+        const t = useTranslate(ctx)
         const supported = typeof Notification !== 'undefined'
         const [permission, setPermission] = React.useState(supported ? Notification.permission : 'unsupported')
         const [dismissed, setDismissed] = React.useState(false)
@@ -3740,7 +3814,7 @@ window.__ModuleLoader__.load({
 
     function createBudgetChart(ctx) {
       return function BudgetChart() {
-        const t = ctx.locale.bind(NS)
+        const t = useTranslate(ctx)
         const [data, setData] = React.useState(undefined)
         const [points, setPoints] = React.useState([])
         const [closed, setClosed] = React.useState(false)
@@ -3867,7 +3941,7 @@ window.__ModuleLoader__.load({
       const SettingsPanel = createSettingsPanel(ctx)
       return function Toggle(props) {
         useSnapshot(ctx.locale)
-        const t = ctx.locale.bind(NS)
+        const t = useTranslate(ctx)
         const view = props.useProjection('infoCheck')
         const enabled = view === undefined ? false : view.enabled !== false
         const [busy, setBusy] = React.useState(false)
@@ -3956,7 +4030,7 @@ window.__ModuleLoader__.load({
 
     function createProgress(ctx) {
       return function Progress(props) {
-        const t = ctx.locale.bind(NS)
+        const t = useTranslate(ctx)
         const view = props.useProjection('infoCheck')
         const milestones = Array.isArray(view?.milestones) ? view.milestones : []
         const accepted = Array.isArray(view?.accepted) ? view.accepted : []
@@ -4111,6 +4185,14 @@ window.__ModuleLoader__.load({
       apply(ctx) {
         ctx.effect(() => ctx.locale.register(NS, 'zh', zh), 'dsh-info-check: zh dictionary')
         ctx.effect(() => ctx.locale.register(NS, 'en', en), 'dsh-info-check: en dictionary')
+        ctx.effect(() => {
+          let alive = true
+          fetch('/dsh-info-check/language', { cache: 'no-store' })
+            .then(response => response.ok ? response.json() : undefined)
+            .then(data => { if (alive) setLanguage(data?.language) })
+            .catch(() => {})
+          return () => { alive = false }
+        }, 'dsh-info-check: language preference')
 
         ctx.effect(() => ctx.slots.inject('conversation.composer', () => {
           try {
@@ -4177,7 +4259,7 @@ window.__ModuleLoader__.load({
           name: 'sidebar.panellist',
           id: CONTRACT_PANEL_ID,
           order: 30,
-          label: () => ctx.locale.bind(NS)('contract.nav'),
+          label: () => translateNow(ctx, 'contract.nav'),
         }, ContractGlyph)), 'dsh-info-check: contract sidebar entry')
 
         ctx.effect(() => ctx.slots.inject('main', () => ctx.slots.register({

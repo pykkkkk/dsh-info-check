@@ -213,6 +213,8 @@ Click the underlined words to open settings. It has two tabs:
 
 Global settings include:
 
+- UI language: Auto / 中文 / English;
+
 - the number of milestones;
 - the expectation level: perfect, good, or pass;
 - the auto-skip timeout;
