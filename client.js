@@ -386,6 +386,9 @@ window.__ModuleLoader__.load({
       'archive.standardSaved': '已保存',
       'archive.standardEmpty': '文件为空。',
       'archive.standardAutoNote': '自动生成的统计部分可能在复盘/结算后更新；手工补充区会保留。',
+      'archive.standardEdit': '编辑 Markdown',
+      'archive.standardPreview': '返回预览',
+      'contract.localWorkspace': '本地工作区',
       'archive.qualityTitle': '质量标准',
       'archive.budgetTitle': '预算标准',
       'notify.enable': '开启桌面提醒',
@@ -662,6 +665,9 @@ window.__ModuleLoader__.load({
       'archive.standardSaved': 'Saved',
       'archive.standardEmpty': 'The file is empty.',
       'archive.standardAutoNote': 'Generated statistics may refresh after retrospective/settlement; the manual section is preserved.',
+      'archive.standardEdit': 'Edit Markdown',
+      'archive.standardPreview': 'Back to preview',
+      'contract.localWorkspace': 'Local workspace',
       'archive.qualityTitle': 'Quality standard',
       'archive.budgetTitle': 'Budget standard',
       'notify.enable': 'Enable desktop notifications',
@@ -2745,12 +2751,148 @@ window.__ModuleLoader__.load({
         .ic-contract-summary b{color:#1f2937}
         .ic-contract-empty{padding:48px 24px;text-align:center;color:#64748b;font-size:13px;line-height:1.8}
         .ic-contract-error{color:#dc2626;font-size:12px;margin-bottom:12px}
+        /* Task archive visual design */
+        .ic-contract-page{
+          --arc-bg:#FFFFFF;--arc-surface:#FFFFFF;--arc-surface-2:#F8FAFC;--arc-surface-3:#F1F5F9;
+          --arc-ink:#0F172A;--arc-ink-2:#334155;--arc-ink-3:#64748B;
+          --arc-line:#E2E8F0;--arc-line-2:#EEF2F7;--arc-brand:#1D4ED8;--arc-brand-soft:#EFF6FF;
+          --arc-ok:#15803D;--arc-ok-bg:#F0FDF4;--arc-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px rgba(15,23,42,.03);
+          --arc-grad:linear-gradient(135deg,#1D4ED8,#2563EB);
+          background:var(--arc-bg);color:var(--arc-ink);padding:0 0 64px;height:100%;
+        }
+        .ic-contract-page[data-theme="dark"]{
+          --arc-bg:#06070D;--arc-surface:rgba(20,26,46,.55);--arc-surface-2:rgba(148,180,255,.06);
+          --arc-surface-3:rgba(148,180,255,.1);--arc-ink:#F1F5FF;--arc-ink-2:#C2CEE6;--arc-ink-3:#8FA0C4;
+          --arc-line:rgba(150,180,255,.16);--arc-line-2:rgba(150,180,255,.09);--arc-brand:#38D6FF;--arc-brand-soft:rgba(56,214,255,.12);
+          --arc-ok:#3CE6A6;--arc-ok-bg:rgba(60,230,166,.12);--arc-shadow:0 8px 40px rgba(0,0,0,.5),0 1px 0 rgba(255,255,255,.06) inset;
+          --arc-grad:linear-gradient(135deg,#38D6FF,#7C5CFF);
+        }
+        .ic-contract-page .ic-contract-inner{max-width:1260px;margin:0 auto;padding:0 40px}
+        .ic-contract-page .ic-contract-head{
+          height:60px;margin:0 -40px 22px;padding:0 40px;position:sticky;top:0;z-index:4;
+          display:flex;align-items:center;gap:12px;
+          background:color-mix(in srgb,var(--arc-bg) 88%,transparent);
+          -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+          border-bottom:1px solid var(--arc-line)
+        }
+        .ic-contract-page .ic-contract-mark{width:30px;height:30px;border-radius:8px;background:var(--arc-grad);color:#fff;display:grid;place-items:center;flex:none;box-shadow:0 0 20px rgba(56,140,255,.25)}
+        .ic-contract-page .ic-contract-title h1{font-size:16px;font-weight:700;letter-spacing:-.01em;margin:0;line-height:1.2}
+        .ic-contract-page .ic-contract-head-actions{display:flex;align-items:center;gap:10px;margin-left:auto}
+        .ic-contract-page .ic-contract-head-actions button{margin-left:0}
+        .ic-contract-page .ic-archive-refresh{height:32px;padding:0 12px;border:1px solid var(--arc-line);border-radius:8px;background:var(--arc-surface);color:var(--arc-ink-2);font:inherit;font-size:12px;cursor:pointer}
+        .ic-contract-page .ic-archive-refresh:hover{border-color:var(--arc-brand);color:var(--arc-brand)}
+        .ic-contract-page .ic-workspace{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--arc-ink-2);background:var(--arc-surface-2);border:1px solid var(--arc-line);border-radius:20px;padding:5px 10px;white-space:nowrap}
+        .ic-contract-page .ic-workspace::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--arc-ok)}
+        .ic-contract-page .ic-theme-switch{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--arc-line);border-radius:20px;background:var(--arc-surface-2)}
+        .ic-contract-page .ic-theme-switch button{width:27px;height:27px;border:0;border-radius:50%;background:transparent;color:var(--arc-ink-3);font-size:14px;cursor:pointer}
+        .ic-contract-page .ic-theme-switch button[aria-pressed="true"]{background:var(--arc-surface);color:var(--arc-brand);box-shadow:0 1px 4px rgba(0,0,0,.14)}
+        .ic-contract-page .ic-archive-tabs{display:flex;gap:30px;border-bottom:1px solid var(--arc-line);margin:0 0 22px}
+        .ic-contract-page .ic-archive-tab{appearance:none;background:none;border:0;border-bottom:2px solid transparent;padding:0 2px 13px;margin-bottom:-1px;color:var(--arc-ink-3);font:inherit;font-size:13px;cursor:pointer}
+        .ic-contract-page .ic-archive-tab:hover{color:var(--arc-ink-2)}
+        .ic-contract-page .ic-archive-tab.active{color:var(--arc-brand);font-weight:700;border-bottom-color:var(--arc-brand)}
+        .ic-contract-page .ic-contract-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:0 0 22px}
+        .ic-contract-page .ic-contract-stat{position:relative;overflow:hidden;background:var(--arc-surface-2);border:1px solid var(--arc-line);border-radius:12px;padding:18px 20px 17px;box-shadow:var(--arc-shadow)}
+        .ic-contract-page .ic-contract-stat::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--arc-grad)}
+        .ic-contract-page .ic-contract-stat span{display:block;font-size:11.5px;color:var(--arc-ink-2);letter-spacing:.04em}
+        .ic-contract-page .ic-contract-stat b{display:block;margin-top:8px;font-family:ui-monospace,Consolas,monospace;font-size:27px;font-weight:650;line-height:1.15;color:var(--arc-ink);font-variant-numeric:tabular-nums}
+        .ic-contract-page .ic-contract-tools{display:flex;align-items:center;gap:14px;margin:0 2px 12px}
+        .ic-contract-page .ic-contract-search{flex:1;max-width:420px;height:38px;padding:0 12px;border:1px solid var(--arc-line);border-radius:8px;background:var(--arc-surface);color:var(--arc-ink);font:inherit;font-size:13px;outline:none}
+        .ic-contract-page .ic-contract-search:focus{border-color:var(--arc-brand);box-shadow:0 0 0 3px var(--arc-brand-soft)}
+        .ic-contract-page .ic-archive-table{border:1px solid var(--arc-line);border-radius:12px;overflow:hidden;background:var(--arc-surface);box-shadow:var(--arc-shadow)}
+        .ic-contract-page .ic-archive-thead{display:grid;grid-template-columns:132px minmax(0,1fr) 112px 92px 110px;gap:14px;align-items:center;padding:11px 18px;background:var(--arc-surface-2);border-bottom:1px solid var(--arc-line);font-size:11px;color:var(--arc-ink-3);letter-spacing:.05em}
+        .ic-contract-page .ic-archive-thead .num{text-align:right}
+        .ic-contract-page .ic-contract-list{display:block;gap:0}
+        .ic-contract-page .ic-contract-entry{border:0;border-bottom:1px solid var(--arc-line-2);border-radius:0;background:transparent;box-shadow:none;overflow:visible}
+        .ic-contract-page .ic-contract-entry:last-child{border-bottom:0}
+        .ic-contract-page .ic-contract-entry summary{display:grid;grid-template-columns:132px minmax(0,1fr) 112px 92px 110px;gap:14px;align-items:center;padding:13px 18px;list-style:none;cursor:pointer;font-size:12px;color:var(--arc-ink-2)}
+        .ic-contract-page .ic-contract-entry summary:hover{background:var(--arc-surface-2)}
+        .ic-contract-page .ic-contract-entry summary::-webkit-details-marker{display:none}
+        .ic-contract-page .ic-contract-entry-arrow{display:none}
+        .ic-contract-page .ic-contract-entry-no{font-family:ui-monospace,Consolas,monospace;font-size:11px;color:var(--arc-ink-2);background:var(--arc-surface-3);border-radius:4px;padding:3px 7px;justify-self:start;white-space:nowrap}
+        .ic-contract-page .ic-contract-entry-title{font-size:13px;line-height:1.6;color:var(--arc-ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:400}
+        .ic-contract-page .ic-contract-entry-status{justify-self:start;background:var(--arc-ok-bg);color:var(--arc-ok);border-radius:20px;padding:3px 9px;font-size:11.5px;font-weight:400;white-space:nowrap}
+        .ic-contract-page .ic-contract-entry-status::before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:currentColor;margin-right:6px;vertical-align:1px}
+        .ic-contract-page .ic-contract-entry-status.pending{background:var(--arc-brand-soft);color:var(--arc-brand)}
+        .ic-contract-page .ic-contract-entry-budget{font-family:ui-monospace,Consolas,monospace;font-size:13px;font-weight:600;text-align:right;color:var(--arc-ink);white-space:nowrap}
+        .ic-contract-page .ic-contract-entry-date{font-family:ui-monospace,Consolas,monospace;font-size:11px;color:var(--arc-ink-3);text-align:right;justify-self:end;white-space:nowrap}
+        .ic-contract-page .ic-contract-entry-body{padding:16px 18px 20px;border-top:1px solid var(--arc-line);background:var(--arc-surface-2)}
+        .ic-contract-page .ic-contract-card{background:var(--arc-surface);border:1px solid var(--arc-line);border-radius:12px;box-shadow:none;padding:18px 20px;margin-bottom:14px}
+        .ic-contract-page .ic-contract-card h2{font-size:15px;font-weight:700;margin:0 0 14px}
+        .ic-contract-page .ic-contract-card h3{font-size:12px;margin:0 0 6px;color:var(--arc-ink-2)}
+        .ic-contract-page .ic-contract-book{color:var(--arc-ink-2);font-size:12px;line-height:1.75}
+        .ic-contract-page .ic-contract-table{width:100%;border-collapse:collapse;font-size:12px}
+        .ic-contract-page .ic-contract-table th{background:var(--arc-surface-2);color:var(--arc-ink-3);font-size:11px;font-weight:500}
+        .ic-contract-page .ic-contract-table th,.ic-contract-page .ic-contract-table td{padding:9px 10px;border-bottom:1px solid var(--arc-line-2);text-align:left}
+        .ic-contract-page .ic-contract-table td:last-child{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+        .ic-contract-page .ic-contract-summary{color:var(--arc-ink-3)}
+        .ic-contract-page .ic-doc-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:0 2px 16px;border-bottom:1px solid var(--arc-line);margin-bottom:16px}
+        .ic-contract-page .ic-file{display:flex;align-items:center;gap:10px;min-width:0}
+        .ic-contract-page .ic-file svg{width:16px;height:16px;color:var(--arc-brand)}
+        .ic-contract-page .ic-file-name{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;font-weight:600;white-space:nowrap}
+        .ic-contract-page .ic-file-type{font-size:11px;color:var(--arc-brand);background:var(--arc-brand-soft);border-radius:3px;padding:1px 6px}
+        .ic-contract-page .ic-file-time{font-family:ui-monospace,Consolas,monospace;font-size:11px;color:var(--arc-ink-3);white-space:nowrap}
+        .ic-contract-page .ic-doc-actions{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+        .ic-contract-page .ic-archive-btn{height:35px;padding:0 14px;border:1px solid var(--arc-line);border-radius:8px;background:var(--arc-surface);color:var(--arc-ink-2);font:inherit;font-size:12.5px;cursor:pointer}
+        .ic-contract-page .ic-archive-btn:hover{border-color:var(--arc-brand);color:var(--arc-brand)}
+        .ic-contract-page .ic-archive-btn.primary{background:var(--arc-grad);border-color:transparent;color:#fff}
+        .ic-contract-page .ic-archive-btn:disabled{opacity:.5;cursor:default}
+        .ic-contract-page .ic-note{margin:0 0 20px;padding:12px 16px;background:var(--arc-brand-soft);border-left:3px solid var(--arc-brand);border-radius:0 8px 8px 0;font-size:12.5px;line-height:1.7;color:var(--arc-ink-2)}
+        .ic-contract-page .ic-paper{background:var(--arc-surface);border:1px solid var(--arc-line);border-radius:12px;padding:36px 42px 42px;box-shadow:var(--arc-shadow)}
+        .ic-contract-page .ic-paper .archive-md-heading{font-size:20px;font-weight:700;line-height:1.35;padding-bottom:14px;border-bottom:1px solid var(--arc-line);margin:0 0 20px}
+        .ic-contract-page .ic-paper h3.archive-md-heading{font-size:15px;border-bottom:0;padding:18px 0 0;margin:0 0 10px}
+        .ic-contract-page .ic-paper h4.archive-md-heading{font-size:13px;border-bottom:0;padding:12px 0 0;margin:0}
+        .ic-contract-page .archive-md-p{font-size:13px;line-height:1.8;color:var(--arc-ink);margin:0 0 10px}
+        .ic-contract-page .archive-md-list{display:flex;flex-direction:column;gap:9px;margin:0 0 14px;padding-left:20px;font-size:13px;line-height:1.8;color:var(--arc-ink)}
+        .ic-contract-page .archive-md-list li{padding-left:2px}
+        .ic-contract-page .archive-md-code{background:var(--arc-surface-2);border:1px solid var(--arc-line);border-radius:8px;padding:12px;font-size:11px;overflow:auto;color:var(--arc-ink-2)}
+        .ic-contract-page .ic-standard-editor{width:100%;min-height:480px;box-sizing:border-box;resize:vertical;border:1px solid var(--arc-line);border-radius:8px;padding:14px 16px;background:var(--arc-surface);color:var(--arc-ink);font:12px/1.75 ui-monospace,Consolas,monospace;outline:none}
+        .ic-contract-page .ic-standard-history{display:flex;gap:16px;padding:15px 19px;margin:0 0 22px;background:var(--arc-surface-2);border-radius:8px;font-size:12.5px;color:var(--arc-ink-2)}
+        .ic-contract-page .ic-standard-history b{color:var(--arc-brand);font-family:ui-monospace,Consolas,monospace}
+        .ic-contract-page .ic-standard-status{font-size:11px;color:var(--arc-ok);margin-top:10px;min-height:16px}
+        .ic-contract-page .ic-standard-status.error{color:#dc2626}
+        .ic-contract-page .ic-contract-empty{color:var(--arc-ink-3)}
+        @media(max-width:920px){
+          .ic-contract-page .ic-contract-inner{padding:0 24px}
+          .ic-contract-page .ic-contract-head{margin:0 -24px 18px;padding:0 24px}
+          .ic-contract-page .ic-archive-thead{grid-template-columns:120px minmax(0,1fr) 106px 84px}
+          .ic-contract-page .ic-archive-thead span:last-child{display:none}
+          .ic-contract-page .ic-contract-entry summary{grid-template-columns:120px minmax(0,1fr) 106px 84px}
+          .ic-contract-page .ic-contract-entry-date{display:none}
+          .ic-contract-page .ic-contract-stats{grid-template-columns:repeat(2,1fr)}
+          .ic-contract-page .ic-paper{padding:28px}
+        }
+        @media(max-width:620px){
+          .ic-contract-page .ic-workspace{display:none}
+          .ic-contract-page .ic-contract-head-actions{gap:6px}
+          .ic-contract-page .ic-contract-stats{gap:10px}
+          .ic-contract-page .ic-contract-stat{padding:14px}
+          .ic-contract-page .ic-contract-stat b{font-size:23px}
+          .ic-contract-page .ic-archive-table{border-radius:10px}
+          .ic-contract-page .ic-archive-thead{display:none}
+          .ic-contract-page .ic-contract-entry summary{grid-template-columns:1fr auto;gap:5px 10px;padding:13px 15px}
+          .ic-contract-page .ic-contract-entry-no{grid-column:1;grid-row:1}
+          .ic-contract-page .ic-contract-entry-title{grid-column:1/-1;grid-row:2;white-space:normal}
+          .ic-contract-page .ic-contract-entry-status{grid-column:1;grid-row:3}
+          .ic-contract-page .ic-contract-entry-budget{grid-column:2;grid-row:3}
+          .ic-contract-page .ic-contract-entry-body{padding:12px}
+          .ic-contract-page .ic-paper{padding:24px 18px}
+          .ic-contract-page .ic-doc-actions{width:100%;margin-left:0}
+          .ic-contract-page .ic-doc-actions .ic-archive-btn{flex:1}
+        }
       `
       return function ContractPage() {
         const t = ctx.locale.bind(NS)
         const [state, setState] = React.useState({ loading: true, data: undefined, error: '' })
         const [query, setQuery] = React.useState('')
         const [tab, setTab] = React.useState('ledger')
+        const [theme, setTheme] = React.useState(() => {
+          try {
+            return localStorage.getItem('dsh-info-check-theme') === 'dark' ? 'dark' : 'light'
+          } catch {
+            return 'light'
+          }
+        })
+        const [editingStandard, setEditingStandard] = React.useState(false)
         const [standards, setStandards] = React.useState({ loading: true, error: '', quality: undefined, budget: undefined })
         const [drafts, setDrafts] = React.useState({ quality: '', budget: '' })
         const [standardStatus, setStandardStatus] = React.useState({ text: '', error: false })
@@ -2773,6 +2915,13 @@ window.__ModuleLoader__.load({
         React.useEffect(() => {
           if (tab !== 'ledger' && !standardsLoaded.current) loadStandards()
         }, [tab, loadStandards])
+        React.useEffect(() => {
+          try {
+            localStorage.setItem('dsh-info-check-theme', theme)
+          } catch {
+            // Theme persistence is optional.
+          }
+        }, [theme])
         const saveStandard = async (kind) => {
           setSavingStandard(kind)
           setStandardStatus({ text: t('archive.standardSaving'), error: false })
@@ -2875,6 +3024,65 @@ window.__ModuleLoader__.load({
             placeholder: t('contract.search'),
             onChange: event => setQuery(event.target.value),
           }))
+        const renderInline = (text) => String(text).split(/(\*\*[^*]+\*\*)/g).filter(Boolean).map((part, index) => (
+          part.startsWith('**') && part.endsWith('**')
+            ? React.createElement('strong', { key: index }, part.slice(2, -2))
+            : part
+        ))
+        const renderMarkdown = (markdown) => {
+          const lines = String(markdown ?? '').split(/\r?\n/)
+          const nodes = []
+          let list = []
+          let code = []
+          let inCode = false
+          const flushList = () => {
+            if (list.length > 0) {
+              nodes.push(React.createElement('ul', { key: `ul-${nodes.length}`, className: 'archive-md-list' },
+                list.map((item, index) => React.createElement('li', { key: index }, renderInline(item)))))
+              list = []
+            }
+          }
+          const flushCode = () => {
+            if (code.length > 0) {
+              nodes.push(React.createElement('pre', { key: `code-${nodes.length}`, className: 'archive-md-code' }, code.join('\n')))
+              code = []
+            }
+          }
+          for (const line of lines) {
+            if (line.trim().startsWith('```')) {
+              if (inCode) flushCode()
+              inCode = !inCode
+              continue
+            }
+            if (inCode) {
+              code.push(line)
+              continue
+            }
+            if (line.startsWith('<!--')) continue
+            const heading = /^(#{1,4})\s+(.+)$/.exec(line)
+            if (heading !== null) {
+              flushList()
+              nodes.push(React.createElement(`h${Math.min(4, heading[1].length + 1)}`, { key: `h-${nodes.length}`, className: 'archive-md-heading' }, renderInline(heading[2])))
+              continue
+            }
+            const item = /^\s*[-*]\s+(.+)$/.exec(line)
+            if (item !== null) {
+              list.push(item[1])
+              continue
+            }
+            if (line.trim() === '') {
+              flushList()
+              continue
+            }
+            flushList()
+            nodes.push(React.createElement('p', { key: `p-${nodes.length}`, className: 'archive-md-p' }, renderInline(line)))
+          }
+          flushList()
+          flushCode()
+          return nodes.length === 0
+            ? React.createElement('div', { className: 'ic-contract-empty' }, t('archive.standardEmpty'))
+            : nodes
+        }
         const buildEntry = (contract, index) => {
           const initial = contract?.initial ?? {}
           const milestones = Array.isArray(initial.milestones) ? initial.milestones : []
@@ -3048,44 +3256,68 @@ window.__ModuleLoader__.load({
             React.createElement('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' },
               React.createElement('path', { d: 'M6 3h9l3 3v15H6z' }),
               React.createElement('path', { d: 'M9 9h6M9 13h6M9 17h3' }))),
-          React.createElement('div', null,
-            React.createElement('h1', null, t('contract.title')),
-            React.createElement('p', null, t('contract.subtitle'))),
-          React.createElement('button', { type: 'button', onClick: tab === 'ledger' ? load : loadStandards }, t('contract.refresh')))
-        const tabs = React.createElement('div', { className: 'ic-archive-tabs' },
+          React.createElement('div', { className: 'ic-contract-title' },
+            React.createElement('h1', null, t('contract.title'))),
+          React.createElement('div', { className: 'ic-contract-head-actions' },
+            React.createElement('button', { type: 'button', className: 'ic-archive-refresh', onClick: tab === 'ledger' ? load : loadStandards }, t('contract.refresh')),
+            React.createElement('span', { className: 'ic-workspace' }, t('contract.localWorkspace')),
+            React.createElement('div', { className: 'ic-theme-switch', role: 'group', 'aria-label': 'theme' },
+              React.createElement('button', {
+                type: 'button', 'aria-pressed': theme === 'light', title: 'Light',
+                onClick: () => setTheme('light'),
+              }, '☼'),
+              React.createElement('button', {
+                type: 'button', 'aria-pressed': theme === 'dark', title: 'Dark',
+                onClick: () => setTheme('dark'),
+              }, '☾'))))
+        const tabs = React.createElement('div', { className: 'ic-archive-tabs', role: 'tablist' },
           ...[['ledger', 'archive.tabLedger'], ['quality', 'archive.tabQuality'], ['budget', 'archive.tabBudget']]
             .map(([id, key]) => React.createElement('button', {
               key: id,
               type: 'button',
+              role: 'tab',
+              'aria-selected': tab === id,
               className: `ic-archive-tab${tab === id ? ' active' : ''}`,
-              onClick: () => setTab(id),
+              onClick: () => {
+                setTab(id)
+                setEditingStandard(false)
+              },
             }, t(key))))
         const kind = tab === 'quality' ? 'quality' : 'budget'
         const standard = standards[kind]
         const standardNode = React.createElement(React.Fragment, null,
-          React.createElement('div', { className: 'ic-standard-bar' },
-            React.createElement('h2', null, t(tab === 'quality' ? 'archive.qualityTitle' : 'archive.budgetTitle')),
-            React.createElement('span', { className: 'ic-standard-file' }, standard?.file ?? (tab === 'quality' ? 'quality-standard.md' : 'budget-standard.md')),
-            standard?.updatedAt ? React.createElement('span', { className: 'ic-standard-file' }, new Date(standard.updatedAt).toLocaleString()) : null,
-            React.createElement('button', { type: 'button', onClick: loadStandards }, t('archive.standardReload')),
-            React.createElement('button', {
-              type: 'button',
-              className: 'primary',
-              disabled: savingStandard !== '' || standards.loading,
-              onClick: () => saveStandard(kind),
-            }, savingStandard === kind ? t('archive.standardSaving') : t('archive.standardSave'))),
-          React.createElement('p', { className: 'ic-standard-hint' }, t('archive.standardHint')),
-          React.createElement('p', { className: 'ic-standard-hint' }, t('archive.standardAutoNote')),
+          React.createElement('div', { className: 'ic-doc-head' },
+            React.createElement('div', { className: 'ic-file' },
+              React.createElement('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' },
+                React.createElement('path', { d: 'M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z' }),
+                React.createElement('path', { d: 'M14 3.5v4h4' })),
+              React.createElement('span', { className: 'ic-file-name' }, standard?.file ?? (tab === 'quality' ? 'quality-standard.md' : 'budget-standard.md')),
+              React.createElement('span', { className: 'ic-file-type' }, 'MD'),
+              standard?.updatedAt ? React.createElement('span', { className: 'ic-file-time' }, new Date(standard.updatedAt).toLocaleString()) : null),
+            React.createElement('div', { className: 'ic-doc-actions' },
+              React.createElement('button', { type: 'button', className: 'ic-archive-btn', onClick: loadStandards }, t('archive.standardReload')),
+              React.createElement('button', {
+                type: 'button', className: 'ic-archive-btn', onClick: () => setEditingStandard(value => !value),
+              }, editingStandard ? t('archive.standardPreview') : t('archive.standardEdit')),
+              React.createElement('button', {
+                type: 'button', className: 'ic-archive-btn primary',
+                disabled: savingStandard !== '' || standards.loading,
+                onClick: () => saveStandard(kind),
+              }, savingStandard === kind ? t('archive.standardSaving') : t('archive.standardSave')))),
+          React.createElement('div', { className: 'ic-note' }, t('archive.standardHint'), ' ', t('archive.standardAutoNote')),
           standards.error === '' ? null : React.createElement('div', { className: 'ic-contract-error' }, standards.error),
           standards.loading
             ? React.createElement('div', { className: 'ic-contract-empty' }, t('contract.loading'))
-            : React.createElement('textarea', {
-              className: 'ic-standard-editor',
-              value: drafts[kind],
-              spellCheck: false,
-              onChange: event => setDrafts(previous => ({ ...previous, [kind]: event.target.value })),
-              placeholder: t('archive.standardEmpty'),
-            }),
+            : editingStandard
+              ? React.createElement('article', { className: 'ic-paper' },
+                React.createElement('textarea', {
+                  className: 'ic-standard-editor',
+                  value: drafts[kind],
+                  spellCheck: false,
+                  onChange: event => setDrafts(previous => ({ ...previous, [kind]: event.target.value })),
+                  placeholder: t('archive.standardEmpty'),
+                }))
+              : React.createElement('article', { className: 'ic-paper' }, renderMarkdown(drafts[kind])),
           React.createElement('div', { className: `ic-standard-status${standardStatus.error ? ' error' : ''}` }, standardStatus.text))
         const body = state.loading && contracts.length === 0
           ? React.createElement('div', { className: 'ic-contract-empty' }, t('contract.loading'))
@@ -3094,12 +3326,18 @@ window.__ModuleLoader__.load({
             : visibleContracts.length === 0
               ? React.createElement('div', { className: 'ic-contract-empty' }, t('contract.noMatch'))
               : React.createElement('div', { className: 'ic-contract-list' }, visibleContracts.map(buildEntry))
+        const tableHead = React.createElement('div', { className: 'ic-archive-thead' },
+          React.createElement('span', null, '#'),
+          React.createElement('span', null, t('contract.title')),
+          React.createElement('span', null, t('contract.signed')),
+          React.createElement('span', { className: 'num' }, 'CNY'),
+          React.createElement('span', { className: 'num' }, t('contract.updated')))
         const ledgerNode = React.createElement(React.Fragment, null,
           stats,
           tools,
           state.error === '' ? null : React.createElement('div', { className: 'ic-contract-error' }, state.error),
-          body)
-        return React.createElement('div', { className: 'ic-contract-page' },
+          React.createElement('div', { className: 'ic-archive-table' }, tableHead, body))
+        return React.createElement('div', { className: 'ic-contract-page', 'data-theme': theme },
           React.createElement('style', null, CSS),
           React.createElement('div', { className: 'ic-contract-inner' },
             head,
