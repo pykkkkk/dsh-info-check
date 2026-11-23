@@ -219,7 +219,7 @@ window.__ModuleLoader__.load({
 `
 
     const zh = {
-      'title': '需求核对',
+      'title': '信息核对',
       'progress.label': '任务进度',
       'progress.milestone': '里程碑',
       'progress.clear': '清除进度条',
@@ -382,7 +382,7 @@ window.__ModuleLoader__.load({
       'settings.presets': '常用',
       'settings.review': '核对、台账与复盘',
       'settings.maxQuestions': '细节问题数量',
-      'settings.maxQuestionsHint': '需求核对时最多问几个细节问题（1–6）。',
+      'settings.maxQuestionsHint': '信息核对时最多问几个细节问题（1–6）。',
       'settings.defaultEnabled': '新对话默认开启',
       'settings.defaultEnabledHint': '新建对话时默认启用；已有对话仍用标题旁开关。',
       'settings.ledger': '启用工作区台账',
