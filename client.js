@@ -2525,19 +2525,17 @@ window.__ModuleLoader__.load({
           }
           let request
           try {
-            // A plugin reload can change the settings revision while this panel
-            // is open. A user-triggered save is authoritative, so omit the stale
-            // revision instead of rejecting the write.
-            request = remote.update(ns, next)
-          } catch {
+            // Keep the loaded revision; the Host probe confirms it is valid.
+            request = remote.update(ns, next, revision)
+          } catch (error) {
             setSaving(false)
-            setError(t('settings.saveFailed'))
+            setError(`${t('settings.saveFailed')}：${String(error?.message ?? error)}`)
             return
           }
           Promise.resolve(request).then((response) => {
             if (response !== null && typeof response === 'object' && response.ok === false) {
               setSaving(false)
-              setError(response.error?.message ?? t('settings.saveFailed'))
+              setError(`${t('settings.saveFailed')}：${response.error?.message ?? JSON.stringify(response.error ?? {})}`)
               return
             }
             const result = response !== null && typeof response === 'object' && response.ok === true
@@ -2568,9 +2566,9 @@ window.__ModuleLoader__.load({
               setSaved(true)
               setError(t('settings.qualityWriteFailed'))
             }
-          }).catch(() => {
+          }).catch((error) => {
             setSaving(false)
-            setError(t('settings.saveFailed'))
+            setError(`${t('settings.saveFailed')}：${String(error?.message ?? error)}`)
           })
         }
 
