@@ -50,6 +50,20 @@ After sign-off, a floating right-side budget panel appears:
 - each milestone's cumulative budget is a red dashed threshold;
 - it refreshes every three seconds from billing, falling back to token estimation.
 
+## Desktop reminders
+
+On Windows, a tray balloon appears in the bottom-right corner before each plugin confirmation card:
+
+- task book confirmation;
+- budget plan confirmation/sign-off;
+- milestone acceptance;
+- budget review;
+- delivery confirmation;
+- budget settlement rating;
+- optional retrospective prompt.
+
+It uses Windows PowerShell `NotifyIcon`, so no BurntToast module or extra install is needed. If system notifications are off or Focus Assist is on, Windows may suppress the balloon.
+
 ## Task progress
 
 A progress bar appears just above the message box. Each milestone is a line-drawn stone tablet: progress moves forward faster, stops near the next tablet while it waits for acceptance, reaches the tablet when you accept, and finishes at the end after delivery, then hides. It reappears when the next task confirms its plan.

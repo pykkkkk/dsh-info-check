@@ -36,6 +36,7 @@ import {
   createBudgetProposalTool, createBudgetReviewTool, createBudgetSettlementTool,
 } from './lib/budget-tools.js'
 import { createForecastBudgetTool } from './lib/forecast-tool.js'
+import { notifyDialog } from './lib/notify.js'
 
 export const inject = ['tools', 'systemPrompt', 'userQuestions', 'workingDirectory', 'sessionProjections', 'agents']
 
@@ -472,6 +473,7 @@ function createInfoCheckTool({ ctx, enabledFor, getMaxQuestions, ledger, budgetS
       if (!enabledFor(agent.session)) throw new Error('dsh-info-check is disabled for this conversation')
       const brief = validateInfoCheck(args, getMaxQuestions())
       const detail = briefMarkdown(brief)
+      notifyDialog('dsh-info-check · 任务书待确认', '任务理解、完成标准和里程碑已生成，请在弹窗中确认。')
       let answer
       try {
         answer = await ctx.userQuestions.ask({
@@ -594,6 +596,7 @@ function createMilestoneTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
           { label: APPROVE_MILESTONE_LABEL, description: '按这个方案执行' },
         ],
       }
+      notifyDialog('dsh-info-check · 里程碑方案待确认', `请确认里程碑：${milestone.milestone}`)
       let result
       try {
         result = await ctx.userQuestions.askTimed(
@@ -736,6 +739,7 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger, getSuper
           { label: PAUSE_LABEL, description: '暂停任务，整理现有进度后结束当前任务' },
         ],
       }
+      notifyDialog('dsh-info-check · 里程碑验收', `${acceptance.milestone} 已完成，请验收。`)
       let result
       try {
         result = await ctx.userQuestions.askTimed(
@@ -869,6 +873,7 @@ function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger, onDeli
           { label: ADJUST_DELIVERY_LABEL, description: '先不交付，需要调整' },
         ],
       }
+      notifyDialog('dsh-info-check · 交付待确认', '交付内容、限制和验证已整理，请确认是否交付。')
       let result
       try {
         result = await ctx.userQuestions.askTimed(
@@ -981,6 +986,7 @@ export function apply(ctx, config = {}) {
     if (!settings.ledgerEnabled) return { status: 'disabled', summary: '' }
     let wantsReview = settings.autoRetrospective
     if (!wantsReview) {
+      notifyDialog('dsh-info-check · 任务复盘', '本次任务已交付，是否把工作记录加入复盘？')
       try {
         const answer = await ctx.userQuestions.ask({
           questions: [{
