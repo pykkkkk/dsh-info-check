@@ -2783,9 +2783,25 @@ window.__ModuleLoader__.load({
         .ic-contract-page .ic-archive-refresh:hover{border-color:var(--arc-brand);color:var(--arc-brand)}
         .ic-contract-page .ic-workspace{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--arc-ink-2);background:var(--arc-surface-2);border:1px solid var(--arc-line);border-radius:20px;padding:5px 10px;white-space:nowrap}
         .ic-contract-page .ic-workspace::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--arc-ok)}
-        .ic-contract-page .ic-theme-switch{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--arc-line);border-radius:20px;background:var(--arc-surface-2)}
-        .ic-contract-page .ic-theme-switch button{width:27px;height:27px;border:0;border-radius:50%;background:transparent;color:var(--arc-ink-3);font-size:14px;cursor:pointer}
-        .ic-contract-page .ic-theme-switch button[aria-pressed="true"]{background:var(--arc-surface);color:var(--arc-brand);box-shadow:0 1px 4px rgba(0,0,0,.14)}
+        .ic-contract-page .ic-theme-switch{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--arc-line);border-radius:20px;background:var(--arc-surface-2);position:relative}
+        .ic-contract-page .ic-theme-thumb{position:absolute;top:3px;left:3px;width:27px;height:27px;border-radius:50%;background:var(--arc-surface);box-shadow:0 1px 4px rgba(0,0,0,.18);transition:transform .38s cubic-bezier(.22,.61,.36,1),background .4s var(--ease, ease)}
+        .ic-contract-page[data-theme="dark"] .ic-theme-thumb{transform:translateX(29px);background:var(--arc-grad);box-shadow:0 0 14px rgba(56,214,255,.5)}
+        .ic-contract-page .ic-theme-switch button{width:27px;height:27px;border:0;border-radius:50%;background:transparent;color:var(--arc-ink-3);font-size:14px;cursor:pointer;position:relative;z-index:1;transition:color .3s var(--ease, ease)}
+        .ic-contract-page .ic-theme-switch button[aria-pressed="true"]{color:var(--arc-brand);background:transparent;box-shadow:none}
+        .ic-contract-page .ic-archive-panel{animation:ic-archive-in .32s cubic-bezier(.22,.61,.36,1) both}
+        @keyframes ic-archive-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+        .ic-contract-page .ic-contract-stat{transition:transform .25s cubic-bezier(.22,.61,.36,1),border-color .25s,box-shadow .25s}
+        .ic-contract-page .ic-contract-stat:hover{transform:translateY(-3px);border-color:var(--arc-brand)}
+        .ic-contract-page .ic-contract-entry summary{transition:background .16s var(--ease, ease)}
+        .ic-contract-page .ic-contract-entry[open] .ic-contract-entry-body{animation:ic-archive-detail .24s cubic-bezier(.22,.61,.36,1) both}
+        @keyframes ic-archive-detail{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+        .ic-contract-page .ic-archive-btn,.ic-contract-page .ic-archive-refresh{transition:background .18s,border-color .18s,color .18s,transform .18s}
+        .ic-contract-page .ic-archive-btn:active,.ic-contract-page .ic-archive-refresh:active{transform:translateY(1px)}
+        .ic-contract-page .ic-archive-btn.primary:hover{filter:brightness(1.12)}
+        .ic-contract-page .ic-archive-tab{transition:color .18s,border-color .18s}
+        @media(prefers-reduced-motion:reduce){
+          .ic-contract-page *,.ic-contract-page *::before,.ic-contract-page *::after{animation:none!important;transition:none!important}
+        }
         .ic-contract-page .ic-archive-tabs{display:flex;gap:30px;border-bottom:1px solid var(--arc-line);margin:0 0 22px}
         .ic-contract-page .ic-archive-tab{appearance:none;background:none;border:0;border-bottom:2px solid transparent;padding:0 2px 13px;margin-bottom:-1px;color:var(--arc-ink-3);font:inherit;font-size:13px;cursor:pointer}
         .ic-contract-page .ic-archive-tab:hover{color:var(--arc-ink-2)}
@@ -3262,6 +3278,7 @@ window.__ModuleLoader__.load({
             React.createElement('button', { type: 'button', className: 'ic-archive-refresh', onClick: tab === 'ledger' ? load : loadStandards }, t('contract.refresh')),
             React.createElement('span', { className: 'ic-workspace' }, t('contract.localWorkspace')),
             React.createElement('div', { className: 'ic-theme-switch', role: 'group', 'aria-label': 'theme' },
+              React.createElement('span', { className: 'ic-theme-thumb', 'aria-hidden': 'true' }),
               React.createElement('button', {
                 type: 'button', 'aria-pressed': theme === 'light', title: 'Light',
                 onClick: () => setTheme('light'),
@@ -3285,7 +3302,7 @@ window.__ModuleLoader__.load({
             }, t(key))))
         const kind = tab === 'quality' ? 'quality' : 'budget'
         const standard = standards[kind]
-        const standardNode = React.createElement(React.Fragment, null,
+        const standardNode = React.createElement('div', { className: 'ic-archive-panel' },
           React.createElement('div', { className: 'ic-doc-head' },
             React.createElement('div', { className: 'ic-file' },
               React.createElement('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' },
@@ -3332,7 +3349,7 @@ window.__ModuleLoader__.load({
           React.createElement('span', null, t('contract.signed')),
           React.createElement('span', { className: 'num' }, 'CNY'),
           React.createElement('span', { className: 'num' }, t('contract.updated')))
-        const ledgerNode = React.createElement(React.Fragment, null,
+        const ledgerNode = React.createElement('div', { className: 'ic-archive-panel' },
           stats,
           tools,
           state.error === '' ? null : React.createElement('div', { className: 'ic-contract-error' }, state.error),
