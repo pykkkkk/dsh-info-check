@@ -2546,13 +2546,28 @@ window.__ModuleLoader__.load({
             if (result !== undefined && result !== null && typeof result.revision === 'number') {
               setRevision(result.revision)
             }
-            syncQuality(next.qualityStandard).then(() => {
+            // Settings are already committed at this point. An empty manual
+            // quality standard has nothing to sync; syncing must never turn a
+            // successful settings write into a generic "save failed".
+            if (next.qualityStandard.trim() === '') {
               setSaving(false)
               setSaved(true)
-            }).catch(() => {
+              return
+            }
+            try {
+              Promise.resolve(syncQuality(next.qualityStandard)).then(() => {
+                setSaving(false)
+                setSaved(true)
+              }).catch(() => {
+                setSaving(false)
+                setSaved(true)
+                setError(t('settings.qualityWriteFailed'))
+              })
+            } catch {
               setSaving(false)
+              setSaved(true)
               setError(t('settings.qualityWriteFailed'))
-            })
+            }
           }).catch(() => {
             setSaving(false)
             setError(t('settings.saveFailed'))
