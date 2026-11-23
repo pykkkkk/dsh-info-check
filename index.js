@@ -42,6 +42,8 @@ export const inject = ['tools', 'systemPrompt', 'userQuestions', 'workingDirecto
 
 const ledgerDirs = new Set()
 const packageRoot = dirname(fileURLToPath(import.meta.url))
+const SITUATION_ID = 'situation-check'
+const SITUATION_SKIP = '__situation_skip__'
 
 /* ------------------------------------------------------------------ */
 /* Config                                                              */
@@ -160,6 +162,7 @@ function defaultPolicy(settings) {
 5. **两轮确认**：用户确认第 1 轮方案后，先思考并给出调整意见，用 \`round=2\` 再次调用 \`confirm_budget\`，在调整说明中写清楚改了什么、为什么改；用户再次确认后预算才签约，里程碑计划同时锁定。
 6. **预算签约**：只有第 2 轮用户确认后才算签约。**预算未签约时不得开始执行、不得调用 \`accept_milestone\`。** 卡片的倒计时结束或点击 X 均不视为签约。
 7. **里程碑执行与验收**：每完成一个里程碑的文件/脚本后，立即调用 \`accept_milestone\` 验收**当前这一个**里程碑；验收必须提交至少一个本里程碑实际新增或修改的文件/脚本（files），且必须在上一里程碑验收之后更新。验收通过后可以继续同一轮，不需要中断对话；但下一个里程碑的文件必须在这之后修改。计划确认后里程碑数量锁定。
+   执行中如遇到问题或决策拿不准，可随时调用 \`situation_check\` 发“情况对接”卡片：当前问题只读、列出 agent 建议、用户填写意见；动作会记入台账时间线。倒计时结束或用户关闭时，按 agent 自己的理解继续执行。
 8. **预算审核**：验收通过后、进入下一里程碑前，必须调用 \`review_budget\`，提交累计已用、本阶段使用、追加请求和超支说明。甲方批准追加、不追加、要求调整或暂停；审核完成前不能提交下一里程碑验收。
 9. 如果验收或预算审核返回 \`decision=paused\`，立即停止当前任务：整理进度、未完成项/风险和相关文件路径，结束任务；不进入下一里程碑，也不调用 \`confirm_delivery\`。
 10. 任务明显简单且无歧义（单文件小改、用户已给出完整规格）时，说明假设后直接做，不必走完整流程；但成本仍要报告。
@@ -1430,8 +1433,128 @@ export function apply(ctx, config = {}) {
     }), 'dsh-info-check: notifications route')
   })
 
+  function createSituationTool({ ctx, enabledFor, budgetStore, ledger, getTimeoutSeconds }) {
+    return {
+      name: 'situation_check',
+      description: '在执行中遇到不确定的问题时，随时向用户发起“情况对接”卡片：只读当前问题、agent 的多个建议、用户意见输入框。'
+        + '这不是固定阶段确认，可以在任意插件/skill/里程碑执行中调用。'
+        + '用户选择或填写后返回其意见；倒计时结束或关闭卡片时返回 timeout/cancelled，并让 agent 按自己的理解继续执行。'
+        + '卡片行动会写入任务台账时间线。',
+      parameters: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          question: { type: 'string', description: '当前需要对接的问题，只读展示。' },
+          context: { type: 'string', description: '可选：只读的背景、约束或候选方案说明。' },
+          suggestions: {
+            type: 'array', minItems: 1, maxItems: 8,
+            description: 'agent 的建议选项；推荐项放第一。',
+            items: {
+              type: 'object', additionalProperties: false,
+              properties: {
+                label: { type: 'string', description: '建议标题。' },
+                description: { type: 'string', description: '可选：建议说明。' },
+              },
+              required: ['label'],
+            },
+          },
+          multiple: { type: 'boolean', description: '是否允许选择多个建议，默认 false。' },
+          timeoutSeconds: { type: 'integer', minimum: 15, maximum: 600, description: '倒计时秒数；默认使用插件超时设置。' },
+        },
+        required: ['question', 'suggestions'],
+      },
+      output: {
+        schema: {
+          type: 'object', additionalProperties: false,
+          properties: {
+            decision: { type: 'string', enum: ['answered', 'timeout', 'cancelled'] },
+            proceed: { type: 'boolean' },
+            selected: { type: 'array', items: { type: 'string' } },
+            opinion: { type: 'string' },
+          },
+          required: ['decision', 'proceed', 'selected', 'opinion'],
+        },
+        render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
+      },
+      async execute(args, exec) {
+        const agent = exec.agent
+        if (agent === undefined) throw new Error('situation_check requires a live agent')
+        if (!enabledFor(agent.session)) throw new Error('dsh-info-check is disabled for this conversation')
+        const questionText = String(args?.question ?? '').trim()
+        if (questionText === '') throw new Error('question is required')
+        const suggestions = (Array.isArray(args.suggestions) ? args.suggestions : [])
+          .filter(item => item !== null && typeof item === 'object' && typeof item.label === 'string')
+          .slice(0, 8)
+          .map(item => ({ label: item.label.slice(0, 120), ...(typeof item.description === 'string' ? { description: item.description.slice(0, 300) } : {}) }))
+        if (suggestions.length === 0) throw new Error('at least one suggestion is required')
+        const multiple = args.multiple === true
+        const timeoutSeconds = Math.min(600, Math.max(15, Number(args.timeoutSeconds) || Number(getTimeoutSeconds()) || 120))
+        const context = typeof args.context === 'string' && args.context.trim() !== '' ? args.context.trim().slice(0, 4000) : undefined
+        notifyDialog('dsh-info-check · 情况对接', questionText)
+        const question = {
+          id: SITUATION_ID,
+          header: 'dsh-info-check · 情况对接',
+          question: questionText,
+          ...(context === undefined ? {} : { detail: context }),
+          situation: { suggestions, multiple },
+          options: suggestions.map(item => ({ label: item.label, ...(item.description === undefined ? {} : { description: item.description }) })),
+          ...(multiple ? { multiSelect: true } : {}),
+        }
+        let result
+        try {
+          result = await ctx.userQuestions.askTimed(
+            { questions: [question], agent, signal: exec.signal },
+            exec.callId,
+            timeoutSeconds * 1000,
+          )
+        } catch (error) {
+          if (isCancelled(error)) {
+            await budgetStore.recordSituation(agent.session, {
+              question: questionText, suggestions, selected: [], opinion: '', decision: 'cancelled',
+            }).catch(() => {})
+            await ledger.append(agent.session, `情况对接取消：${questionText}`, { type: 'situation', decision: 'cancelled' }).catch(() => {})
+            return { decision: 'cancelled', proceed: true, selected: [], opinion: '' }
+          }
+          throw error
+        }
+        if (result.pending === true) {
+          await budgetStore.recordSituation(agent.session, {
+            question: questionText, suggestions, selected: [], opinion: '', decision: 'timeout',
+          }).catch(() => {})
+          await ledger.append(agent.session, `情况对接超时，按 agent 理解继续：${questionText}`, { type: 'situation', decision: 'timeout' }).catch(() => {})
+          return { decision: 'timeout', proceed: true, selected: [], opinion: '' }
+        }
+        const answer = result.answers?.[0] ?? { id: SITUATION_ID, selected: [] }
+        const selected = Array.isArray(answer.selected) ? answer.selected.filter(item => typeof item === 'string') : []
+        const opinion = typeof answer.custom === 'string' ? answer.custom.trim() : ''
+        if (selected.length === 1 && selected[0] === SITUATION_SKIP) {
+          await budgetStore.recordSituation(agent.session, {
+            question: questionText, suggestions, selected: [], opinion, decision: 'cancelled',
+          }).catch(() => {})
+          await ledger.append(agent.session, `情况对接关闭，按 agent 理解继续：${questionText}`, { type: 'situation', decision: 'cancelled' }).catch(() => {})
+          return { decision: 'cancelled', proceed: true, selected: [], opinion }
+        }
+        await budgetStore.recordSituation(agent.session, {
+          question: questionText, suggestions, selected, opinion, decision: 'answered',
+        }).catch(() => {})
+        await ledger.append(agent.session, `情况对接：${questionText}\n选择：${selected.join('、') || '无'}\n意见：${opinion || '无'}`, {
+          type: 'situation', decision: 'answered', selected, opinion,
+        }).catch(() => {})
+        return { decision: 'answered', proceed: true, selected, opinion }
+      },
+      presentCall(args) {
+        return {
+          card: 'generic',
+          title: 'dsh-info-check · 情况对接',
+          kind: 'other',
+          content: [{ type: 'text', text: String(args?.question ?? '') }],
+        }
+      },
+    }
+  }
+
   const definitions = [
-    createInfoCheckTool({ ctx, enabledFor, getMaxQuestions: () => currentSettings().maxQuestions, ledger, budgetStore }),
+    createSituationTool({ ctx, enabledFor, budgetStore, ledger, getTimeoutSeconds: () => currentSettings().timeoutSeconds }),    createInfoCheckTool({ ctx, enabledFor, getMaxQuestions: () => currentSettings().maxQuestions, ledger, budgetStore }),
     createForecastBudgetTool({
       enabledFor,
       getOrigin: () => {

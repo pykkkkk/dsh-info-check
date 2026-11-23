@@ -11,6 +11,8 @@ window.__ModuleLoader__.load({
 
     const NS = 'dsh-info-check'
     const BRIEF_ID = 'intent-brief'
+    const SITUATION_ID = 'situation-check'
+    const SITUATION_SKIP = '__situation_skip__'
     const MILESTONE_ID = 'milestone-confirm'
     const ACCEPT_ID = 'milestone-accept'
     const DELIVERY_ID = 'delivery-confirm'
@@ -318,6 +320,16 @@ window.__ModuleLoader__.load({
       'panel.cancel': '取消',
       'panel.saving': '提交中…',
       'panel.failed': '提交失败，请重试',
+      'panel.situationTitle': '情况对接',
+      'panel.situationDesc': '执行中遇到不确定的问题，请给出选择或意见。',
+      'panel.situationQuestion': '当前问题',
+      'panel.situationSuggestions': 'Agent 的建议',
+      'panel.situationOpinion': '你的意见',
+      'panel.situationPlaceholder': '可以补充选择、约束或不同意见…',
+      'panel.situationSubmit': '提交意见',
+      'panel.situationMulti': '可以多选',
+      'panel.situationRequired': '请选择一个建议，或填写你的意见',
+      'panel.situationContinue': '未应答时会按 agent 的理解继续执行。',
       'panel.briefRequired': '核对单不能为空',
       'panel.checkRequired': '请先勾选“我已确认”',
       'panel.detailsHint': '以下问题可以只选你关心的；不选表示跳过。',
@@ -427,6 +439,8 @@ window.__ModuleLoader__.load({
       'contract.unsigned': '预算待签约',
       'contract.updated': '更新时间',
       'contract.report': '验收与结算记录',
+      'contract.situation': '情况对接',
+      'contract.cancelled': '已关闭',
       'contract.accepted': '通过',
       'contract.rework': '返工',
       'contract.paused': '暂停',
@@ -597,6 +611,16 @@ window.__ModuleLoader__.load({
       'panel.cancel': 'Cancel',
       'panel.saving': 'Submitting…',
       'panel.failed': 'Could not submit; try again',
+      'panel.situationTitle': 'Situation alignment',
+      'panel.situationDesc': 'The agent is unsure; choose a suggestion or add your opinion.',
+      'panel.situationQuestion': 'Current question',
+      'panel.situationSuggestions': 'Agent suggestions',
+      'panel.situationOpinion': 'Your opinion',
+      'panel.situationPlaceholder': 'Add constraints, a different choice, or context…',
+      'panel.situationSubmit': 'Submit opinion',
+      'panel.situationMulti': 'Multiple selections allowed',
+      'panel.situationRequired': 'Choose a suggestion or write your opinion',
+      'panel.situationContinue': 'If unanswered, the agent continues with its own understanding.',
       'panel.briefRequired': 'The checklist cannot be empty',
       'panel.checkRequired': 'Check “I confirm” first',
       'panel.detailsHint': 'Answer only what matters; leave a question blank to skip it.',
@@ -706,6 +730,8 @@ window.__ModuleLoader__.load({
       'contract.unsigned': 'Budget unsigned',
       'contract.updated': 'Updated',
       'contract.report': 'Acceptance and settlement records',
+      'contract.situation': 'Situation alignment',
+      'contract.cancelled': 'Closed',
       'contract.accepted': 'Accepted',
       'contract.rework': 'Rework',
       'contract.paused': 'Paused',
@@ -2129,6 +2155,110 @@ window.__ModuleLoader__.load({
       }
     }
 
+    function createSituationPanel(ctx) {
+      return function SituationPanel({ pending }) {
+        const snapshot = usePending(pending)
+        const base = useCountdownBase(snapshot)
+        const t = ctx.locale.bind(NS)
+        const question = pending.questions.find(item => item !== null && item.id === SITUATION_ID)
+        const suggestions = Array.isArray(question?.situation?.suggestions)
+          ? question.situation.suggestions
+          : (Array.isArray(question?.options) ? question.options : [])
+        const multiple = question?.situation?.multiple === true
+        const [selected, setSelected] = React.useState([])
+        const [opinion, setOpinion] = React.useState('')
+        const [busy, setBusy] = React.useState(false)
+        const [error, setError] = React.useState('')
+
+        React.useEffect(() => {
+          setSelected([])
+          setOpinion('')
+          setBusy(false)
+          setError('')
+        }, [pending.key])
+
+        if (snapshot.closed) return null
+        const close = () => {
+          if (busy) return
+          setBusy(true)
+          pending.answer({ answers: [{ id: SITUATION_ID, selected: [SITUATION_SKIP] }] }).catch(() => setBusy(false))
+        }
+        const toggle = label => {
+          setSelected(previous => {
+            if (multiple) return previous.includes(label) ? previous.filter(item => item !== label) : [...previous, label]
+            return previous.includes(label) ? [] : [label]
+          })
+          setError('')
+        }
+        const submit = () => {
+          if (busy) return
+          if (selected.length === 0 && opinion.trim() === '') {
+            setError(t('panel.situationRequired'))
+            return
+          }
+          setBusy(true)
+          setError('')
+          pending.answer({
+            answers: [{ id: SITUATION_ID, selected, ...(opinion.trim() === '' ? {} : { custom: opinion.trim() }) }],
+          }).catch(() => {
+            setBusy(false)
+            setError(t('panel.failed'))
+          })
+        }
+
+        const style = React.createElement('style', null, `
+          .ic-situ-question{font-size:14px;font-weight:600;line-height:1.65;color:var(--ic-ink);margin-bottom:8px}
+          .ic-situ-context{white-space:pre-wrap;font-size:12px;line-height:1.7;color:var(--ic-muted);background:var(--ic-surface-2);border-radius:8px;padding:10px 12px;margin-bottom:16px}
+          .ic-situ-label{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--ic-muted);margin:14px 0 8px}
+          .ic-situ-textarea{width:100%;min-height:92px;box-sizing:border-box;resize:vertical;border:1px solid var(--ic-line);border-radius:8px;background:var(--ic-surface);color:var(--ic-ink);font:inherit;font-size:12.5px;line-height:1.65;padding:9px 11px;outline:none}
+          .ic-situ-textarea:focus{border-color:var(--ic-primary);box-shadow:0 0 0 3px var(--ic-primary-tint)}
+          .ic-situ-hint{font-size:11px;color:var(--ic-muted);margin-top:6px}
+        `)
+        const footer = React.createElement(React.Fragment, null,
+          React.createElement(RippleButton, {
+            className: 'ic-btn ic-btn-ghost', disabled: busy, onClick: close,
+          }, t('panel.close')),
+          React.createElement(RippleButton, {
+            className: 'ic-btn ic-btn-primary', disabled: busy, onClick: submit,
+          }, busy ? t('panel.saving') : t('panel.situationSubmit')))
+
+        return React.createElement(ModalShell, null, PanelShell({
+          t,
+          title: t('panel.situationTitle'),
+          description: t('panel.situationDesc'),
+          countdown: countdownNode(t, snapshot, base),
+          onClose: close,
+          error,
+          footer,
+          children: React.createElement(React.Fragment, null,
+            style,
+            React.createElement('div', { className: 'ic-situ-label' }, t('panel.situationQuestion')),
+            React.createElement('div', { className: 'ic-situ-question' }, question?.question ?? ''),
+            question?.detail ? React.createElement('div', { className: 'ic-situ-context' }, question.detail) : null,
+            React.createElement('div', { className: 'ic-situ-label' }, t('panel.situationSuggestions')),
+            suggestions.length > 0
+              ? React.createElement('div', { className: 'ic-opts' }, suggestions.map((item, index) => React.createElement(RippleButton, {
+                key: item.label ?? index,
+                className: `ic-opt${selected.includes(item.label) ? ' ic-opt-sel' : ''}`,
+                'aria-pressed': selected.includes(item.label),
+                disabled: busy,
+                onClick: () => toggle(item.label),
+              }, item.label)))
+              : null,
+            multiple ? React.createElement('div', { className: 'ic-situ-hint' }, t('panel.situationMulti')) : null,
+            React.createElement('div', { className: 'ic-situ-label' }, t('panel.situationOpinion')),
+            React.createElement('textarea', {
+              className: 'ic-situ-textarea',
+              value: opinion,
+              disabled: busy,
+              placeholder: t('panel.situationPlaceholder'),
+              onChange: event => setOpinion(event.target.value),
+            }),
+            React.createElement('div', { className: 'ic-situ-hint' }, t('panel.situationContinue')))
+        }))
+      }
+    }
+
     function createPanel(ctx) {
       const IntentPanel = createIntentPanel(ctx)
       const MilestonePanel = createMilestonePanel(ctx)
@@ -2167,9 +2297,11 @@ window.__ModuleLoader__.load({
       const BudgetPlanPanel = createBudgetPlanPanel(ctx)
       const BudgetReviewPanel = createBudgetReviewPanel(ctx)
       const BudgetSettlementPanel = createBudgetSettlementPanel(ctx)
+      const SituationPanel = createSituationPanel(ctx)
       return function InfoCheckerPanel(props) {
         const matched = props.matched
         if (matched.kind === 'intent') return React.createElement(IntentPanel, { pending: matched.pending })
+        if (matched.kind === 'situation') return React.createElement(SituationPanel, { pending: matched.pending })
         if (matched.kind === 'milestone') return React.createElement(MilestonePanel, { pending: matched.pending })
         if (matched.kind === 'budget-proposal') return React.createElement(BudgetPlanPanel, { pending: matched.pending, sessionId: props.sessionId })
         if (matched.kind === 'accept') return React.createElement(AcceptPanel, { pending: matched.pending, sessionId: props.sessionId })
@@ -3154,9 +3286,11 @@ window.__ModuleLoader__.load({
               : decision === 'paused' ? t('contract.paused')
                 : decision === 'timeout' ? t('contract.timeout')
                   : decision === 'approved' ? t('contract.approved')
-                    : decision === 'denied' ? t('contract.denied') : String(decision ?? '')
+                    : decision === 'denied' ? t('contract.denied')
+                      : decision === 'cancelled' ? t('contract.cancelled') : String(decision ?? '')
           const acceptances = Array.isArray(contract?.acceptances) ? contract.acceptances : []
           const budgetReviews = Array.isArray(contract?.budgetReviews) ? contract.budgetReviews : []
+          const situations = Array.isArray(contract?.situations) ? contract.situations : []
           const settlement = contract?.settlement
           const delivery = contract?.delivery
           const reportItems = []
@@ -3184,6 +3318,15 @@ window.__ModuleLoader__.load({
                 React.createElement('b', null, `${t('contract.budgetReview')} · ${item.milestone}`),
                 React.createElement('span', { className: 'ic-contract-entry-status' }, decisionText(item.decision))),
               React.createElement('div', { className: 'ic-contract-book' }, `¥${Number(item.spent || 0).toFixed(2)}${Number(item.requestedExtra || 0) > 0 ? ` · +¥${Number(item.requestedExtra).toFixed(2)}` : ''}`)))
+          })
+          situations.forEach((item, at) => {
+            reportItems.push(React.createElement('div', { key: `situation-${at}`, className: 'ic-contract-report-item' },
+              React.createElement('div', { className: 'ic-contract-report-head' },
+                React.createElement('b', null, t('contract.situation')),
+                React.createElement('span', { className: `ic-contract-entry-status${item.decision === 'answered' ? '' : ' pending'}` }, decisionText(item.decision))),
+              React.createElement('div', { className: 'ic-contract-report-label' }, item.question ?? ''),
+              item.selected?.length ? React.createElement('pre', { className: 'ic-contract-book' }, item.selected.join('\n')) : null,
+              item.opinion ? React.createElement('pre', { className: 'ic-contract-book' }, item.opinion) : null))
           })
           if (settlement) {
             const settlementHead = React.createElement('div', { className: 'ic-contract-report-head' },
@@ -3240,6 +3383,7 @@ window.__ModuleLoader__.load({
           if (contract?.signed) addTimeline(contract?.signedAt || contract?.updatedAt, t('contract.budgetSigned'), `¥${(total + extra).toFixed(2)}`)
           acceptances.forEach(item => addTimeline(item.at, `${t('contract.report')} · ${item.milestone}`, `${decisionText(item.decision)}${item.summary ? ` · ${item.summary}` : ''}`))
           budgetReviews.forEach(item => addTimeline(item.at, `${t('contract.budgetReview')} · ${item.milestone}`, `¥${Number(item.spent || 0).toFixed(2)}${Number(item.requestedExtra || 0) > 0 ? ` · +¥${Number(item.requestedExtra).toFixed(2)}` : ''}`))
+          situations.forEach(item => addTimeline(item.at, t('contract.situation'), item.question ?? ''))
           if (delivery) addTimeline(delivery.at, t('contract.deliveryConfirmed'), delivery.delivered ?? '')
           if (settlement) addTimeline(settlement.at, t('contract.settlementDone'), `${t('contract.finalSpent')} ¥${Number(settlement.finalSpent || 0).toFixed(2)}`)
           timeline.sort((a, b) => a.at - b.at)
@@ -3824,6 +3968,7 @@ window.__ModuleLoader__.load({
                 for (const question of pendingInteraction.questions) {
                   if (question === null || question === undefined) continue
                   if (question.id === BRIEF_ID) return { kind: 'intent', pending: pendingInteraction }
+                  if (question.id === SITUATION_ID) return { kind: 'situation', pending: pendingInteraction }
                   if (question.id === MILESTONE_ID) return { kind: 'milestone', pending: pendingInteraction }
                   if (question.id === BUDGET_PROPOSAL_ID) return { kind: 'budget-proposal', pending: pendingInteraction }
                   if (question.id === ACCEPT_ID) return { kind: 'accept', pending: pendingInteraction }

@@ -50,6 +50,16 @@ After sign-off, a floating right-side budget panel appears:
 - each milestone's cumulative budget is a red dashed threshold;
 - it refreshes every three seconds from billing, falling back to token estimation.
 
+## Situation alignment card
+
+`dsh-info-check` exposes a generic `situation_check` tool that any plugin or skill can call when it is unsure during execution:
+
+- **Current question**: read-only;
+- **Agent suggestions**: one or more selectable options;
+- **User opinion**: free-form input.
+
+The card uses the existing `PanelShell` and button components and supports a countdown. If the user does not answer, closes the card, or it times out, the tool returns `timeout/cancelled` and the agent continues with its own understanding. Every choice or opinion is written to the task ledger timeline and shown in the Task archive.
+
 ## Desktop reminders
 
 On Windows, a system notification appears in the bottom-right corner when a plugin confirmation card opens:
