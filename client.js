@@ -332,6 +332,8 @@ window.__ModuleLoader__.load({
       'panel.saving': '提交中…',
       'panel.failed': '提交失败，请重试',
       'panel.situationTitle': '情况对接',
+      'panel.boundaryTitle': '边界核对',
+      'panel.boundaryDesc': '关键范围、地区、数据或验收口径发生变化，请先确认。',
       'panel.situationDesc': '执行中遇到不确定的问题，请给出选择或意见。',
       'panel.situationQuestion': '当前问题',
       'panel.situationSuggestions': 'Agent 的建议',
@@ -455,6 +457,9 @@ window.__ModuleLoader__.load({
       'contract.auditPassed': '通过',
       'contract.auditIssues': '发现问题',
       'contract.auditUnavailable': '未完成',
+      'contract.boundary': '边界条件',
+      'contract.boundaryChanged': '有变化',
+      'contract.boundaryUnchanged': '未变化',
       'contract.accepted': '通过',
       'contract.rework': '返工',
       'contract.paused': '暂停',
@@ -644,6 +649,8 @@ window.__ModuleLoader__.load({
       'panel.saving': 'Submitting…',
       'panel.failed': 'Could not submit; try again',
       'panel.situationTitle': 'Situation alignment',
+      'panel.boundaryTitle': 'Boundary check',
+      'panel.boundaryDesc': 'A key scope, region, data, or acceptance condition is changing; confirm it first.',
       'panel.situationDesc': 'The agent is unsure; choose a suggestion or add your opinion.',
       'panel.situationQuestion': 'Current question',
       'panel.situationSuggestions': 'Agent suggestions',
@@ -767,6 +774,9 @@ window.__ModuleLoader__.load({
       'contract.auditPassed': 'Passed',
       'contract.auditIssues': 'Issues found',
       'contract.auditUnavailable': 'Not completed',
+      'contract.boundary': 'Boundary',
+      'contract.boundaryChanged': 'Changed',
+      'contract.boundaryUnchanged': 'Unchanged',
       'contract.cancelled': 'Closed',
       'contract.accepted': 'Accepted',
       'contract.rework': 'Rework',
@@ -2257,6 +2267,7 @@ window.__ModuleLoader__.load({
           ? question.situation.suggestions
           : (Array.isArray(question?.options) ? question.options : [])
         const multiple = question?.situation?.multiple === true
+        const boundary = question?.situation?.kind === 'boundary'
         const [selected, setSelected] = React.useState([])
         const [opinion, setOpinion] = React.useState('')
         const [busy, setBusy] = React.useState(false)
@@ -2316,8 +2327,8 @@ window.__ModuleLoader__.load({
 
         return React.createElement(ModalShell, null, PanelShell({
           t,
-          title: t('panel.situationTitle'),
-          description: t('panel.situationDesc'),
+          title: boundary ? t('panel.boundaryTitle') : t('panel.situationTitle'),
+          description: boundary ? t('panel.boundaryDesc') : t('panel.situationDesc'),
           countdown: countdownNode(t, snapshot, base),
           onClose: close,
           error,
@@ -3488,6 +3499,10 @@ window.__ModuleLoader__.load({
                 : null,
               React.createElement('div', { className: 'ic-contract-report-label' }, t('contract.evidence')),
               React.createElement('pre', { className: 'ic-contract-book' }, item.evidence ?? ''),
+              item.boundary
+                ? React.createElement('div', { className: 'ic-contract-report-label' },
+                  `${t('contract.boundary')}：${item.boundary.changed ? t('contract.boundaryChanged') : t('contract.boundaryUnchanged')}${item.boundary.summary ? ` · ${item.boundary.summary}` : ''}`)
+                : null,
               item.gaps === undefined || item.gaps === '' ? null : React.createElement(React.Fragment, null,
                 React.createElement('div', { className: 'ic-contract-report-label' }, t('contract.gaps')),
                 React.createElement('pre', { className: 'ic-contract-book' }, item.gaps))))

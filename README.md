@@ -66,6 +66,8 @@ Agent 接到任务后直接进入执行，理解偏差往往到交付时才暴�
 
 审计是辅助门禁，不是替 agent 重做任务。审计子 agent 启动失败时会显示“未完成”警告，但不会静默放行。
 
+任务执行中如果关键边界（地区、范围、数据、验收口径、预算）需要变化，agent 必须先调用 `situation_check` 并传 `kind=boundary`，说明原约束、拟变化和影响，取得用户回答后才能继续。`accept_milestone` 现在必须提交 `boundary.changed`；若为 true 且本轮没有 answered 的 boundary 情况对接，验收会被硬拒绝，超时或关闭不算通过。
+
 ## 情况对接卡片
 
 `dsh-info-check` 提供一个通用的 `situation_check` 工具，任何插件或 skill 在执行中遇到不确定的问题都可以调用：

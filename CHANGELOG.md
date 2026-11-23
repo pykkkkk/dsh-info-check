@@ -8,6 +8,7 @@ pinned by `engines.dsh`.
 - Task archive entries use a ten-digit task number (`YYMMDDHHmm`) at task start; each task is stored separately with its project contract, milestone budget, acceptance reports, budget reviews, delivery details, ledger timeline, and final settlement financial table. The archive has totals and search.
 - Budget forecast: `forecast_budget` converts milestone difficulty, files, tests, and quality into input/output token estimates using the current model's CNY/MTok prices, with a reserve and confidence band. Round 1 of `confirm_budget` requires the forecast.
 - Task archive tabs: **Ledger**, **Quality standard**, and **Budget standard**. The standard tabs load the local `.dsh-info-check/*-standard.md` files and save edits back to disk.
+- Boundary guard: `accept_milestone` requires a boundary declaration; a changed boundary is rejected unless a `situation_check(kind=boundary)` was answered in the current milestone window. Silent scope/region relaxation is no longer accepted.
 - Global language setting: Auto / Chinese / English applies to settings, the task archive, all plugin panels, progress, and control labels.
 - Settings split into **Current** (this conversation's enable switch) and **Global** (persisted defaults) tabs.
 - Optional audit agent: before delivery and settlement cards, a child agent checks the draft claims against the execution transcript and shows a faithful/issues verdict in the card and ledger timeline.

@@ -63,6 +63,8 @@ When enabled, before the delivery confirmation and budget settlement cards open,
 
 The audit is an advisory gate, not a replacement for the agent's work. If the subagent cannot start, the card shows an "audit unavailable" warning rather than silently passing.
 
+If a key boundary (region, scope, data, acceptance rule, budget) must change during execution, the agent must first call `situation_check` with `kind=boundary`, explain the original constraint, proposed change, and impact, and obtain a user answer. `accept_milestone` now requires `boundary.changed`; when true, acceptance is hard-rejected unless this milestone has an answered boundary alignment (timeout and close do not count).
+
 ## Situation alignment card
 
 `dsh-info-check` exposes a generic `situation_check` tool that any plugin or skill can call when it is unsure during execution:
