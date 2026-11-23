@@ -50,6 +50,19 @@ After sign-off, a floating right-side budget panel appears:
 - each milestone's cumulative budget is a red dashed threshold;
 - it refreshes every three seconds from billing, falling back to token estimation.
 
+## Audit agent
+
+Settings has an optional **Audit agent** switch, off by default.
+
+When enabled, before the delivery confirmation and budget settlement cards open, an independent audit subagent:
+
+- reads the task's execution record (reasoning, tool calls, tool results);
+- compares it with the contract, acceptances, budget reviews, and situation records;
+- checks whether completion, delivery, limits, actual usage, and variance are faithful;
+- appends a `faithful / issues` verdict to the card and writes it to the task ledger timeline.
+
+The audit is an advisory gate, not a replacement for the agent's work. If the subagent cannot start, the card shows an "audit unavailable" warning rather than silently passing.
+
 ## Situation alignment card
 
 `dsh-info-check` exposes a generic `situation_check` tool that any plugin or skill can call when it is unsure during execution:

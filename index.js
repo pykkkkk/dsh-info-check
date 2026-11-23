@@ -37,6 +37,7 @@ import {
 } from './lib/budget-tools.js'
 import { createForecastBudgetTool } from './lib/forecast-tool.js'
 import { notifyDialog, listNotifications } from './lib/notify.js'
+import { auditBeforeCard, auditNote } from './lib/audit.js'
 
 export const inject = ['tools', 'systemPrompt', 'userQuestions', 'workingDirectory', 'sessionProjections', 'agents']
 
@@ -100,6 +101,7 @@ export const Config = z === undefined
       ledgerEnabled: z.boolean().default(true).volatile(),
       ledgerPath: z.string().default('.dsh-info-check/ledger.md').volatile(),
       autoRetrospective: z.boolean().default(true).volatile(),
+      auditAgent: z.boolean().default(false).volatile(),
       supervisionMode: z.string().default('strict').volatile(),
       qualityStandard: z.string().default('').volatile(),
     })
@@ -825,7 +827,7 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger, getSuper
   }
 }
 
-function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger, onDeliveryConfirmed, budgetStore }) {
+function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger, onDeliveryConfirmed, budgetStore, getAuditEnabled }) {
   return {
     name: 'confirm_delivery',
     description: '在呈现最终结果前，向用户确认完成程度：提交完成程度、交付内容、未完成或限制、验证；用户确认（或倒计时结束）后才交付最终结果。'
@@ -866,11 +868,22 @@ function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger, onDeli
       if (agent === undefined) throw new Error('confirm_delivery requires a live agent')
       if (!enabledFor(agent.session)) throw new Error('dsh-info-check is disabled for this conversation')
       const delivery = validateDelivery(args)
+      const contract = await budgetStore.latest()
+      const audit = getAuditEnabled?.() === true
+        ? await auditBeforeCard({ ctx, agent, kind: 'delivery', payload: delivery, contract, signal: exec.signal })
+        : undefined
+      if (audit !== undefined) {
+        await budgetStore.recordAudit(agent.session, { kind: 'delivery', ...audit }).catch(() => {})
+        await ledger.append(agent.session, `交付审计：${audit.faithful === true ? '通过' : audit.faithful === false ? '发现问题' : '未完成'}\n${audit.summary ?? ''}`, {
+          type: 'audit', kind: 'delivery', faithful: audit.faithful,
+        }).catch(() => {})
+      }
+      const detail = `${deliveryDetail(delivery)}${auditNote(audit)}`
       const question = {
         id: DELIVERY_CONFIRM_ID,
         header: 'dsh-info-check · 交付确认',
         question: '是否确认按以上完成程度交付最终结果？',
-        detail: deliveryDetail(delivery),
+        detail,
         options: [
           { label: DELIVER_LABEL, description: '确认并交付最终结果' },
           { label: ADJUST_DELIVERY_LABEL, description: '先不交付，需要调整' },
@@ -964,10 +977,12 @@ export function apply(ctx, config = {}) {
       ? rawLedgerPath.trim()
       : '.dsh-info-check/ledger.md'
     const autoRetrospective = readConfig(config.autoRetrospective, true) !== false
+    const auditAgent = readConfig(config.auditAgent, false) === true
     const supervisionMode = readConfig(config.supervisionMode, 'strict') === 'advisory' ? 'advisory' : 'strict'
     return {
       milestoneCount, expectation, timeoutSeconds, maxQuestions, defaultEnabled,
       ledgerEnabled, ledgerPath, autoRetrospective, supervisionMode,
+      auditAgent,
     }
   }
 
@@ -1583,8 +1598,12 @@ export function apply(ctx, config = {}) {
     createDeliveryTool({
       ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger,
       onDeliveryConfirmed: reviewAfterDelivery, budgetStore,
+      getAuditEnabled: () => currentSettings().auditAgent,
     }),
-    createBudgetSettlementTool({ ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger, budgetStore }),
+    createBudgetSettlementTool({
+      ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger, budgetStore,
+      getAuditEnabled: () => currentSettings().auditAgent,
+    }),
   ]
   for (const definition of definitions) {
     ctx.effect(

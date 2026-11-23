@@ -273,6 +273,10 @@ window.__ModuleLoader__.load({
       'panel.budgetSettlementActual': '实际使用',
       'panel.budgetSettlementVariance': '差额',
       'panel.budgetSettlementSource': '数据来源',
+      'panel.auditTitle': '审计 agent',
+      'panel.auditPassed': '通过',
+      'panel.auditIssues': '发现问题',
+      'panel.auditUnavailable': '未完成',
       'panel.budgetSettlementRating': '评价',
       'panel.budgetSettlementNotes': '预算评价说明（可选）',
       'panel.budgetSettlementConfirm': '提交结算',
@@ -440,7 +444,10 @@ window.__ModuleLoader__.load({
       'contract.updated': '更新时间',
       'contract.report': '验收与结算记录',
       'contract.situation': '情况对接',
-      'contract.cancelled': '已关闭',
+      'contract.audit': '审计',
+      'contract.auditPassed': '通过',
+      'contract.auditIssues': '发现问题',
+      'contract.auditUnavailable': '未完成',
       'contract.accepted': '通过',
       'contract.rework': '返工',
       'contract.paused': '暂停',
@@ -484,6 +491,8 @@ window.__ModuleLoader__.load({
       'settings.supervisionHint': '严格门禁会阻止同轮连续验收和没有新文件变更的验收；仅提醒只保留策略提示。',
       'settings.supervisionStrict': '严格门禁',
       'settings.supervisionAdvisory': '仅提醒',
+      'settings.auditAgent': '审计 agent',
+      'settings.auditAgentHint': '交付确认和预算结算卡弹出前，由子 agent 对照执行记录核对内容是否如实，并在卡片中显示审计结论。',
       'settings.current': '当前对话',
       'settings.currentOn': '已开启',
       'settings.currentOff': '已关闭',
@@ -564,6 +573,10 @@ window.__ModuleLoader__.load({
       'panel.budgetSettlementActual': 'Actual usage',
       'panel.budgetSettlementVariance': 'Variance',
       'panel.budgetSettlementSource': 'Source',
+      'panel.auditTitle': 'Audit agent',
+      'panel.auditPassed': 'Passed',
+      'panel.auditIssues': 'Issues found',
+      'panel.auditUnavailable': 'Not completed',
       'panel.budgetSettlementRating': 'Rating',
       'panel.budgetSettlementNotes': 'Budget rating notes (optional)',
       'panel.budgetSettlementConfirm': 'Submit settlement',
@@ -731,6 +744,10 @@ window.__ModuleLoader__.load({
       'contract.updated': 'Updated',
       'contract.report': 'Acceptance and settlement records',
       'contract.situation': 'Situation alignment',
+      'contract.audit': 'Audit',
+      'contract.auditPassed': 'Passed',
+      'contract.auditIssues': 'Issues found',
+      'contract.auditUnavailable': 'Not completed',
       'contract.cancelled': 'Closed',
       'contract.accepted': 'Accepted',
       'contract.rework': 'Rework',
@@ -775,6 +792,8 @@ window.__ModuleLoader__.load({
       'settings.supervisionHint': 'Strict blocks same-turn acceptance and acceptance without new file changes; advisory keeps the policy reminder only.',
       'settings.supervisionStrict': 'Strict',
       'settings.supervisionAdvisory': 'Advisory',
+      'settings.auditAgent': 'Audit agent',
+      'settings.auditAgentHint': 'Before the delivery and settlement cards, a subagent checks the claims against the execution record and shows its verdict in the card.',
       'settings.current': 'This conversation',
       'settings.currentOn': 'On',
       'settings.currentOff': 'Off',
@@ -2329,6 +2348,7 @@ window.__ModuleLoader__.load({
         defaultEnabled: source.defaultEnabled !== false,
         ledgerEnabled: source.ledgerEnabled !== false,
         autoRetrospective: source.autoRetrospective !== false,
+        auditAgent: source.auditAgent === true,
         supervisionMode: source.supervisionMode === 'advisory' ? 'advisory' : 'strict',
         qualityStandard: typeof source.qualityStandard === 'string' ? source.qualityStandard : '',
         ledgerPath: typeof source.ledgerPath === 'string' && source.ledgerPath.trim() !== ''
@@ -2391,6 +2411,7 @@ window.__ModuleLoader__.load({
           defaultEnabled: true,
           ledgerEnabled: true,
           autoRetrospective: true,
+          auditAgent: false,
           supervisionMode: 'strict',
           qualityStandard: '',
           ledgerPath: '.dsh-info-check/ledger.md',
@@ -2727,6 +2748,19 @@ window.__ModuleLoader__.load({
                         disabled: saving,
                         onClick: () => update('supervisionMode', value),
                       }, t(key))))),
+                React.createElement('div', { className: 'ic-set-row' },
+                  React.createElement('div', { className: 'ic-set-copy' },
+                    React.createElement('span', { className: 'ic-set-label' }, t('settings.auditAgent')),
+                    React.createElement('span', { className: 'ic-set-hint' }, t('settings.auditAgentHint'))),
+                  React.createElement('button', {
+                    type: 'button',
+                    role: 'switch',
+                    'aria-checked': values.auditAgent,
+                    'aria-label': t('settings.auditAgent'),
+                    className: `ic-settings-switch${values.auditAgent ? ' on' : ''}`,
+                    disabled: saving,
+                    onClick: () => update('auditAgent', !values.auditAgent),
+                  }, React.createElement('i'))),
                 React.createElement('div', { className: 'ic-set-row' },
                   React.createElement('div', { className: 'ic-set-copy' },
                     React.createElement('span', { className: 'ic-set-label' }, t('settings.autoRetrospective')),
@@ -3304,6 +3338,7 @@ window.__ModuleLoader__.load({
           const acceptances = Array.isArray(contract?.acceptances) ? contract.acceptances : []
           const budgetReviews = Array.isArray(contract?.budgetReviews) ? contract.budgetReviews : []
           const situations = Array.isArray(contract?.situations) ? contract.situations : []
+          const audits = Array.isArray(contract?.audits) ? contract.audits : []
           const settlement = contract?.settlement
           const delivery = contract?.delivery
           const reportItems = []
@@ -3344,6 +3379,20 @@ window.__ModuleLoader__.load({
               item.selected?.length ? React.createElement('pre', { className: 'ic-contract-book' }, item.selected.join('\n')) : null,
               item.opinion ? React.createElement('pre', { className: 'ic-contract-book' }, item.opinion) : null))
             reportTitles.push(t('contract.situation'))
+          })
+          audits.forEach((item, at) => {
+            const verdict = item.faithful === true
+              ? t('contract.auditPassed')
+              : item.faithful === false ? t('contract.auditIssues') : t('contract.auditUnavailable')
+            reportItems.push(React.createElement('div', { key: `audit-${at}`, className: 'ic-contract-report-item' },
+              React.createElement('div', { className: 'ic-contract-report-head' },
+                React.createElement('b', null, `${t('contract.audit')} · ${item.kind === 'delivery' ? t('contract.delivery') : t('contract.settlement')}`),
+                React.createElement('span', { className: `ic-contract-entry-status${item.faithful === true ? '' : ' pending'}` }, verdict)),
+              React.createElement('pre', { className: 'ic-contract-book' }, item.summary ?? ''),
+              Array.isArray(item.issues) && item.issues.length > 0
+                ? React.createElement('pre', { className: 'ic-contract-book' }, item.issues.join('\n'))
+                : null))
+            reportTitles.push(`${t('contract.audit')} · ${item.kind === 'delivery' ? t('contract.delivery') : t('contract.settlement')}`)
           })
           if (settlement) {
             const settlementHead = React.createElement('div', { className: 'ic-contract-report-head' },
@@ -3398,6 +3447,7 @@ window.__ModuleLoader__.load({
           acceptances.forEach(item => addTimeline(item.at, `${t('contract.report')} · ${item.milestone}`, `${decisionText(item.decision)}${item.summary ? ` · ${item.summary}` : ''}`))
           budgetReviews.forEach(item => addTimeline(item.at, `${t('contract.budgetReview')} · ${item.milestone}`, `¥${Number(item.spent || 0).toFixed(2)}${Number(item.requestedExtra || 0) > 0 ? ` · +¥${Number(item.requestedExtra).toFixed(2)}` : ''}`))
           situations.forEach(item => addTimeline(item.at, t('contract.situation'), item.question ?? ''))
+          audits.forEach(item => addTimeline(item.at, `${t('contract.audit')} · ${item.kind === 'delivery' ? t('contract.delivery') : t('contract.settlement')}`, item.summary ?? ''))
           if (delivery) addTimeline(delivery.at, t('contract.deliveryConfirmed'), delivery.delivered ?? '')
           if (settlement) addTimeline(settlement.at, t('contract.settlementDone'), `${t('contract.finalSpent')} ¥${Number(settlement.finalSpent || 0).toFixed(2)}`)
           timeline.sort((a, b) => a.at - b.at)
