@@ -2964,6 +2964,19 @@ window.__ModuleLoader__.load({
         .ic-contract-page .ic-contract-entry-budget{font-family:ui-monospace,Consolas,monospace;font-size:13px;font-weight:600;text-align:right;color:var(--arc-ink);white-space:nowrap}
         .ic-contract-page .ic-contract-entry-date{font-family:ui-monospace,Consolas,monospace;font-size:11px;color:var(--arc-ink-3);text-align:right;justify-self:end;white-space:nowrap}
         .ic-contract-page .ic-contract-entry-body{padding:16px 18px 20px;border-top:1px solid var(--arc-line);background:var(--arc-surface-2)}
+        .ic-contract-page .ic-card-directory{display:flex;flex-direction:column;gap:8px}
+        .ic-contract-page .ic-card-entry{background:var(--arc-surface);border:1px solid var(--arc-line);border-radius:10px;overflow:hidden}
+        .ic-contract-page .ic-card-entry summary{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;list-style:none;color:var(--arc-ink-2);font-size:12px}
+        .ic-contract-page .ic-card-entry summary::-webkit-details-marker{display:none}
+        .ic-contract-page .ic-card-entry summary:hover{background:var(--arc-surface-2)}
+        .ic-contract-page .ic-card-entry[open] summary{border-bottom:1px solid var(--arc-line-2);background:var(--arc-surface-2)}
+        .ic-contract-page .ic-card-entry-title{min-width:0;flex:1;font-weight:600;color:var(--arc-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .ic-contract-page .ic-card-entry-meta{font-family:ui-monospace,Consolas,monospace;font-size:10.5px;color:var(--arc-ink-3);white-space:nowrap}
+        .ic-contract-page .ic-card-entry-chevron{color:var(--arc-ink-3);font-size:15px;transition:transform .15s;flex:none}
+        .ic-contract-page .ic-card-entry[open] .ic-card-entry-chevron{transform:rotate(90deg)}
+        .ic-contract-page .ic-card-entry-content{padding:14px 16px 4px;background:var(--arc-surface);animation:ic-archive-detail .24s cubic-bezier(.22,.61,.36,1) both}
+        .ic-contract-page .ic-card-entry-content .ic-contract-card{margin:0 0 10px;padding:0;border:0;background:transparent;box-shadow:none}
+        .ic-contract-page .ic-card-entry-content .ic-contract-card h2{display:none}
         .ic-contract-page .ic-contract-card{background:var(--arc-surface);border:1px solid var(--arc-line);border-radius:12px;box-shadow:none;padding:18px 20px;margin-bottom:14px}
         .ic-contract-page .ic-contract-card h2{font-size:15px;font-weight:700;margin:0 0 14px}
         .ic-contract-page .ic-contract-card h3{font-size:12px;margin:0 0 6px;color:var(--arc-ink-2)}
@@ -3294,6 +3307,7 @@ window.__ModuleLoader__.load({
           const settlement = contract?.settlement
           const delivery = contract?.delivery
           const reportItems = []
+          const reportTitles = []
           acceptances.forEach((item, at) => {
             reportItems.push(React.createElement('div', { key: `accept-${at}`, className: 'ic-contract-report-item' },
               React.createElement('div', { className: 'ic-contract-report-head' },
@@ -3311,6 +3325,7 @@ window.__ModuleLoader__.load({
               item.gaps === undefined || item.gaps === '' ? null : React.createElement(React.Fragment, null,
                 React.createElement('div', { className: 'ic-contract-report-label' }, t('contract.gaps')),
                 React.createElement('pre', { className: 'ic-contract-book' }, item.gaps))))
+            reportTitles.push(`${t('contract.report')} · ${item.milestone}`)
           })
           budgetReviews.forEach((item, at) => {
             reportItems.push(React.createElement('div', { key: `budget-review-${at}`, className: 'ic-contract-report-item' },
@@ -3318,6 +3333,7 @@ window.__ModuleLoader__.load({
                 React.createElement('b', null, `${t('contract.budgetReview')} · ${item.milestone}`),
                 React.createElement('span', { className: 'ic-contract-entry-status' }, decisionText(item.decision))),
               React.createElement('div', { className: 'ic-contract-book' }, `¥${Number(item.spent || 0).toFixed(2)}${Number(item.requestedExtra || 0) > 0 ? ` · +¥${Number(item.requestedExtra).toFixed(2)}` : ''}`)))
+            reportTitles.push(`${t('contract.budgetReview')} · ${item.milestone}`)
           })
           situations.forEach((item, at) => {
             reportItems.push(React.createElement('div', { key: `situation-${at}`, className: 'ic-contract-report-item' },
@@ -3327,6 +3343,7 @@ window.__ModuleLoader__.load({
               React.createElement('div', { className: 'ic-contract-report-label' }, item.question ?? ''),
               item.selected?.length ? React.createElement('pre', { className: 'ic-contract-book' }, item.selected.join('\n')) : null,
               item.opinion ? React.createElement('pre', { className: 'ic-contract-book' }, item.opinion) : null))
+            reportTitles.push(t('contract.situation'))
           })
           if (settlement) {
             const settlementHead = React.createElement('div', { className: 'ic-contract-report-head' },
@@ -3350,6 +3367,7 @@ window.__ModuleLoader__.load({
             const settlementSummary = React.createElement('pre', { className: 'ic-contract-book', style: { marginTop: '8px' } }, settlement.summary ?? '')
             reportItems.push(React.createElement('div', { key: 'settlement', className: 'ic-contract-report-item' },
               settlementHead, settlementTable, settlementSummary))
+            reportTitles.push(t('contract.settlement'))
           }
           if (delivery) {
             const deliveryHead = React.createElement('div', { className: 'ic-contract-report-head' },
@@ -3367,12 +3385,8 @@ window.__ModuleLoader__.load({
                 React.createElement('pre', { className: 'ic-contract-book' }, delivery.evidence)))
             reportItems.push(React.createElement('div', { key: 'delivery', className: 'ic-contract-report-item' },
               deliveryHead, deliveryBody))
+            reportTitles.push(t('contract.delivery'))
           }
-          const reportsCard = React.createElement('section', { className: 'ic-contract-card' },
-            React.createElement('h2', null, t('contract.report')),
-            reportItems.length === 0
-              ? React.createElement('div', { className: 'ic-contract-report-label' }, t('contract.noReports'))
-              : reportItems)
           const timeline = []
           const addTimeline = (at, label, detail) => {
             const value = typeof at === 'number' ? at : Date.parse(at)
@@ -3397,6 +3411,39 @@ window.__ModuleLoader__.load({
                     React.createElement('b', null, item.label),
                     React.createElement('time', null, new Date(item.at).toLocaleString())),
                   item.detail === '' ? null : React.createElement('div', { className: 'ic-contract-time-detail' }, item.detail)))))
+          const cardEntries = [
+            {
+              key: 'taskbook',
+              title: t('contract.taskBook'),
+              meta: taskNumberFor(contract) === '' ? '' : `#${taskNumberFor(contract)}`,
+              content: taskBookCard,
+            },
+            {
+              key: 'budget',
+              title: t('contract.budget'),
+              meta: `¥${(total + extra).toFixed(2)}`,
+              content: budgetCard,
+            },
+            {
+              key: 'timeline',
+              title: t('contract.timeline'),
+              meta: `${timeline.length}`,
+              content: timelineCard,
+            },
+            ...reportItems.map((item, at) => ({
+              key: `report-${at}`,
+              title: reportTitles[at] ?? t('contract.report'),
+              meta: '',
+              content: item,
+            })),
+          ]
+          const directory = React.createElement('div', { className: 'ic-card-directory' },
+            cardEntries.map(item => React.createElement('details', { key: item.key, className: 'ic-card-entry' },
+              React.createElement('summary', { className: 'ic-card-entry-summary' },
+                React.createElement('span', { className: 'ic-card-entry-title' }, item.title),
+                React.createElement('span', { className: 'ic-card-entry-meta' }, item.meta),
+                React.createElement('span', { className: 'ic-card-entry-chevron' }, '›')),
+              React.createElement('div', { className: 'ic-card-entry-content' }, item.content))))
           return React.createElement('details', {
             key: contract?.contractId ?? `${contract?.sessionId ?? 'contract'}-${index}`,
             className: 'ic-contract-entry',
@@ -3409,7 +3456,7 @@ window.__ModuleLoader__.load({
               contract?.signed ? t('contract.signed') : t('contract.unsigned')),
             React.createElement('span', { className: 'ic-contract-entry-budget' }, `¥${(total + extra).toFixed(2)}`),
             updated === 0 ? null : React.createElement('span', { className: 'ic-contract-entry-date' }, new Date(updated).toLocaleDateString())),
-          React.createElement('div', { className: 'ic-contract-entry-body' }, taskBookCard, budgetCard, timelineCard, reportsCard))
+          React.createElement('div', { className: 'ic-contract-entry-body' }, directory))
         }
         const head = React.createElement('div', { className: 'ic-contract-head' },
           React.createElement('div', { className: 'ic-contract-mark' },
