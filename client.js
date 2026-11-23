@@ -2525,7 +2525,10 @@ window.__ModuleLoader__.load({
           }
           let request
           try {
-            request = remote.update(ns, next, revision)
+            // A plugin reload can change the settings revision while this panel
+            // is open. A user-triggered save is authoritative, so omit the stale
+            // revision instead of rejecting the write.
+            request = remote.update(ns, next)
           } catch {
             setSaving(false)
             setError(t('settings.saveFailed'))
