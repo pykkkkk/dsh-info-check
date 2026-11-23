@@ -61,6 +61,12 @@ window.__ModuleLoader__.load({
 .ic-desc{margin:16px 24px 0;font-size:12.5px;color:var(--ic-text-2);line-height:1.65}
 .ic-hint{font-size:12px;line-height:1.65;color:var(--ic-text-2)}
 .ic-settings{display:flex;flex-direction:column;gap:18px;padding-bottom:2px}
+.ic-settings-tabs{display:flex;gap:22px;border-bottom:1px solid var(--ic-line);margin-bottom:-4px}
+.ic-settings-tab{appearance:none;border:0;background:transparent;padding:2px 1px 10px;margin-bottom:-1px;border-bottom:2px solid transparent;color:var(--ic-muted);font:inherit;font-size:13px;cursor:pointer}
+.ic-settings-tab.active{color:var(--ic-primary);font-weight:700;border-bottom-color:var(--ic-primary)}
+.ic-settings-tab-hint{font-size:11px;line-height:1.6;color:var(--ic-muted);margin-top:-8px}
+.ic-settings[data-settings-tab="current"] .ic-set-section:not(.ic-set-current-section){display:none}
+.ic-settings[data-settings-tab="global"] .ic-set-current-section{display:none}
 .ic-set-section{display:flex;flex-direction:column;gap:11px}
 .ic-set-head{font-size:15px;font-weight:700;line-height:1.4;color:#000}
 .ic-set-row{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
@@ -498,6 +504,12 @@ window.__ModuleLoader__.load({
       'settings.currentOff': '已关闭',
       'settings.currentHint': '只影响当前对话；全局设置保存后立即生效。',
       'settings.currentToggle': '切换当前对话',
+      'settings.tabCurrent': '当前',
+      'settings.tabGlobal': '全局上线',
+      'settings.currentSection': '当前会话',
+      'settings.globalSection': '全局上线设置',
+      'settings.currentOnlyHint': '这里只控制当前对话；全局默认值请到“全局上线”。',
+      'settings.globalOnlyHint': '这些值会写入全局配置，对之后的新会话生效。',
       'settings.save': '保存设置',
       'settings.saving': '保存中…',
       'settings.saved': '设置已保存',
@@ -799,6 +811,12 @@ window.__ModuleLoader__.load({
       'settings.currentOff': 'Off',
       'settings.currentHint': 'Only this conversation; global settings apply after saving.',
       'settings.currentToggle': 'Toggle this conversation',
+      'settings.tabCurrent': 'Current',
+      'settings.tabGlobal': 'Global',
+      'settings.currentSection': 'This conversation',
+      'settings.globalSection': 'Global settings',
+      'settings.currentOnlyHint': 'This only controls the current conversation; change defaults under “Global”.',
+      'settings.globalOnlyHint': 'These values are written to global config and apply to new conversations.',
       'settings.save': 'Save settings',
       'settings.saving': 'Saving…',
       'settings.saved': 'Settings saved',
@@ -2421,6 +2439,7 @@ window.__ModuleLoader__.load({
         const [error, setError] = React.useState('')
         const [openError, setOpenError] = React.useState('')
         const [saved, setSaved] = React.useState(false)
+        const [settingsTab, setSettingsTab] = React.useState('current')
         const [ns, setNs] = React.useState('')
         const [revision, setRevision] = React.useState(undefined)
 
@@ -2620,8 +2639,21 @@ window.__ModuleLoader__.load({
           ? React.createElement('div', { className: 'ic-settings-loading' }, t('settings.loading'))
           : ns === ''
             ? React.createElement('div', { className: 'ic-settings-error' }, error)
-            : React.createElement('div', { className: 'ic-settings' },
-              React.createElement('div', { className: 'ic-set-section' },
+            : React.createElement('div', { className: 'ic-settings', 'data-settings-tab': settingsTab },
+              React.createElement('div', { className: 'ic-settings-tabs', role: 'tablist' },
+                [['current', 'settings.tabCurrent'], ['global', 'settings.tabGlobal']].map(([id, key]) =>
+                  React.createElement('button', {
+                    key: id,
+                    type: 'button',
+                    role: 'tab',
+                    'aria-selected': settingsTab === id,
+                    className: `ic-settings-tab${settingsTab === id ? ' active' : ''}`,
+                    onClick: () => setSettingsTab(id),
+                  }, t(key)))),
+              React.createElement('div', { className: 'ic-settings-tab-hint' },
+                t(settingsTab === 'current' ? 'settings.currentOnlyHint' : 'settings.globalOnlyHint')),
+              React.createElement('div', { className: 'ic-set-section ic-set-current-section' },
+                React.createElement('div', { className: 'ic-set-head' }, t('settings.currentSection')),
                 React.createElement('div', { className: 'ic-set-current' },
                   React.createElement('div', { className: 'ic-set-copy' },
                     React.createElement('b', null, t('settings.current')),
@@ -2827,27 +2859,36 @@ window.__ModuleLoader__.load({
                 onClick: close,
               }, t('settings.close')),
             ]
-          : [
-              React.createElement(RippleButton, {
-                key: 'reset',
-                className: 'ic-btn ic-btn-ghost',
-                disabled: saving,
-                onClick: reset,
-              }, t('settings.reset')),
-              React.createElement('span', { key: 'spacer', className: 'ic-spacer' }),
-              React.createElement(RippleButton, {
-                key: 'cancel',
-                className: 'ic-btn ic-btn-ghost',
-                disabled: saving,
-                onClick: close,
-              }, t('settings.cancel')),
-              React.createElement(RippleButton, {
-                key: 'save',
-                className: 'ic-btn ic-btn-primary',
-                disabled: saving || loading,
-                onClick: save,
-              }, saving ? t('settings.saving') : saved ? t('settings.saved') : t('settings.save')),
-            ]
+          : settingsTab === 'current'
+            ? [
+                React.createElement('span', { key: 'spacer', className: 'ic-spacer' }),
+                React.createElement(RippleButton, {
+                  key: 'close-current',
+                  className: 'ic-btn ic-btn-primary',
+                  onClick: close,
+                }, t('settings.close')),
+              ]
+            : [
+                React.createElement(RippleButton, {
+                  key: 'reset',
+                  className: 'ic-btn ic-btn-ghost',
+                  disabled: saving,
+                  onClick: reset,
+                }, t('settings.reset')),
+                React.createElement('span', { key: 'spacer', className: 'ic-spacer' }),
+                React.createElement(RippleButton, {
+                  key: 'cancel',
+                  className: 'ic-btn ic-btn-ghost',
+                  disabled: saving,
+                  onClick: close,
+                }, t('settings.cancel')),
+                React.createElement(RippleButton, {
+                  key: 'save',
+                  className: 'ic-btn ic-btn-primary',
+                  disabled: saving || loading,
+                  onClick: save,
+                }, saving ? t('settings.saving') : saved ? t('settings.saved') : t('settings.save')),
+              ]
 
         return React.createElement(ModalShell, { onBackdrop: close }, PanelShell({
           t,

@@ -206,7 +206,12 @@ Before the final result, the agent explains how complete it is, what it delivers
 
 The **需求核对** switch next to the title only affects the current conversation.
 
-Click the underlined words to open settings, where you can change:
+Click the underlined words to open settings. It has two tabs:
+
+- **Current**: toggles only this conversation, effective immediately;
+- **Global**: persisted defaults applied to new conversations.
+
+Global settings include:
 
 - the number of milestones;
 - the expectation level: perfect, good, or pass;
