@@ -3,7 +3,7 @@
 All notable user-facing changes are documented here. DSH compatibility is
 pinned by `engines.dsh`.
 
-## Unreleased
+## 0.3.1 — 2026-11-24
 
 - Task archive entries use a ten-digit task number (`YYMMDDHHmm`) at task start; each task is stored separately with its project contract, milestone budget, acceptance reports, budget reviews, delivery details, ledger timeline, and final settlement financial table. The archive has totals and search.
 - Budget forecast: `forecast_budget` converts milestone difficulty, files, tests, and quality into input/output token estimates using the current model's CNY/MTok prices, with a reserve and confidence band. Round 1 of `confirm_budget` requires the forecast.
