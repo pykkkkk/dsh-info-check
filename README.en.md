@@ -14,6 +14,8 @@ dsh-info-check adds four confirmation points to the workflow, so you can review 
 
 ## Task archive page
 
+![Task archive: ledger view](docs/screenshots/11-task-archive.png)
+
 After the budget plan is confirmed, the sidebar gains a **Task archive** entry. Each task appears as a collapsible item; click it to expand:
 
 - project objective;
