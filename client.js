@@ -3642,6 +3642,7 @@ window.__ModuleLoader__.load({
               React.createElement('div', { className: 'ic-card-entry-content' }, item.content))))
           return React.createElement('details', {
             key: contract?.contractId ?? `${contract?.sessionId ?? 'contract'}-${index}`,
+            name: 'dsh-info-check-task-archive',
             className: 'ic-contract-entry',
           },
           React.createElement('summary', { className: 'ic-contract-entry-summary' },
