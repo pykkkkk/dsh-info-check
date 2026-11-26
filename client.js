@@ -460,6 +460,10 @@ window.__ModuleLoader__.load({
       'contract.boundary': '边界条件',
       'contract.boundaryChanged': '有变化',
       'contract.boundaryUnchanged': '未变化',
+      'contract.supervision': '监理意见',
+      'contract.supervisorConclusion': '结论',
+      'contract.supervisorPass': '通过',
+      'contract.supervisorRework': '要求返工',
       'contract.accepted': '通过',
       'contract.rework': '返工',
       'contract.paused': '暂停',
@@ -505,6 +509,8 @@ window.__ModuleLoader__.load({
       'settings.supervisionAdvisory': '仅提醒',
       'settings.auditAgent': '审计 agent',
       'settings.auditAgentHint': '交付确认和预算结算卡弹出前，由子 agent 对照执行记录核对内容是否如实，并在卡片中显示审计结论。',
+      'settings.supervisorAgent': '监理子 Agent',
+      'settings.supervisorAgentHint': '每个里程碑验收前，独立监理先按合同审查完成内容与证据；未通过不会弹验收卡。',
       'settings.current': '当前对话',
       'settings.currentOn': '已开启',
       'settings.currentOff': '已关闭',
@@ -777,6 +783,10 @@ window.__ModuleLoader__.load({
       'contract.boundary': 'Boundary',
       'contract.boundaryChanged': 'Changed',
       'contract.boundaryUnchanged': 'Unchanged',
+      'contract.supervision': 'Supervisor review',
+      'contract.supervisorConclusion': 'Verdict',
+      'contract.supervisorPass': 'Passed',
+      'contract.supervisorRework': 'Rework required',
       'contract.cancelled': 'Closed',
       'contract.accepted': 'Accepted',
       'contract.rework': 'Rework',
@@ -823,6 +833,8 @@ window.__ModuleLoader__.load({
       'settings.supervisionAdvisory': 'Advisory',
       'settings.auditAgent': 'Audit agent',
       'settings.auditAgentHint': 'Before the delivery and settlement cards, a subagent checks the claims against the execution record and shows its verdict in the card.',
+      'settings.supervisorAgent': 'Supervisor subagent',
+      'settings.supervisorAgentHint': 'Before each milestone acceptance, an independent supervisor checks the work and evidence against the contract; a failed review blocks the acceptance card.',
       'settings.current': 'This conversation',
       'settings.currentOn': 'On',
       'settings.currentOff': 'Off',
@@ -2433,6 +2445,7 @@ window.__ModuleLoader__.load({
         ledgerEnabled: source.ledgerEnabled !== false,
         autoRetrospective: source.autoRetrospective !== false,
         auditAgent: source.auditAgent === true,
+        supervisorAgent: source.supervisorAgent === true,
         language: source.language === 'zh' || source.language === 'en' ? source.language : 'auto',
         supervisionMode: source.supervisionMode === 'advisory' ? 'advisory' : 'strict',
         qualityStandard: typeof source.qualityStandard === 'string' ? source.qualityStandard : '',
@@ -2497,6 +2510,7 @@ window.__ModuleLoader__.load({
           ledgerEnabled: true,
           autoRetrospective: true,
           auditAgent: false,
+          supervisorAgent: false,
           language: 'auto',
           supervisionMode: 'strict',
           qualityStandard: '',
@@ -2893,6 +2907,19 @@ window.__ModuleLoader__.load({
                     className: `ic-settings-switch${values.auditAgent ? ' on' : ''}`,
                     disabled: saving,
                     onClick: () => update('auditAgent', !values.auditAgent),
+                  }, React.createElement('i'))),
+                React.createElement('div', { className: 'ic-set-row' },
+                  React.createElement('div', { className: 'ic-set-copy' },
+                    React.createElement('span', { className: 'ic-set-label' }, t('settings.supervisorAgent')),
+                    React.createElement('span', { className: 'ic-set-hint' }, t('settings.supervisorAgentHint'))),
+                  React.createElement('button', {
+                    type: 'button',
+                    role: 'switch',
+                    'aria-checked': values.supervisorAgent,
+                    'aria-label': t('settings.supervisorAgent'),
+                    className: `ic-settings-switch${values.supervisorAgent ? ' on' : ''}`,
+                    disabled: saving,
+                    onClick: () => update('supervisorAgent', !values.supervisorAgent),
                   }, React.createElement('i'))),
                 React.createElement('div', { className: 'ic-set-row' },
                   React.createElement('div', { className: 'ic-set-copy' },
@@ -3481,6 +3508,7 @@ window.__ModuleLoader__.load({
           const budgetReviews = Array.isArray(contract?.budgetReviews) ? contract.budgetReviews : []
           const situations = Array.isArray(contract?.situations) ? contract.situations : []
           const audits = Array.isArray(contract?.audits) ? contract.audits : []
+          const supervisions = Array.isArray(contract?.supervisions) ? contract.supervisions : []
           const settlement = contract?.settlement
           const delivery = contract?.delivery
           const reportItems = []
@@ -3505,7 +3533,13 @@ window.__ModuleLoader__.load({
                 : null,
               item.gaps === undefined || item.gaps === '' ? null : React.createElement(React.Fragment, null,
                 React.createElement('div', { className: 'ic-contract-report-label' }, t('contract.gaps')),
-                React.createElement('pre', { className: 'ic-contract-book' }, item.gaps))))
+                React.createElement('pre', { className: 'ic-contract-book' }, item.gaps)),
+              supervisions.filter(review => review.milestone === item.milestone).length === 0 ? null : React.createElement(React.Fragment, null,
+                React.createElement('div', { className: 'ic-contract-report-label' }, t('contract.supervision')),
+                React.createElement('pre', { className: 'ic-contract-book' },
+                  supervisions.filter(review => review.milestone === item.milestone)
+                    .map(review => `${t('contract.supervisorConclusion')}：${review.decision === 'pass' ? t('contract.supervisorPass') : t('contract.supervisorRework')}\n${review.summary ?? ''}${Array.isArray(review.findings) && review.findings.length > 0 ? `\n${review.findings.join('\n')}` : ''}`)
+                    .join('\n\n')))))
             reportTitles.push(`${t('contract.report')} · ${item.milestone}`)
           })
           budgetReviews.forEach((item, at) => {

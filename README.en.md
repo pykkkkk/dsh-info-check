@@ -65,6 +65,22 @@ When enabled, before the delivery confirmation and budget settlement cards open,
 
 The audit is an advisory gate, not a replacement for the agent's work. If the subagent cannot start, the card shows an "audit unavailable" warning rather than silently passing.
 
+## Supervisor subagent
+
+Settings has an optional **Supervisor subagent**, off by default.
+
+When enabled, every `accept_milestone` call first starts an independent supervisor that reviews the current milestone against the confirmed contract:
+
+- whether the work covers the contract requirements and stays in scope;
+- whether the evidence is real and verifiable;
+- whether incomplete items, risks, or limits are hidden;
+- whether boundary changes are declared honestly;
+- it does not reject for extra work outside the contract.
+
+A failed review returns `supervisor-rework` with a required-changes list and does not open the acceptance card. The main agent revises and retries. Only after the supervisor passes does the card open, with the supervisor's verdict attached.
+
+The supervisor is fair, independent, and autonomous: it protects the client strictly, judges only against the contract, and does not over-demand from the contractor. Reviews are stored in the task archive.
+
 If a key boundary (region, scope, data, acceptance rule, budget) must change during execution, the agent must first call `situation_check` with `kind=boundary`, explain the original constraint, proposed change, and impact, and obtain a user answer. `accept_milestone` now requires `boundary.changed`; when true, acceptance is hard-rejected unless this milestone has an answered boundary alignment (timeout and close do not count).
 
 ## Situation alignment card
@@ -218,6 +234,7 @@ Click the underlined words to open settings. It has two tabs:
 Global settings include:
 
 - UI language: Auto / 中文 / English;
+- Supervisor subagent;
 
 - the number of milestones;
 - the expectation level: perfect, good, or pass;

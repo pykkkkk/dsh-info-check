@@ -3,6 +3,10 @@
 All notable user-facing changes are documented here. DSH compatibility is
 pinned by `engines.dsh`.
 
+## Unreleased
+
+- Optional supervisor subagent before every milestone acceptance: it reviews the work and evidence against the contract with a fair, independent, autonomous standard; a failed review returns a required-changes list without opening the acceptance card, and a passed review is attached to the card and task archive.
+
 ## 0.3.1 — 2026-11-24
 
 - Task archive entries use a ten-digit task number (`YYMMDDHHmm`) at task start; each task is stored separately with its project contract, milestone budget, acceptance reports, budget reviews, delivery details, ledger timeline, and final settlement financial table. The archive has totals and search.

@@ -38,6 +38,7 @@ import {
 import { createForecastBudgetTool } from './lib/forecast-tool.js'
 import { notifyDialog, listNotifications } from './lib/notify.js'
 import { auditBeforeCard, auditNote } from './lib/audit.js'
+import { superviseAcceptance, supervisorNote } from './lib/supervisor.js'
 
 export const inject = ['tools', 'systemPrompt', 'userQuestions', 'workingDirectory', 'sessionProjections', 'agents']
 
@@ -102,6 +103,7 @@ export const Config = z === undefined
       ledgerPath: z.string().default('.dsh-info-check/ledger.md').volatile(),
       autoRetrospective: z.boolean().default(true).volatile(),
       auditAgent: z.boolean().default(false).volatile(),
+      supervisorAgent: z.boolean().default(false).volatile(),
       language: z.string().default('auto').volatile(),
       supervisionMode: z.string().default('strict').volatile(),
       qualityStandard: z.string().default('').volatile(),
@@ -167,6 +169,7 @@ function defaultPolicy(settings) {
 7. **里程碑执行与验收**：每完成一个里程碑的文件/脚本后，立即调用 \`accept_milestone\` 验收**当前这一个**里程碑；验收必须提交至少一个本里程碑实际新增或修改的文件/脚本（files），且必须在上一里程碑验收之后更新。验收通过后可以继续同一轮，不需要中断对话；但下一个里程碑的文件必须在这之后修改。计划确认后里程碑数量锁定。
    执行中如遇到问题或决策拿不准，可随时调用 \`situation_check\` 发“情况对接”卡片：当前问题只读、列出 agent 建议、用户填写意见；动作会记入台账时间线。倒计时结束或用户关闭时，按 agent 自己的理解继续执行。
    **关键边界（地区、范围、数据、验收口径、预算）不得自行放宽或改变。** 一旦需要变化，必须先调用 \`situation_check\`，传 \`kind=boundary\`，说明原约束、拟变化和影响，并取得用户回答通过；超时或关闭不算通过。\`accept_milestone\` 必须提交 \`boundary.changed\`；若为 true，工具会检查本轮是否已有 answered 的 boundary 情况对接，否则拒绝验收。
+   设置中开启监理子 Agent 后，每次 \`accept_milestone\` 会先启动独立监理，按合同审查当前里程碑和证据。返回 \`supervisor-rework\` 时，不要弹卡给用户；先按 \`feedback\` 中的 requiredChanges 修改并重试。只有监理通过后验收卡才弹出，卡内会附监理结论。
 8. **预算审核**：验收通过后、进入下一里程碑前，必须调用 \`review_budget\`，提交累计已用、本阶段使用、追加请求和超支说明。甲方批准追加、不追加、要求调整或暂停；审核完成前不能提交下一里程碑验收。
 9. 如果验收或预算审核返回 \`decision=paused\`，立即停止当前任务：整理进度、未完成项/风险和相关文件路径，结束任务；不进入下一里程碑，也不调用 \`confirm_delivery\`。
 10. 任务明显简单且无歧义（单文件小改、用户已给出完整规格）时，说明假设后直接做，不必走完整流程；但成本仍要报告。
@@ -660,7 +663,7 @@ function createMilestoneTool({ ctx, enabledFor, getTimeoutSeconds, ledger }) {
   }
 }
 
-function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger, getSupervisionMode, budgetStore }) {
+function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger, getSupervisionMode, getSupervisorEnabled, budgetStore }) {
   return {
     name: 'accept_milestone',
     description: '在一个里程碑完成后，向用户验收：提交完成内容、验证证据、未完成或风险；用户验收通过（或倒计时结束）后再进入下一个里程碑。'
@@ -671,6 +674,7 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger, getSuper
       + '用户点“暂停任务”时返回 decision=paused；此时整理进度并结束当前任务，不进入下一里程碑。'
       + '可选 files 传结果文件绝对路径，验收卡会显示为“打开所在位置”链接。'
       + '必须声明 boundary：关键范围/地区/数据/验收口径是否发生变化；如果 changed=true，必须先通过 situation_check(kind=boundary) 得到用户回答，否则验收会被拒绝。'
+      + '开启监理子 Agent 后，验收前会先由独立监理按合同审查；未通过返回 supervisor-rework，主 agent 必须按 requiredChanges 修改后重试；监理通过后才弹出验收卡。'
       + '用户在备注里写的额外要求通过 notes 返回。',
     parameters: {
       type: 'object',
@@ -756,11 +760,46 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger, getSuper
           throw new Error('dsh-info-check: 验收文件在上一次里程碑验收后没有新的修改。请先完成当前里程碑的文件/脚本，再提交验收。')
         }
       }
+      let supervisor
+      if (getSupervisorEnabled?.() === true) {
+        supervisor = await superviseAcceptance({
+          ctx,
+          agent,
+          acceptance,
+          contract: budget.state,
+          signal: exec.signal,
+        })
+        await budgetStore.recordSupervision(agent.session, {
+          milestone: acceptance.milestone,
+          ...supervisor,
+        }).catch(() => {})
+        if (supervisor.decision !== 'pass') {
+          const changes = Array.isArray(supervisor.requiredChanges) && supervisor.requiredChanges.length > 0
+            ? `\n${supervisor.requiredChanges.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
+            : ''
+          const feedback = `${supervisor.summary ?? ''}${changes}`
+          await ledger.append(agent.session, `监理未通过：${acceptance.milestone}\n${feedback}`, {
+            type: 'supervision',
+            decision: supervisor.decision ?? 'unavailable',
+            milestone: acceptance.milestone,
+          }).catch(() => {})
+          return {
+            decision: supervisor.status === 'reviewed' ? 'supervisor-rework' : 'supervisor-unavailable',
+            proceed: false,
+            feedback,
+          }
+        }
+        await ledger.append(agent.session, `监理通过：${acceptance.milestone}\n${supervisor.summary ?? ''}`, {
+          type: 'supervision',
+          decision: 'pass',
+          milestone: acceptance.milestone,
+        }).catch(() => {})
+      }
       const question = {
         id: ACCEPT_MILESTONE_ID,
         header: 'dsh-info-check · 里程碑验收',
         question: `里程碑「${acceptance.milestone}」已完成，是否验收通过？`,
-        detail: acceptanceDetail(acceptance),
+        detail: `${acceptanceDetail(acceptance)}${supervisorNote(supervisor)}`,
         options: [
           { label: ACCEPT_LABEL, description: '验收通过，进入下一个里程碑' },
           { label: REWORK_LABEL, description: '不通过，需要返工' },
@@ -1003,6 +1042,7 @@ export function apply(ctx, config = {}) {
       : '.dsh-info-check/ledger.md'
     const autoRetrospective = readConfig(config.autoRetrospective, true) !== false
     const auditAgent = readConfig(config.auditAgent, false) === true
+    const supervisorAgent = readConfig(config.supervisorAgent, false) === true
     const rawLanguage = readConfig(config.language, 'auto')
     const language = rawLanguage === 'zh' || rawLanguage === 'en' ? rawLanguage : 'auto'
     const supervisionMode = readConfig(config.supervisionMode, 'strict') === 'advisory' ? 'advisory' : 'strict'
@@ -1010,6 +1050,7 @@ export function apply(ctx, config = {}) {
       milestoneCount, expectation, timeoutSeconds, maxQuestions, defaultEnabled,
       ledgerEnabled, ledgerPath, autoRetrospective, supervisionMode,
       auditAgent,
+      supervisorAgent,
       language,
     }
   }
@@ -1637,7 +1678,9 @@ export function apply(ctx, config = {}) {
     }),
     createAcceptTool({
       ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger,
-      getSupervisionMode: () => currentSettings().supervisionMode, budgetStore,
+      getSupervisionMode: () => currentSettings().supervisionMode,
+      getSupervisorEnabled: () => currentSettings().supervisorAgent,
+      budgetStore,
     }),
     createBudgetReviewTool({ ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger, budgetStore }),
     createDeliveryTool({
