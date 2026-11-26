@@ -891,7 +891,7 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger, getSuper
   }
 }
 
-function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger, onDeliveryConfirmed, budgetStore, getAuditEnabled }) {
+function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger, onDeliveryConfirmed, budgetStore, getAuditEnabled, getSupervisorEnabled }) {
   return {
     name: 'confirm_delivery',
     description: '在呈现最终结果前，向用户确认完成程度：提交完成程度、交付内容、未完成或限制、验证；用户确认（或倒计时结束）后才交付最终结果。'
@@ -934,7 +934,7 @@ function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger, onDeli
       const delivery = validateDelivery(args)
       const contract = await budgetStore.latest()
       const audit = getAuditEnabled?.() === true
-        ? await auditBeforeCard({ ctx, agent, kind: 'delivery', payload: delivery, contract, signal: exec.signal })
+        ? await auditBeforeCard({ ctx, agent, kind: 'delivery', payload: delivery, contract, signal: exec.signal, light: getSupervisorEnabled?.() === true })
         : undefined
       if (audit !== undefined) {
         await budgetStore.recordAudit(agent.session, { kind: 'delivery', ...audit }).catch(() => {})
@@ -1687,10 +1687,12 @@ export function apply(ctx, config = {}) {
       ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger,
       onDeliveryConfirmed: reviewAfterDelivery, budgetStore,
       getAuditEnabled: () => currentSettings().auditAgent,
+      getSupervisorEnabled: () => currentSettings().supervisorAgent,
     }),
     createBudgetSettlementTool({
       ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger, budgetStore,
       getAuditEnabled: () => currentSettings().auditAgent,
+      getSupervisorEnabled: () => currentSettings().supervisorAgent,
     }),
   ]
   for (const definition of definitions) {

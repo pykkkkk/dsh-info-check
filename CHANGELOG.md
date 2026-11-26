@@ -5,7 +5,7 @@ pinned by `engines.dsh`.
 
 ## Unreleased
 
-- Optional supervisor subagent before every milestone acceptance: it reviews the work and evidence against the contract with a fair, independent, autonomous standard; a failed review returns a required-changes list without opening the acceptance card, and a passed review is attached to the card and task archive.
+- Optional supervisor subagent before every milestone acceptance: it reviews the work and evidence against the contract with a fair, independent, autonomous standard; a failed review returns a required-changes list without opening the acceptance card, and a passed review is attached to the card and task archive. One supervisor child is reused per conversation so it keeps prior milestone context; when enabled, the delivery/settlement audit switches to lightweight mode.
 
 ## 0.3.1 — 2026-11-24
 

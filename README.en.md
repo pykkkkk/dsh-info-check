@@ -63,13 +63,13 @@ When enabled, before the delivery confirmation and budget settlement cards open,
 - checks whether completion, delivery, limits, actual usage, and variance are faithful;
 - appends a `faithful / issues` verdict to the card and writes it to the task ledger timeline.
 
-The audit is an advisory gate, not a replacement for the agent's work. If the subagent cannot start, the card shows an "audit unavailable" warning rather than silently passing.
+The audit is an advisory gate, not a replacement for the agent's work. If the subagent cannot start, the card shows an "audit unavailable" warning rather than silently passing. When the supervisor is enabled, the audit becomes a lightweight check of key completion claims and figures only, avoiding duplicate deep review.
 
 ## Supervisor subagent
 
 Settings has an optional **Supervisor subagent**, off by default.
 
-When enabled, every `accept_milestone` call first starts an independent supervisor that reviews the current milestone against the confirmed contract:
+When enabled, every `accept_milestone` call first starts an independent supervisor that reviews the current milestone against the confirmed contract. The same conversation reuses the same supervisor child, so it keeps the context of earlier milestone reviews instead of starting cold for every check.
 
 - whether the work covers the contract requirements and stays in scope;
 - whether the evidence is real and verifiable;
