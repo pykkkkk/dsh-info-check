@@ -52,6 +52,8 @@ After sign-off, a floating right-side budget panel appears:
 - each milestone's cumulative budget is a red dashed threshold;
 - it refreshes every three seconds from billing, falling back to token estimation.
 
+The × only collapses the panel; a **Budget** pill remains on the right. Click it to reopen with the accumulated data intact.
+
 ## Audit agent
 
 Settings has an optional **Audit agent** switch, off by default.
@@ -113,7 +115,9 @@ If the site permission is denied, system notifications are off, or Focus Assist 
 
 A progress bar appears just above the message box. Each milestone is a line-drawn stone tablet: progress moves forward faster, stops near the next tablet while it waits for acceptance, reaches the tablet when you accept, and finishes at the end after delivery, then hides. It reappears when the next task confirms its plan.
 
-Hover a tablet to see the milestone title. Progress is saved per conversation and survives switching, refreshing, or restoring the session. The milestone list is locked after plan confirmation and cannot grow or shrink before the task ends. When the task is over, use the × on the progress bar or run `/dsh-info-check reset` to clear it.
+Hover a tablet to see the milestone title. Progress is saved per conversation and survives switching, refreshing, or restoring the session. The milestone list is locked after plan confirmation and cannot grow or shrink before the task ends. The × only collapses the bar into a pill; click the pill to reopen. Use `/dsh-info-check reset` to clear it completely.
+
+During execution the main agent reports progress in one or two ordinary sentences, without opening a card, saying what it is doing and what comes next.
 
 ## Screenshots
 
@@ -235,6 +239,7 @@ Global settings include:
 
 - UI language: Auto / 中文 / English;
 - Supervisor subagent;
+- Tool/background timeout: 180 seconds by default; complex work may extend by 60–180 seconds;
 
 - the number of milestones;
 - the expectation level: perfect, good, or pass;

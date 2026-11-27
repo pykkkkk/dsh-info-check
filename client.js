@@ -222,7 +222,8 @@ window.__ModuleLoader__.load({
       'title': '信息核对',
       'progress.label': '任务进度',
       'progress.milestone': '里程碑',
-      'progress.clear': '清除进度条',
+      'progress.clear': '收起进度条',
+      'progress.open': '展开进度条',
       'state.on': '已开启',
       'state.off': '已关闭',
       'hint.on': '开工前核对意图，确认一次执行方案，逐个验收里程碑，交付前确认完成程度；每次选择都会写入 .dsh-info-check/ledger.md',
@@ -379,6 +380,8 @@ window.__ModuleLoader__.load({
       'settings.pass': '及格',
       'settings.passDesc': '满足最低可用标准；明确列出未做与限制。',
       'settings.timer': '自动计时',
+      'settings.toolTimeout': '工具/后台任务超时',
+      'settings.toolTimeoutHint': '单次工具或后台任务最多等待的秒数；超时先停止并查原因。复杂任务可临时放宽 60–180 秒。',
       'settings.timeout': '自动跳过时长',
       'settings.timeoutHint': '计时浮窗在无操作后自动继续的秒数（5–600）。',
       'settings.seconds': '秒',
@@ -498,6 +501,8 @@ window.__ModuleLoader__.load({
       'chart.budget': '预算',
       'chart.source': '计量来源',
       'chart.close': '收起预算图',
+      'chart.open': '展开预算图',
+      'chart.collapsed': '预算',
       'chart.waiting': '等待预算签约',
       'settings.openLocation': '打开所在位置',
       'settings.openFailed': '无法打开文件位置；文件可能尚未生成。',
@@ -545,7 +550,8 @@ window.__ModuleLoader__.load({
       'title': 'Info checker',
       'progress.label': 'Task progress',
       'progress.milestone': 'Milestone',
-      'progress.clear': 'Clear progress bar',
+      'progress.clear': 'Collapse progress bar',
+      'progress.open': 'Open progress bar',
       'state.on': 'On',
       'state.off': 'Off',
       'hint.on': 'Clarifies intent, confirms the plan once, accepts each milestone, and signs off delivery; choices go to .dsh-info-check/ledger.md',
@@ -702,6 +708,8 @@ window.__ModuleLoader__.load({
       'settings.pass': 'Pass',
       'settings.passDesc': 'Minimum usable standard; list every missing item and limitation.',
       'settings.timer': 'Auto-timer',
+      'settings.toolTimeout': 'Tool/background timeout',
+      'settings.toolTimeoutHint': 'Seconds to wait for a tool or background task; stop and diagnose on timeout. Complex work may extend by 60–180 seconds.',
       'settings.timeout': 'Auto-skip after',
       'settings.timeoutHint': 'Seconds before a timed dialog proceeds when idle (5–600).',
       'settings.seconds': 'sec',
@@ -822,6 +830,8 @@ window.__ModuleLoader__.load({
       'chart.budget': 'Budget',
       'chart.source': 'Source',
       'chart.close': 'Hide budget chart',
+      'chart.open': 'Open budget chart',
+      'chart.collapsed': 'Budget',
       'chart.waiting': 'Waiting for budget sign-off',
       'settings.openLocation': 'Open file location',
       'settings.openFailed': 'Could not open the file location; the file may not exist yet.',
@@ -1884,6 +1894,11 @@ window.__ModuleLoader__.load({
         const [titles, setTitles] = React.useState(() => (plan.milestones ?? []).map(item => item.title ?? ''))
         const [busy, setBusy] = React.useState(false)
         const [error, setError] = React.useState('')
+        const formKey = JSON.stringify({
+          round: plan.round ?? 1,
+          total: plan.total ?? 0,
+          milestones: (plan.milestones ?? []).map(item => [item.id, item.title ?? '', item.amount ?? 0]),
+        })
 
         React.useEffect(() => {
           setTotal(plan.total ?? 0)
@@ -1891,7 +1906,7 @@ window.__ModuleLoader__.load({
           setTitles((plan.milestones ?? []).map(item => item.title ?? ''))
           setBusy(false)
           setError('')
-        }, [pending.key])
+        }, [formKey])
 
         if (snapshot.closed) return null
 
@@ -2446,6 +2461,7 @@ window.__ModuleLoader__.load({
         autoRetrospective: source.autoRetrospective !== false,
         auditAgent: source.auditAgent === true,
         supervisorAgent: source.supervisorAgent === true,
+        toolTimeoutSeconds: clamp(source.toolTimeoutSeconds, 30, 3600, 180),
         language: source.language === 'zh' || source.language === 'en' ? source.language : 'auto',
         supervisionMode: source.supervisionMode === 'advisory' ? 'advisory' : 'strict',
         qualityStandard: typeof source.qualityStandard === 'string' ? source.qualityStandard : '',
@@ -2511,6 +2527,7 @@ window.__ModuleLoader__.load({
           autoRetrospective: true,
           auditAgent: false,
           supervisorAgent: false,
+          toolTimeoutSeconds: 180,
           language: 'auto',
           supervisionMode: 'strict',
           qualityStandard: '',
@@ -2815,6 +2832,31 @@ window.__ModuleLoader__.load({
                   placeholder: t('settings.qualityStandardHint'),
                   onChange: (event) => update('qualityStandard', event.target.value),
                 })),
+              React.createElement('div', { className: 'ic-set-section' },
+                React.createElement('div', { className: 'ic-set-head' }, t('settings.toolTimeout')),
+                React.createElement('div', { className: 'ic-set-row' },
+                  React.createElement('div', { className: 'ic-set-copy' },
+                    React.createElement('span', { className: 'ic-set-label' }, t('settings.toolTimeout')),
+                    React.createElement('span', { className: 'ic-set-hint' }, t('settings.toolTimeoutHint'))),
+                  React.createElement('div', { className: 'ic-set-control' },
+                    React.createElement('input', {
+                      className: 'ic-input ic-input-num',
+                      type: 'number',
+                      min: 30,
+                      max: 3600,
+                      value: values.toolTimeoutSeconds,
+                      disabled: saving,
+                      onChange: (event) => update('toolTimeoutSeconds', event.target.value === '' ? 0 : Number(event.target.value)),
+                    }),
+                    React.createElement('span', { className: 'ic-set-hint' }, t('settings.seconds')),
+                    React.createElement('div', { className: 'ic-preset' },
+                      [180, 300, 600].map(number => React.createElement('button', {
+                        key: number,
+                        type: 'button',
+                        className: values.toolTimeoutSeconds === number ? 'on' : '',
+                        disabled: saving,
+                        onClick: () => update('toolTimeoutSeconds', number),
+                      }, String(number))))))),
               React.createElement('div', { className: 'ic-set-section' },
                 React.createElement('div', { className: 'ic-set-head' }, t('settings.timer')),
                 React.createElement('div', { className: 'ic-set-row' },
@@ -3904,9 +3946,28 @@ window.__ModuleLoader__.load({
         }, [])
 
         const contract = data?.contract
-        if (closed || typeof document === 'undefined') return null
-        const portal = node => createPortal === undefined ? node : createPortal(node, document.body)
+        if (typeof document === 'undefined') return null
         if (contract === undefined || contract?.signed !== true) return null
+        const portal = node => createPortal === undefined ? node : createPortal(node, document.body)
+        if (closed) {
+          return portal(React.createElement('button', {
+            type: 'button',
+            onClick: () => setClosed(false),
+            title: t('chart.open'),
+            'aria-label': t('chart.open'),
+            style: {
+              position: 'fixed', right: '16px', top: '76px', zIndex: 4500,
+              display: 'flex', alignItems: 'center', gap: '6px',
+              border: '1px solid #dfe5ed', borderRadius: '999px',
+              background: 'rgba(255,255,255,.97)', color: '#1f2937',
+              boxShadow: '0 8px 24px rgba(15,23,42,.14)', cursor: 'pointer',
+              padding: '7px 11px', font: 'inherit', fontSize: '11px', fontWeight: 700,
+            },
+          },
+          React.createElement('span', { style: { width: '7px', height: '7px', borderRadius: '50%', background: '#4D6BFE' } }),
+          t('chart.collapsed'),
+          React.createElement('strong', { style: { color: '#4D6BFE' } }, `¥${(points.length > 0 ? points[points.length - 1].cny : 0).toFixed(2)}`)))
+        }
 
         const width = 310
         const height = 210
@@ -4090,6 +4151,7 @@ window.__ModuleLoader__.load({
         const show = enabled && milestones.length > 0
           && ['working', 'accepting', 'delivering'].includes(phase)
         const [visual, setVisual] = React.useState(0)
+        const [collapsed, setCollapsed] = React.useState(false)
         const [placement, setPlacement] = React.useState({
           left: 16,
           width: 640,
@@ -4181,6 +4243,26 @@ window.__ModuleLoader__.load({
 
         if (!show || createPortal === undefined || typeof document === 'undefined') return null
 
+        if (collapsed) {
+          return createPortal(React.createElement('button', {
+            type: 'button',
+            onClick: () => setCollapsed(false),
+            title: t('progress.open'),
+            'aria-label': t('progress.open'),
+            style: {
+              position: 'fixed', left: `${placement.left}px`, bottom: `${placement.bottom}px`,
+              zIndex: 4400, display: 'flex', alignItems: 'center', gap: '6px',
+              border: '1px solid #dfe5ed', borderRadius: '999px',
+              background: 'rgba(255,255,255,.97)', color: '#1f2937',
+              boxShadow: '0 8px 24px rgba(15,23,42,.14)', cursor: 'pointer',
+              padding: '6px 10px', font: 'inherit', fontSize: '10.5px', fontWeight: 700,
+            },
+          },
+          React.createElement('span', { style: { width: '7px', height: '7px', borderRadius: '50%', background: '#4D6BFE' } }),
+          t('progress.label'),
+          React.createElement('strong', { style: { color: '#4D6BFE' } }, `${accepted.length}/${milestones.length}`)), document.body)
+        }
+
         const total = milestones.length
         const done = accepted.length
         const fast = phase === 'accepting' || phase === 'delivering' || phase === 'delivered'
@@ -4223,7 +4305,7 @@ window.__ModuleLoader__.load({
           className: 'ic-progress-close',
           title: t('progress.clear'),
           'aria-label': t('progress.clear'),
-          onClick: dismiss,
+          onClick: () => setCollapsed(true),
         }, '×'))
 
         return createPortal(bar, document.body)

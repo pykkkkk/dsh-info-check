@@ -5,7 +5,11 @@ pinned by `engines.dsh`.
 
 ## Unreleased
 
-- Optional supervisor subagent before every milestone acceptance: it reviews the work and evidence against the contract with a fair, independent, autonomous standard; a failed review returns a required-changes list without opening the acceptance card, and a passed review is attached to the card and task archive. One supervisor child is reused per conversation so it keeps prior milestone context; when enabled, the delivery/settlement audit switches to lightweight mode.
+- Budget plan round 2 keeps the client total and milestone edits; the live chart and budget card no longer reset them during polling.
+- Budget chart and task progress bar collapse into a small floating pill and can be reopened instead of being closed permanently.
+- Main agent emits brief in-chat progress reports during execution, without opening a card.
+- Configurable tool/background timeout (default 180 seconds); plugin subagent reviews are bounded by it, and the agent stops waiting to diagnose after a timeout instead of hanging indefinitely.
+- Optional supervisor subagent before every milestone acceptance: it reviews the work and evidence against the contract with a fair, independent, autonomous standard; a failed review returns a required-changes list without opening the acceptance card, and a passed review is attached to the card and task archive. One supervisor child is reused per conversation and its id is persisted; when enabled, the delivery/settlement audit switches to lightweight mode.
 
 ## 0.3.1 — 2026-11-24
 

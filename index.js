@@ -104,6 +104,7 @@ export const Config = z === undefined
       autoRetrospective: z.boolean().default(true).volatile(),
       auditAgent: z.boolean().default(false).volatile(),
       supervisorAgent: z.boolean().default(false).volatile(),
+      toolTimeoutSeconds: z.number().int().min(30).max(3600).default(180).volatile(),
       language: z.string().default('auto').volatile(),
       supervisionMode: z.string().default('strict').volatile(),
       qualityStandard: z.string().default('').volatile(),
@@ -170,6 +171,7 @@ function defaultPolicy(settings) {
    执行中如遇到问题或决策拿不准，可随时调用 \`situation_check\` 发“情况对接”卡片：当前问题只读、列出 agent 建议、用户填写意见；动作会记入台账时间线。倒计时结束或用户关闭时，按 agent 自己的理解继续执行。
    **关键边界（地区、范围、数据、验收口径、预算）不得自行放宽或改变。** 一旦需要变化，必须先调用 \`situation_check\`，传 \`kind=boundary\`，说明原约束、拟变化和影响，并取得用户回答通过；超时或关闭不算通过。\`accept_milestone\` 必须提交 \`boundary.changed\`；若为 true，工具会检查本轮是否已有 answered 的 boundary 情况对接，否则拒绝验收。
    设置中开启监理子 Agent 后，每次 \`accept_milestone\` 会先启动独立监理，按合同审查当前里程碑和证据。返回 \`supervisor-rework\` 时，不要弹卡给用户；先按 \`feedback\` 中的 requiredChanges 修改并重试。只有监理通过后验收卡才弹出，卡内会附监理结论。
+   执行过程中要主动做**进度汇报**：用一两句普通正文说明当前正在做什么、下一步是什么；不弹卡，不写长篇。遇到长工具或后台任务，默认按设置的 3 分钟超时（\`toolTimeoutSeconds\`）等待；超时先中止并检查原因，不要干等。只有任务确实复杂时才可临时放宽 1–3 分钟，并在汇报中说明原因。
 8. **预算审核**：验收通过后、进入下一里程碑前，必须调用 \`review_budget\`，提交累计已用、本阶段使用、追加请求和超支说明。甲方批准追加、不追加、要求调整或暂停；审核完成前不能提交下一里程碑验收。
 9. 如果验收或预算审核返回 \`decision=paused\`，立即停止当前任务：整理进度、未完成项/风险和相关文件路径，结束任务；不进入下一里程碑，也不调用 \`confirm_delivery\`。
 10. 任务明显简单且无歧义（单文件小改、用户已给出完整规格）时，说明假设后直接做，不必走完整流程；但成本仍要报告。
@@ -768,6 +770,9 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger, getSuper
           acceptance,
           contract: budget.state,
           signal: exec.signal,
+          timeoutSeconds: currentSettings().toolTimeoutSeconds,
+          storedChildId: budget.state.supervisorId,
+          onChildId: childId => budgetStore.saveSupervisorId(agent.session, childId),
         })
         await budgetStore.recordSupervision(agent.session, {
           milestone: acceptance.milestone,
@@ -891,7 +896,7 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, ledger, getSuper
   }
 }
 
-function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger, onDeliveryConfirmed, budgetStore, getAuditEnabled, getSupervisorEnabled }) {
+function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger, onDeliveryConfirmed, budgetStore, getAuditEnabled, getSupervisorEnabled, getToolTimeout }) {
   return {
     name: 'confirm_delivery',
     description: '在呈现最终结果前，向用户确认完成程度：提交完成程度、交付内容、未完成或限制、验证；用户确认（或倒计时结束）后才交付最终结果。'
@@ -934,7 +939,7 @@ function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger, onDeli
       const delivery = validateDelivery(args)
       const contract = await budgetStore.latest()
       const audit = getAuditEnabled?.() === true
-        ? await auditBeforeCard({ ctx, agent, kind: 'delivery', payload: delivery, contract, signal: exec.signal, light: getSupervisorEnabled?.() === true })
+        ? await auditBeforeCard({ ctx, agent, kind: 'delivery', payload: delivery, contract, signal: exec.signal, light: getSupervisorEnabled?.() === true, timeoutSeconds: getToolTimeout?.() })
         : undefined
       if (audit !== undefined) {
         await budgetStore.recordAudit(agent.session, { kind: 'delivery', ...audit }).catch(() => {})
@@ -1043,6 +1048,10 @@ export function apply(ctx, config = {}) {
     const autoRetrospective = readConfig(config.autoRetrospective, true) !== false
     const auditAgent = readConfig(config.auditAgent, false) === true
     const supervisorAgent = readConfig(config.supervisorAgent, false) === true
+    const rawToolTimeout = Number(readConfig(config.toolTimeoutSeconds, 180))
+    const toolTimeoutSeconds = Number.isFinite(rawToolTimeout)
+      ? Math.min(3600, Math.max(30, Math.round(rawToolTimeout)))
+      : 180
     const rawLanguage = readConfig(config.language, 'auto')
     const language = rawLanguage === 'zh' || rawLanguage === 'en' ? rawLanguage : 'auto'
     const supervisionMode = readConfig(config.supervisionMode, 'strict') === 'advisory' ? 'advisory' : 'strict'
@@ -1051,6 +1060,7 @@ export function apply(ctx, config = {}) {
       ledgerEnabled, ledgerPath, autoRetrospective, supervisionMode,
       auditAgent,
       supervisorAgent,
+      toolTimeoutSeconds,
       language,
     }
   }
@@ -1688,11 +1698,13 @@ export function apply(ctx, config = {}) {
       onDeliveryConfirmed: reviewAfterDelivery, budgetStore,
       getAuditEnabled: () => currentSettings().auditAgent,
       getSupervisorEnabled: () => currentSettings().supervisorAgent,
+      getToolTimeout: () => currentSettings().toolTimeoutSeconds,
     }),
     createBudgetSettlementTool({
       ctx, enabledFor, getTimeoutSeconds: () => currentSettings().timeoutSeconds, ledger, budgetStore,
       getAuditEnabled: () => currentSettings().auditAgent,
       getSupervisorEnabled: () => currentSettings().supervisorAgent,
+      getToolTimeout: () => currentSettings().toolTimeoutSeconds,
     }),
   ]
   for (const definition of definitions) {
