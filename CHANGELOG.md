@@ -3,9 +3,10 @@
 All notable user-facing changes are documented here. DSH compatibility is
 pinned by `engines.dsh`.
 
-## Unreleased
+## 0.3.3 — 2026-11-27
 
 - Budget execution uses a conversation-header icon that toggles a floating chart window anchored left of the sidebar, so it does not cover the task archive.
+- Ordinary tool calls and background bash jobs are hard-limited by the configurable timeout (default 180 seconds); background jobs are killed on expiry. Supervisor/audit subagents are explicitly exempt from this limit.
 
 ## 0.3.2 — 2026-11-27
 

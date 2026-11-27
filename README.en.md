@@ -1,6 +1,6 @@
 <h1><img src="icon.svg" alt="dsh-info-check icon" width="36" height="36" align="middle" /> dsh-info-check</h1>
 
-[![Version](https://img.shields.io/badge/version-0.3.2-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/pykkkkk/dsh-info-check/releases)
+[![Version](https://img.shields.io/badge/version-0.3.3-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/pykkkkk/dsh-info-check/releases)
 [![DSH](https://img.shields.io/badge/DSH-0.2.2--rc.5-4D6BFE?style=flat-square&labelColor=1F1F1F)](https://github.com/deepseek-ai/deepseek-harness)
 [![License](https://img.shields.io/badge/license-MIT-4D6BFE?style=flat-square&labelColor=1F1F1F)](LICENSE)
 
@@ -162,7 +162,7 @@ dsh-info-check
 Or use npm:
 
 ```sh
-npm install dsh-info-check@0.3.2
+npm install dsh-info-check@0.3.3
 ```
 
 Refresh the page after installing. A small underlined **需求核对** switch will appear next to the agent preset.
