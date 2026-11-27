@@ -79,7 +79,15 @@ When enabled, every `accept_milestone` call first starts an independent supervis
 - whether boundary changes are declared honestly;
 - it does not reject for extra work outside the contract.
 
-A failed review returns `supervisor-rework` with a required-changes list and does not open the acceptance card. The main agent revises and retries. Only after the supervisor passes does the card open, with the supervisor's verdict attached.
+A major-rework review returns `supervisor-rework` with a required-changes list and does not open the acceptance card; the main agent revises and retries. After an accept or a minor fix, the card opens with the supervisor's verdict attached.
+
+The supervisor returns one of three signals:
+
+- `accept`: proceed directly to acceptance;
+- `minor`: small fixes only; the main agent fixes them and retries without re-sending to the supervisor;
+- `major`: major rework, then re-submit to the supervisor.
+
+When the supervisor is enabled, the audit (if also enabled) is lightweight and focuses on whether the `minor` fixes landed and on other overlooked details.
 
 The supervisor is fair, independent, and autonomous: it protects the client strictly, judges only against the contract, and does not over-demand from the contractor. Reviews are stored in the task archive.
 

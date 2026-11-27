@@ -5,6 +5,7 @@ pinned by `engines.dsh`.
 
 ## Unreleased
 
+- Supervisor signals `accept` / `minor` / `major`: `minor` lets the main agent fix and retry without re-review; `major` requires re-review. Lightweight audit focuses on minor fixes and overlooked details.
 - Budget plan round 2 keeps the client total and milestone edits; the live chart and budget card no longer reset them during polling.
 - Budget chart and task progress bar collapse into a small floating pill and can be reopened instead of being closed permanently.
 - Main agent emits brief in-chat progress reports during execution, without opening a card.

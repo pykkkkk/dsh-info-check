@@ -466,6 +466,8 @@ window.__ModuleLoader__.load({
       'contract.supervision': '监理意见',
       'contract.supervisorConclusion': '结论',
       'contract.supervisorPass': '通过',
+      'contract.supervisorMinor': '小修',
+      'contract.supervisorMajor': '重大返工',
       'contract.supervisorRework': '要求返工',
       'contract.accepted': '通过',
       'contract.rework': '返工',
@@ -793,7 +795,9 @@ window.__ModuleLoader__.load({
       'contract.boundaryUnchanged': 'Unchanged',
       'contract.supervision': 'Supervisor review',
       'contract.supervisorConclusion': 'Verdict',
-      'contract.supervisorPass': 'Passed',
+      'contract.supervisorPass': 'Accepted',
+      'contract.supervisorMinor': 'Minor fixes',
+      'contract.supervisorMajor': 'Major rework',
       'contract.supervisorRework': 'Rework required',
       'contract.cancelled': 'Closed',
       'contract.accepted': 'Accepted',
@@ -3580,7 +3584,7 @@ window.__ModuleLoader__.load({
                 React.createElement('div', { className: 'ic-contract-report-label' }, t('contract.supervision')),
                 React.createElement('pre', { className: 'ic-contract-book' },
                   supervisions.filter(review => review.milestone === item.milestone)
-                    .map(review => `${t('contract.supervisorConclusion')}：${review.decision === 'pass' ? t('contract.supervisorPass') : t('contract.supervisorRework')}\n${review.summary ?? ''}${Array.isArray(review.findings) && review.findings.length > 0 ? `\n${review.findings.join('\n')}` : ''}`)
+                    .map(review => `${t('contract.supervisorConclusion')}：${review.signal === 'accept' || review.decision === 'pass' ? t('contract.supervisorPass') : review.signal === 'minor' || review.decision === 'minor' ? t('contract.supervisorMinor') : t('contract.supervisorMajor')}\n${review.summary ?? ''}${Array.isArray(review.findings) && review.findings.length > 0 ? `\n${review.findings.join('\n')}` : ''}`)
                     .join('\n\n')))))
             reportTitles.push(`${t('contract.report')} · ${item.milestone}`)
           })
