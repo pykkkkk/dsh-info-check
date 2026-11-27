@@ -4085,6 +4085,35 @@ window.__ModuleLoader__.load({
       React.createElement('path', { d: 'M16.5 7H20v3.5' }))
     }
 
+    function createBudgetHeaderButton(ctx) {
+      return function BudgetHeaderButton(props) {
+        const t = useTranslate(ctx)
+        const active = props.usePanelInfo?.(info => info.activePanelId === BUDGET_PANEL_ID) === true
+        const open = () => {
+          try {
+            ctx.get?.('layout')?.selectPanel?.(BUDGET_PANEL_ID)
+          } catch {
+            // The layout service is unavailable while the shell is closing.
+          }
+        }
+        return React.createElement('button', {
+          type: 'button',
+          title: t('budget.nav'),
+          'aria-label': t('budget.nav'),
+          'aria-pressed': active,
+          onClick: open,
+          style: {
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: '28px', height: '28px', padding: 0,
+            border: 'none', borderRadius: '7px',
+            background: active ? 'rgba(77,107,254,.12)' : 'transparent',
+            color: active ? '#4D6BFE' : '#64748b',
+            cursor: 'pointer',
+          },
+        }, React.createElement(BudgetGlyph, { size: 18, active }))
+      }
+    }
+
     function createBudgetPage(ctx) {
       return function BudgetPage() {
         const t = useTranslate(ctx)
@@ -4551,12 +4580,12 @@ window.__ModuleLoader__.load({
           key: CONTRACT_PANEL_ID,
         }, ContractPage)), 'dsh-info-check: contract page')
 
-        ctx.effect(() => ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
-          name: 'sidebar.panellist',
-          id: BUDGET_PANEL_ID,
-          order: 31,
+        ctx.effect(() => ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
+          name: 'conversation.session.header.utilities',
+          id: 'dsh-info-check-budget-header',
+          order: 20,
           label: () => translateNow(ctx, 'budget.nav'),
-        }, BudgetGlyph)), 'dsh-info-check: budget sidebar entry')
+        }, createBudgetHeaderButton(ctx))), 'dsh-info-check: budget header entry')
 
         ctx.effect(() => ctx.slots.inject('main', () => ctx.slots.register({
           name: 'main',

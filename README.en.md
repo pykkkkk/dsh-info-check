@@ -45,7 +45,7 @@ After the task book is confirmed, call `forecast_budget` to estimate tokens with
 
 The rule, coefficients, and references are in [docs/PREDICTION.md](docs/PREDICTION.md). Actual spending still comes from usage-billing.
 
-After sign-off, a **Budget** entry appears in the sidebar; opening it shows the chart in the main content area instead of covering the sidebar:
+After sign-off, a **Budget** icon appears in the conversation header utilities; opening it shows the chart in the main content area instead of covering the sidebar:
 
 - the line shows cumulative actual usage after the task starts, measured from the whole-session cost baseline captured at budget sign-off;
 - the Y axis is CNY;

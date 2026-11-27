@@ -5,7 +5,7 @@ pinned by `engines.dsh`.
 
 ## Unreleased
 
-- Budget execution is embedded as a sidebar entry and main panel instead of a fixed overlay, so it no longer covers the task archive.
+- Budget execution is embedded as a conversation-header entry and main panel instead of a fixed overlay, so it no longer covers the task archive.
 
 ## 0.3.2 — 2026-11-27
 
