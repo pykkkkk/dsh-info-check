@@ -24,6 +24,7 @@ window.__ModuleLoader__.load({
     const BUDGET_REVIEW_ID = 'budget-review'
     const BUDGET_SETTLEMENT_ID = 'budget-settlement'
     const CONTRACT_PANEL_ID = 'dsh-info-check-contract'
+    const BUDGET_PANEL_ID = 'dsh-info-check-budget'
     const SIGN_BUDGET_LABEL = '签约并开始'
     const BUDGET_PLAN_CONFIRM_LABEL = '确认预算方案'
     const ADJUST_BUDGET_LABEL = '要求调整'
@@ -506,6 +507,13 @@ window.__ModuleLoader__.load({
       'chart.open': '展开预算图',
       'chart.collapsed': '预算',
       'chart.waiting': '等待预算签约',
+      'budget.nav': '预算',
+      'budget.subtitle': '任务级预算执行与里程碑阈值',
+      'budget.total': '总预算',
+      'budget.spent': '累计使用',
+      'budget.remaining': '剩余预算',
+      'budget.thresholds': '里程碑累计预算',
+      'budget.empty': '预算签约后显示执行曲线。',
       'settings.openLocation': '打开所在位置',
       'settings.openFailed': '无法打开文件位置；文件可能尚未生成。',
       'settings.autoRetrospective': '自动复盘',
@@ -837,6 +845,13 @@ window.__ModuleLoader__.load({
       'chart.open': 'Open budget chart',
       'chart.collapsed': 'Budget',
       'chart.waiting': 'Waiting for budget sign-off',
+      'budget.nav': 'Budget',
+      'budget.subtitle': 'Task-level budget execution and milestone thresholds',
+      'budget.total': 'Total budget',
+      'budget.spent': 'Spent',
+      'budget.remaining': 'Remaining',
+      'budget.thresholds': 'Cumulative milestone budgets',
+      'budget.empty': 'The execution chart appears after budget sign-off.',
       'settings.openLocation': 'Open file location',
       'settings.openFailed': 'Could not open the file location; the file may not exist yet.',
       'settings.autoRetrospective': 'Auto retrospective',
@@ -4052,6 +4067,139 @@ window.__ModuleLoader__.load({
       }
     }
 
+    function BudgetGlyph({ size = 22, active = false }) {
+      return React.createElement('svg', {
+        width: size,
+        height: size,
+        viewBox: '0 0 24 24',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: 1.7,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+        'aria-hidden': 'true',
+        style: { color: active ? '#4D6BFE' : 'currentColor' },
+      },
+      React.createElement('path', { d: 'M4 19V5M4 19h16' }),
+      React.createElement('path', { d: 'M7 15l3.5-4 3 2.5L20 7' }),
+      React.createElement('path', { d: 'M16.5 7H20v3.5' }))
+    }
+
+    function createBudgetPage(ctx) {
+      return function BudgetPage() {
+        const t = useTranslate(ctx)
+        const [data, setData] = React.useState(undefined)
+        const [points, setPoints] = React.useState([])
+        const contractRef = React.useRef('')
+
+        React.useEffect(() => {
+          let alive = true
+          const load = async () => {
+            try {
+              const response = await fetch('/dsh-info-check/budget-live', { cache: 'no-store' })
+              if (!response.ok) return
+              const body = await response.json()
+              if (!alive) return
+              setData(body)
+              if (!body?.contract?.signed) return
+              const id = String(body.contract.contractId ?? '')
+              if (contractRef.current !== id) {
+                contractRef.current = id
+                setPoints([])
+              }
+              const value = Math.max(0, Number(body.cost) || 0)
+              setPoints(previous => {
+                if (previous.length > 0 && Math.abs(previous[previous.length - 1].cny - value) < 0.005) return previous
+                return [...previous, { at: Number(body.at) || Date.now(), cny: value }].slice(-80)
+              })
+            } catch {
+              // Keep the last chart data while the local endpoint is unavailable.
+            }
+          }
+          load()
+          const timer = window.setInterval(load, 3000)
+          return () => {
+            alive = false
+            window.clearInterval(timer)
+          }
+        }, [])
+
+        const contract = data?.contract
+        if (contract === undefined || contract?.signed !== true) {
+          return React.createElement('div', { style: { padding: '48px 24px', color: '#64748b', fontSize: '13px' } },
+            t('budget.empty'))
+        }
+
+        const width = 900
+        const height = 320
+        const left = 64
+        const right = 860
+        const top = 18
+        const bottom = 270
+        const milestones = Array.isArray(contract?.initial?.milestones) ? contract.initial.milestones : []
+        const budgetTotal = Number(contract?.initial?.amount) || 0
+        const thresholds = []
+        let cumulative = 0
+        for (const item of milestones) {
+          cumulative += Number(item.amount) || 0
+          thresholds.push({ id: item.id, title: item.title, value: cumulative })
+        }
+        const current = points.length === 0 ? 0 : points[points.length - 1].cny
+        const maxY = Math.max(1, budgetTotal, current, ...thresholds.map(item => item.value)) * 1.15
+        const x = index => points.length <= 1 ? left : left + (index / (points.length - 1)) * (right - left)
+        const y = value => bottom - (Math.max(0, value) / maxY) * (bottom - top)
+        const line = points.map((item, index) => `${x(index)},${y(item.cny)}`).join(' ')
+        const last = points.length > 0 ? points[points.length - 1] : undefined
+        const remaining = budgetTotal - current
+
+        const kpi = (label, value, color) => React.createElement('div', {
+          style: { flex: '1 1 160px', minWidth: '150px', padding: '16px 18px', border: '1px solid #e5eaf2', borderRadius: '12px', background: '#fff' },
+        },
+        React.createElement('div', { style: { fontSize: '11px', color: '#64748b', marginBottom: '8px' } }, label),
+        React.createElement('div', { style: { fontSize: '22px', fontWeight: 700, color } }, value))
+
+        return React.createElement('div', { style: { maxWidth: '1040px', margin: '0 auto', padding: '28px 28px 40px', color: '#1f2937' } },
+          React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', marginBottom: '20px' } },
+            React.createElement('div', null,
+              React.createElement('h1', { style: { margin: 0, fontSize: '22px', fontWeight: 750 } }, t('chart.title')),
+              React.createElement('p', { style: { margin: '6px 0 0', color: '#64748b', fontSize: '12px' } }, t('budget.subtitle'))),
+            React.createElement('span', { style: { fontSize: '11px', color: '#64748b', paddingTop: '5px' } },
+              `${t('chart.source')}: ${data?.source ?? 'unavailable'}${last === undefined ? '' : ` · ${new Date(last.at).toLocaleTimeString()}`}`)),
+          React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' } },
+            kpi(t('budget.total'), `¥${budgetTotal.toFixed(2)}`, '#1f2937'),
+            kpi(t('budget.spent'), `¥${current.toFixed(2)}`, '#4D6BFE'),
+            kpi(t('budget.remaining'), `¥${remaining.toFixed(2)}`, remaining < 0 ? '#dc2626' : '#15803d')),
+          React.createElement('div', { style: { padding: '20px 22px', border: '1px solid #e5eaf2', borderRadius: '14px', background: '#fff', boxShadow: '0 8px 28px rgba(15,23,42,.06)' } },
+            React.createElement('svg', { viewBox: `0 0 ${width} ${height}`, width: '100%', height: 'auto', role: 'img', 'aria-label': t('chart.title') },
+              React.createElement('line', { x1: left, x2: right, y1: bottom, y2: bottom, stroke: '#e2e8f0' }),
+              React.createElement('line', { x1: left, x2: left, y1: top, y2: bottom, stroke: '#e2e8f0' }),
+              React.createElement('text', { x: left - 8, y: top + 4, textAnchor: 'end', fontSize: 11, fill: '#94a3b8' }, `¥${maxY.toFixed(1)}`),
+              React.createElement('text', { x: left - 8, y: bottom + 4, textAnchor: 'end', fontSize: 11, fill: '#94a3b8' }, '0'),
+              ...thresholds.map(item => React.createElement('g', { key: item.id },
+                React.createElement('line', {
+                  x1: left, x2: right, y1: y(item.value), y2: y(item.value),
+                  stroke: '#dc2626', strokeWidth: 1.2, strokeDasharray: '5 5', opacity: .7,
+                }),
+                React.createElement('text', { x: left + 4, y: y(item.value) - 5, fontSize: 10, fill: '#dc2626' }, `${item.id} ¥${item.value.toFixed(1)}`))),
+              points.length > 0 ? React.createElement('polyline', {
+                points: line, fill: 'none', stroke: '#4D6BFE', strokeWidth: 2.5,
+                strokeLinecap: 'round', strokeLinejoin: 'round',
+              }) : null,
+              points.length === 1 ? React.createElement('circle', { cx: x(0), cy: y(points[0].cny), r: 3, fill: '#4D6BFE' }) : null,
+              points.length > 0 ? React.createElement('circle', { cx: x(points.length - 1), cy: y(current), r: 3.5, fill: '#4D6BFE' }) : null,
+              React.createElement('text', { x: left, y: height - 4, fontSize: 10, fill: '#94a3b8' }, t('chart.cost')),
+              React.createElement('text', { x: right, y: height - 4, textAnchor: 'end', fontSize: 10, fill: '#94a3b8' }, `${t('chart.budget')} ¥${budgetTotal.toFixed(2)}`))),
+          React.createElement('div', { style: { marginTop: '16px', padding: '16px 18px', border: '1px solid #e5eaf2', borderRadius: '12px', background: '#fff' } },
+            React.createElement('div', { style: { fontSize: '12px', fontWeight: 700, marginBottom: '10px' } }, t('budget.thresholds')),
+            ...thresholds.map(item => React.createElement('div', {
+              key: item.id,
+              style: { display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '7px 0', borderTop: '1px solid #f1f5f9', fontSize: '12px' },
+            },
+            React.createElement('span', { style: { color: '#475569' } }, `${item.id} · ${item.title ?? ''}`),
+            React.createElement('strong', { style: { color: '#dc2626' } }, `¥${item.value.toFixed(2)}`)))))
+      }
+    }
+
     function createToggle(ctx) {
       const SettingsPanel = createSettingsPanel(ctx)
       return function Toggle(props) {
@@ -4403,10 +4551,17 @@ window.__ModuleLoader__.load({
           key: CONTRACT_PANEL_ID,
         }, ContractPage)), 'dsh-info-check: contract page')
 
-        ctx.effect(() => ctx.slots.inject('shell.overlay', () => ctx.slots.register({
-          name: 'shell.overlay',
-          id: 'dsh-info-check-budget-chart',
-        }, createBudgetChart(ctx))), 'dsh-info-check: budget chart overlay')
+        ctx.effect(() => ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
+          name: 'sidebar.panellist',
+          id: BUDGET_PANEL_ID,
+          order: 31,
+          label: () => translateNow(ctx, 'budget.nav'),
+        }, BudgetGlyph)), 'dsh-info-check: budget sidebar entry')
+
+        ctx.effect(() => ctx.slots.inject('main', () => ctx.slots.register({
+          name: 'main',
+          key: BUDGET_PANEL_ID,
+        }, createBudgetPage(ctx))), 'dsh-info-check: budget page')
 
         ctx.effect(() => ctx.slots.inject('shell.overlay', () => ctx.slots.register({
           name: 'shell.overlay',
