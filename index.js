@@ -174,7 +174,7 @@ function defaultPolicy(settings) {
    - \`accept\`：直接弹出验收卡；
    - \`minor\`：返回 \`supervisor-minor\`，按 requiredChanges 小修后重试；重试不再回传监理；
    - \`major\`：返回 \`supervisor-rework\`，必须返工并重新提交监理。
-   执行过程中要主动做**进度汇报**：用一两句普通正文说明当前正在做什么、下一步是什么；不弹卡，不写长篇。遇到长工具或后台任务，默认按设置的 3 分钟超时（\`toolTimeoutSeconds\`）等待；超时先中止并检查原因，不要干等。只有任务确实复杂时才可临时放宽 1–3 分钟，并在汇报中说明原因。
+   执行过程中要主动做**进度汇报**：用一两句普通正文说明当前正在做什么、下一步是什么；不弹卡，不写长篇。工具调用和后台任务默认按设置的 3 分钟强超时（\`toolTimeoutSeconds\`）：到点由插件中止等待并终止后台任务，先分析超时原因，不要干等；只有任务确实复杂时才可临时放宽 1–3 分钟，并在汇报中说明原因。**监理、审计等子 agent 不受这个时限约束**，不要给它们设置超时。
 8. **预算审核**：验收通过后、进入下一里程碑前，必须调用 \`review_budget\`，提交累计已用、本阶段使用、追加请求和超支说明。甲方批准追加、不追加、要求调整或暂停；审核完成前不能提交下一里程碑验收。
 9. 如果验收或预算审核返回 \`decision=paused\`，立即停止当前任务：整理进度、未完成项/风险和相关文件路径，结束任务；不进入下一里程碑，也不调用 \`confirm_delivery\`。
 10. 任务明显简单且无歧义（单文件小改、用户已给出完整规格）时，说明假设后直接做，不必走完整流程；但成本仍要报告。
@@ -792,7 +792,6 @@ function createAcceptTool({ ctx, enabledFor, getTimeoutSeconds, getToolTimeout, 
             acceptance,
             contract: budget.state,
             signal: exec.signal,
-            timeoutSeconds: getToolTimeout?.() ?? 180,
             storedChildId: budget.state.supervisorId,
             onChildId: childId => budgetStore.saveSupervisorId(agent.session, childId),
           })
@@ -982,7 +981,7 @@ function createDeliveryTool({ ctx, enabledFor, getTimeoutSeconds, ledger, onDeli
       const delivery = validateDelivery(args)
       const contract = await budgetStore.latest()
       const audit = getAuditEnabled?.() === true
-        ? await auditBeforeCard({ ctx, agent, kind: 'delivery', payload: delivery, contract, signal: exec.signal, light: getSupervisorEnabled?.() === true, focus: getSupervisorEnabled?.() === true ? supervisorAuditFocus(contract) : '', timeoutSeconds: getToolTimeout?.() })
+        ? await auditBeforeCard({ ctx, agent, kind: 'delivery', payload: delivery, contract, signal: exec.signal, light: getSupervisorEnabled?.() === true, focus: getSupervisorEnabled?.() === true ? supervisorAuditFocus(contract) : '' })
         : undefined
       if (audit !== undefined) {
         await budgetStore.recordAudit(agent.session, { kind: 'delivery', ...audit }).catch(() => {})
@@ -1757,4 +1756,64 @@ export function apply(ctx, config = {}) {
       `dsh-info-check: tool ${definition.name}`,
     )
   }
+
+  // Hard wall-clock guard for ordinary tool calls. Plugin confirmation tools that
+  // host supervisor/audit children are excluded: their subagents must not inherit
+  // the tool timeout. Background work still follows the same policy in the prompt.
+  const timeoutExcluded = new Set([
+    'info_check', 'confirm_budget', 'review_budget', 'accept_milestone',
+    'confirm_delivery', 'settle_budget', 'situation_check', 'forecast_budget',
+  ])
+  ctx.effect(() => ctx.on('tools/execute', async (exec, next) => {
+    if (timeoutExcluded.has(exec.name)) return next()
+    const timeoutMs = Math.max(30, Number(currentSettings().toolTimeoutSeconds) || 180) * 1000
+    let timer
+    try {
+      return await Promise.race([
+        next(),
+        new Promise((_, reject) => {
+          timer = setTimeout(() => {
+            reject(new Error(`工具「${exec.name}」超过 ${Math.round(timeoutMs / 1000)} 秒未完成，已中止等待。请先分析超时原因，再调整运行方式或临时放宽超时后重试。`))
+          }, timeoutMs)
+        }),
+      ])
+    } finally {
+      clearTimeout(timer)
+    }
+  }), 'dsh-info-check: tool timeout guard')
+
+  // Background bash jobs are outside a tool call's awaited lifetime. Watch the
+  // job registry directly and kill a job that exceeds the same wall-clock limit.
+  ctx.effect(() => {
+    const jobs = ctx.get?.('jobs')
+    if (jobs?.events?.subscribe === undefined || typeof jobs.kill !== 'function') return
+    const timers = new Map()
+    const clear = (id) => {
+      const timer = timers.get(id)
+      if (timer !== undefined) clearTimeout(timer)
+      timers.delete(id)
+    }
+    const schedule = (job) => {
+      if (job?.status !== 'running' || timers.has(job.id)) return
+      const timeoutMs = Math.max(30, Number(currentSettings().toolTimeoutSeconds) || 180) * 1000
+      timers.set(job.id, setTimeout(() => {
+        timers.delete(job.id)
+        try {
+          jobs.kill(job.id, job.owner, `超过 ${Math.round(timeoutMs / 1000)} 秒未完成，自动终止`)
+        } catch {
+          // The job may have settled between the timer and the kill.
+        }
+      }, timeoutMs))
+    }
+    const unsubscribe = jobs.events.subscribe({ owners: 'all' }, event => {
+      if (event?.type === 'registered' || event?.type === 'progress') schedule(event.job)
+      if (event?.type === 'settled' || event?.type === 'removed') clear(event.job?.id)
+    })
+    for (const job of jobs.list?.() ?? []) schedule(job)
+    return () => {
+      unsubscribe?.()
+      for (const timer of timers.values()) clearTimeout(timer)
+      timers.clear()
+    }
+  }, 'dsh-info-check: background job timeout guard')
 }

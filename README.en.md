@@ -247,7 +247,7 @@ Global settings include:
 
 - UI language: Auto / 中文 / English;
 - Supervisor subagent;
-- Tool/background timeout: 180 seconds by default; complex work may extend by 60–180 seconds;
+- Tool/background timeout: 180 seconds by default; on expiry the wait is aborted and background work is stopped. Supervisor/audit subagents are exempt;
 
 - the number of milestones;
 - the expectation level: perfect, good, or pass;
