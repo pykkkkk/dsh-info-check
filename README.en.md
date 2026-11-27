@@ -45,14 +45,14 @@ After the task book is confirmed, call `forecast_budget` to estimate tokens with
 
 The rule, coefficients, and references are in [docs/PREDICTION.md](docs/PREDICTION.md). Actual spending still comes from usage-billing.
 
-After sign-off, a **Budget** icon appears in the conversation header utilities; opening it shows the chart in the main content area instead of covering the sidebar:
+After sign-off, a **Budget** icon appears in the conversation header utilities; clicking it opens a floating budget window anchored just left of the sidebar instead of covering the task archive:
 
 - the line shows cumulative actual usage after the task starts, measured from the whole-session cost baseline captured at budget sign-off;
 - the Y axis is CNY;
 - each milestone's cumulative budget is a red dashed threshold;
 - it refreshes every three seconds from billing, falling back to token estimation.
 
-The budget page does not cover the sidebar; data keeps refreshing when you switch to another main panel.
+Click the header budget icon again to close the floating window; switching main panels does not turn it into a separate page.
 
 ## Audit agent
 

@@ -900,6 +900,26 @@ window.__ModuleLoader__.load({
       listeners: new Set(),
     }
 
+    const budgetWindowState = {
+      open: false,
+      listeners: new Set(),
+    }
+
+    function setBudgetWindowOpen(open) {
+      budgetWindowState.open = open === true
+      for (const listener of budgetWindowState.listeners) listener()
+    }
+
+    function useBudgetWindowOpen() {
+      return React.useSyncExternalStore(
+        listener => {
+          budgetWindowState.listeners.add(listener)
+          return () => budgetWindowState.listeners.delete(listener)
+        },
+        () => budgetWindowState.open,
+      )
+    }
+
     function effectiveLanguage(ctx) {
       if (languageState.value === 'zh' || languageState.value === 'en') return languageState.value
       try {
@@ -3928,8 +3948,28 @@ window.__ModuleLoader__.load({
         const t = useTranslate(ctx)
         const [data, setData] = React.useState(undefined)
         const [points, setPoints] = React.useState([])
-        const [closed, setClosed] = React.useState(false)
+        const [rightOffset, setRightOffset] = React.useState(16)
+        const open = useBudgetWindowOpen()
         const contractRef = React.useRef('')
+
+        React.useEffect(() => {
+          const measure = () => {
+            const node = document.querySelector('[data-rightbar-col]')
+            const width = node?.getBoundingClientRect?.().width ?? 0
+            setRightOffset(Math.max(16, Math.round(width) + 16))
+          }
+          measure()
+          window.addEventListener('resize', measure)
+          const node = document.querySelector('[data-rightbar-col]')
+          const observer = typeof ResizeObserver === 'function' && node !== null
+            ? new ResizeObserver(measure)
+            : undefined
+          if (observer !== undefined) observer.observe(node)
+          return () => {
+            window.removeEventListener('resize', measure)
+            observer?.disconnect()
+          }
+        }, [])
 
         React.useEffect(() => {
           let alive = true
@@ -3945,7 +3985,6 @@ window.__ModuleLoader__.load({
               if (contractRef.current !== id) {
                 contractRef.current = id
                 setPoints([])
-                setClosed(false)
               }
               const value = Math.max(0, Number(body.cost) || 0)
               setPoints(previous => {
@@ -3966,27 +4005,8 @@ window.__ModuleLoader__.load({
 
         const contract = data?.contract
         if (typeof document === 'undefined') return null
-        if (contract === undefined || contract?.signed !== true) return null
+        if (!open || contract === undefined || contract?.signed !== true) return null
         const portal = node => createPortal === undefined ? node : createPortal(node, document.body)
-        if (closed) {
-          return portal(React.createElement('button', {
-            type: 'button',
-            onClick: () => setClosed(false),
-            title: t('chart.open'),
-            'aria-label': t('chart.open'),
-            style: {
-              position: 'fixed', right: '16px', top: '76px', zIndex: 4500,
-              display: 'flex', alignItems: 'center', gap: '6px',
-              border: '1px solid #dfe5ed', borderRadius: '999px',
-              background: 'rgba(255,255,255,.97)', color: '#1f2937',
-              boxShadow: '0 8px 24px rgba(15,23,42,.14)', cursor: 'pointer',
-              padding: '7px 11px', font: 'inherit', fontSize: '11px', fontWeight: 700,
-            },
-          },
-          React.createElement('span', { style: { width: '7px', height: '7px', borderRadius: '50%', background: '#4D6BFE' } }),
-          t('chart.collapsed'),
-          React.createElement('strong', { style: { color: '#4D6BFE' } }, `¥${(points.length > 0 ? points[points.length - 1].cny : 0).toFixed(2)}`)))
-        }
 
         const width = 310
         const height = 210
@@ -4012,7 +4032,7 @@ window.__ModuleLoader__.load({
         return portal(React.createElement('aside', {
           style: {
             position: 'fixed',
-            right: '16px',
+            right: `${rightOffset}px`,
             top: '76px',
             width: '332px',
             zIndex: 4500,
@@ -4032,7 +4052,7 @@ window.__ModuleLoader__.load({
           React.createElement('b', { style: { fontSize: '12px' } }, t('chart.title')),
           React.createElement('button', {
             type: 'button',
-            onClick: () => setClosed(true),
+            onClick: () => setBudgetWindowOpen(false),
             title: t('chart.close'),
             style: { marginLeft: 'auto', border: 'none', background: 'transparent', color: '#94a3b8', fontSize: '16px', cursor: 'pointer' },
           }, '×')),
@@ -4086,16 +4106,10 @@ window.__ModuleLoader__.load({
     }
 
     function createBudgetHeaderButton(ctx) {
-      return function BudgetHeaderButton(props) {
+      return function BudgetHeaderButton() {
         const t = useTranslate(ctx)
-        const active = props.usePanelInfo?.(info => info.activePanelId === BUDGET_PANEL_ID) === true
-        const open = () => {
-          try {
-            ctx.get?.('layout')?.selectPanel?.(BUDGET_PANEL_ID)
-          } catch {
-            // The layout service is unavailable while the shell is closing.
-          }
-        }
+        const active = useBudgetWindowOpen()
+        const open = () => setBudgetWindowOpen(!active)
         return React.createElement('button', {
           type: 'button',
           title: t('budget.nav'),
@@ -4587,10 +4601,10 @@ window.__ModuleLoader__.load({
           label: () => translateNow(ctx, 'budget.nav'),
         }, createBudgetHeaderButton(ctx))), 'dsh-info-check: budget header entry')
 
-        ctx.effect(() => ctx.slots.inject('main', () => ctx.slots.register({
-          name: 'main',
-          key: BUDGET_PANEL_ID,
-        }, createBudgetPage(ctx))), 'dsh-info-check: budget page')
+        ctx.effect(() => ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+          name: 'shell.overlay',
+          id: 'dsh-info-check-budget-chart',
+        }, createBudgetChart(ctx))), 'dsh-info-check: budget chart overlay')
 
         ctx.effect(() => ctx.slots.inject('shell.overlay', () => ctx.slots.register({
           name: 'shell.overlay',
