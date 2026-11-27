@@ -104,7 +104,7 @@ export const Config = z === undefined
       autoRetrospective: z.boolean().default(true).volatile(),
       auditAgent: z.boolean().default(false).volatile(),
       supervisorAgent: z.boolean().default(false).volatile(),
-      toolTimeoutSeconds: z.number().int().min(30).max(3600).default(180).volatile(),
+      toolTimeoutSeconds: z.number().min(30).max(3600).default(180).volatile(),
       language: z.string().default('auto').volatile(),
       supervisionMode: z.string().default('strict').volatile(),
       qualityStandard: z.string().default('').volatile(),
