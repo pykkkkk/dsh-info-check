@@ -3,8 +3,9 @@
 All notable user-facing changes are documented here. DSH compatibility is
 pinned by `engines.dsh`.
 
-## Unreleased
+## 0.3.2 — 2026-11-27
 
+- Task archive ledger is now an accordion: opening one task closes the previous one.
 - Supervisor signals `accept` / `minor` / `major`: `minor` lets the main agent fix and retry without re-review; `major` requires re-review. Lightweight audit focuses on minor fixes and overlooked details.
 - Budget plan round 2 keeps the client total and milestone edits; the live chart and budget card no longer reset them during polling.
 - Budget chart and task progress bar collapse into a small floating pill and can be reopened instead of being closed permanently.
